@@ -1,21 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import { Header, Footer } from "@/components/layout";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Passprive",
-  description: "Passprive application",
+  title: "PassPrive",
+  description: "Discover restaurants, explore menus, book tables, pay bills — all in one place.",
 };
 
 export default function RootLayout({
@@ -24,13 +20,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <Navbar />
+    <html lang="en" className={`${plusJakarta.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col font-sans">
+        <Header />
         {children}
+        <Footer />
       </body>
     </html>
   );

@@ -7,8 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-plus-jakarta);
   --font-mono: var(--font-geist-mono);
+  --color-brand: var(--brand);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -49,6 +50,7 @@
 }
 
 :root {
+  --brand: #a855f7;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -126,5 +128,11 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .hero-bg-image {
+    background-image: url('/images/hero-bg.jpg');
   }
 }
