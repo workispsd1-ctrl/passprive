@@ -1,9 +1,9 @@
-import Link from 'next/link'
-import Image from 'next/image'
-import { MapPin, Search } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { HeaderNav } from './HeaderNav'
 import { HeaderActions } from './HeaderActions'
+import { SearchBar } from '@/components/SearchBar'
+import { DesktopHeaderClient } from './DesktopHeaderClient'
 
 export async function Header() {
   const supabase = await createClient()
@@ -14,30 +14,8 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
 
-      {/* Desktop layout */}
-      <div className="hidden md:flex mx-auto max-w-7xl px-6 h-16 items-center justify-between gap-8">
-        <div className="flex items-center gap-5 shrink-0">
-          <Link href="/" aria-label="PassPrive home" className="flex items-center">
-            <Image
-              src="/passpriveLogo.png"
-              alt="PassPrive"
-              width={180}
-              height={58}
-              className="h-12 w-auto object-contain"
-            />
-          </Link>
-          <button
-            type="button"
-            aria-label="Change location"
-            className="flex items-center gap-1 text-[13px] text-gray-700 hover:text-gray-900 transition-colors"
-          >
-            <MapPin className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
-            <span className="font-medium">Gurugram, Haryana</span>
-          </button>
-        </div>
-        <HeaderNav />
-        <HeaderActions user={user} />
-      </div>
+      {/* Desktop layout — client component owns search state */}
+      <DesktopHeaderClient user={user} />
 
       {/* Mobile layout */}
       <div className="md:hidden">
@@ -59,10 +37,7 @@ export async function Header() {
 
         {/* Row 2: Search bar */}
         <div className="px-4 pb-2">
-          <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 h-9">
-            <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" aria-hidden="true" />
-            <span className="text-[12px] text-gray-400">Search for events, movies and restaurants</span>
-          </div>
+          <SearchBar variant="mobile" />
         </div>
 
         {/* Row 3: Tab nav */}

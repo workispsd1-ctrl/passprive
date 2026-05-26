@@ -4,9 +4,7 @@ import { MdOutlineQrCodeScanner } from 'react-icons/md'
 
 export function AppCTASection() {
   return (
-    <section className="bg-white py-16 px-4 md:px-6">
-      <div className="mx-auto max-w-7xl">
-
+    <section className="bg-white py-6 px-4 md:py-16 md:px-6">
         {/* Dark purple gradient card */}
         <div className="relative rounded-3xl overflow-hidden bg-linear-to-br from-[#1e0d4a] via-[#150a38] to-[#0c0622] px-8 py-10 md:px-16 md:py-14">
 
@@ -78,7 +76,6 @@ export function AppCTASection() {
           </div>
 
         </div>
-      </div>
     </section>
   )
 }

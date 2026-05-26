@@ -8,6 +8,8 @@ import LoginDialog from '@/components/LoginDialog'
 
 interface Props {
   user: { email?: string } | null
+  onSearchOpen?: () => void
+  searchActive?: boolean
 }
 
 function getInitials(email?: string) {
@@ -18,7 +20,7 @@ function getInitials(email?: string) {
   return name.slice(0, 2).toUpperCase()
 }
 
-export function HeaderActions({ user }: Props) {
+export function HeaderActions({ user, onSearchOpen, searchActive }: Props) {
   const router = useRouter()
   const [signingOut, setSigningOut] = useState(false)
 
@@ -31,22 +33,25 @@ export function HeaderActions({ user }: Props) {
 
   return (
     <div className="flex items-center gap-1 shrink-0">
-      <button
-        type="button"
-        aria-label="Search"
-        className="hidden md:flex p-2 rounded-full hover:bg-gray-50 transition-colors"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <defs>
-            <linearGradient id="search-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#a855f7" />
-              <stop offset="100%" stopColor="#ec4899" />
-            </linearGradient>
-          </defs>
-          <circle cx="11" cy="11" r="8" stroke="url(#search-grad)" />
-          <path d="m21 21-4.35-4.35" stroke="url(#search-grad)" />
-        </svg>
-      </button>
+      {!searchActive && (
+        <button
+          type="button"
+          aria-label="Search"
+          onClick={onSearchOpen}
+          className="hidden md:flex p-2 rounded-full hover:bg-gray-50 transition-colors"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <defs>
+              <linearGradient id="search-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#ec4899" />
+              </linearGradient>
+            </defs>
+            <circle cx="11" cy="11" r="8" stroke="url(#search-grad)" />
+            <path d="m21 21-4.35-4.35" stroke="url(#search-grad)" />
+          </svg>
+        </button>
+      )}
 
       {user ? (
         <Menu.Root>
@@ -60,7 +65,6 @@ export function HeaderActions({ user }: Props) {
           <Menu.Portal>
             <Menu.Positioner side="bottom" align="end" sideOffset={8}>
               <Menu.Popup className="min-w-50 rounded-xl bg-white shadow-lg ring-1 ring-black/5 py-1.5 outline-none origin-top data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95">
-                {/* User email label */}
                 <div className="px-3 py-2 border-b border-gray-100 mb-1">
                   <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Signed in as</p>
                   <p className="text-[13px] text-gray-800 font-semibold truncate mt-0.5">{user.email}</p>

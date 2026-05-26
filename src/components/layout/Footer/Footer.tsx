@@ -206,7 +206,7 @@ export function Footer() {
             </div>
 
             <div className='flex justify-end gap-20'>
-              <div className='flex flex-wrap gap-x-14 gap-y-8 md:justify-center md:pt-1'>
+              <div className='flex gap-x-14 md:pt-1'>
                 <FooterNavColumn title='Legal' links={LEGAL_LINKS} />
                 <FooterNavColumn title='Support' links={SUPPORT_LINKS} />
                 <FooterNavColumn title='Partners' links={PARTNER_LINKS} />
