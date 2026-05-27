@@ -199,7 +199,7 @@ export function HeroSearchBar() {
               onClick={() => { setQuery(''); setResults([]); setIsOpen(false); inputRef.current?.focus() }}
               className="mr-1 shrink-0 p-1"
             >
-              <X className="w-3.5 h-3.5 text-gray-400" />
+
             </button>
           )}
           <button

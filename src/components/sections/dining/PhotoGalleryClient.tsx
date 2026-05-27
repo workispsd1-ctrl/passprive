@@ -115,13 +115,13 @@ export function PhotoGalleryProvider({
           </div>
 
           {/* Thumbnail strip */}
-          {photos.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto px-4 py-3 shrink-0 scrollbar-hide">
+          <div className="flex justify-center gap-2 overflow-x-auto px-4 py-3 shrink-0 scrollbar-hide">
               {photos.map((url, i) => (
                 <button
                   key={url}
                   type="button"
                   onClick={() => setCurrent(i)}
+                  aria-label={`View photo ${i + 1}`}
                   className={`relative shrink-0 w-14 h-14 rounded-lg overflow-hidden transition-all duration-150 ${
                     i === current
                       ? 'ring-2 ring-white opacity-100'
@@ -131,8 +131,7 @@ export function PhotoGalleryProvider({
                   <Image src={url} alt="" fill className="object-cover" sizes="56px" />
                 </button>
               ))}
-            </div>
-          )}
+          </div>
         </div>
       )}
     </GalleryContext.Provider>
@@ -143,9 +142,11 @@ export function PhotoGalleryProvider({
 export function PhotoGrid({
   photos,
   restaurantName,
+  backHref = '/dining',
 }: {
   photos: string[]
   restaurantName: string
+  backHref?: string
 }) {
   const { openAt } = useGallery()
 
@@ -182,6 +183,7 @@ export function PhotoGrid({
               <button
                 type="button"
                 onClick={() => openAt(i)}
+                aria-label={`View photo ${i + 1}`}
                 className="absolute inset-0 w-full h-full group focus-visible:outline-none"
               >
                 <Image
@@ -226,9 +228,9 @@ export function PhotoGrid({
           <div className="w-full h-full bg-linear-to-br from-brand/30 to-pink-200" />
         )}
         <Link
-          href="/dining"
+          href={backHref}
           className="absolute top-4 left-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-white/90 shadow"
-          aria-label="Back to dining"
+          aria-label="Back"
         >
           <Navigation className="w-4 h-4 text-gray-800 rotate-225" />
         </Link>
@@ -276,6 +278,7 @@ export function PhotoStrip({ photos }: { photos: string[] }) {
           <button
             type='button'
             onClick={() => scroll('left')}
+            aria-label='Scroll left'
             className='hidden md:flex w-10 h-10 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50 transition'
           >
             <ChevronLeft className='w-5 h-5 text-gray-700' />
@@ -285,6 +288,7 @@ export function PhotoStrip({ photos }: { photos: string[] }) {
           <button
             type='button'
             onClick={() => scroll('right')}
+            aria-label='Scroll right'
             className='hidden md:flex w-10 h-10 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50 transition'
           >
             <ChevronRight className='w-5 h-5 text-gray-700' />
@@ -312,6 +316,7 @@ export function PhotoStrip({ photos }: { photos: string[] }) {
               key={`${url}-${i}`}
               type='button'
               onClick={() => openAt(i)}
+              aria-label={`View photo ${i + 1}`}
               className='relative shrink-0 w-36 h-28 md:w-56 lg:w-60 md:h-40 rounded-2xl overflow-hidden bg-gray-100 focus-visible:outline-none group'
             >
               <Image

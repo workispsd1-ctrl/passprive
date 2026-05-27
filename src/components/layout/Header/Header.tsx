@@ -1,9 +1,9 @@
-import { MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { HeaderNav } from './HeaderNav'
 import { HeaderActions } from './HeaderActions'
 import { SearchBar } from '@/components/SearchBar'
 import { DesktopHeaderClient } from './DesktopHeaderClient'
+import { LocationButton } from './LocationButton'
 
 export async function Header() {
   const supabase = await createClient()
@@ -21,17 +21,7 @@ export async function Header() {
       <div className="md:hidden">
         {/* Row 1: Location + User */}
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
-          <button
-            type="button"
-            aria-label="Change location"
-            className="flex items-center gap-1.5"
-          >
-            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" aria-hidden="true" />
-            <div className="flex flex-col items-start leading-tight">
-              <span className="text-[13px] font-bold text-gray-900">Gurugram</span>
-              <span className="text-[11px] text-gray-400">Haryana</span>
-            </div>
-          </button>
+          <LocationButton variant="mobile" />
           <HeaderActions user={user} />
         </div>
 

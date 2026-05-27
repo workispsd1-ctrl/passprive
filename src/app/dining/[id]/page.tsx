@@ -1,7 +1,16 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
-import { MapPin, Star, Phone, Share2, Navigation, Tag, Store, BadgeCheck, ThumbsUp } from 'lucide-react'
+import {
+  MapPin,
+  Star,
+  Phone,
+  Share2,
+  Navigation,
+  BadgeCheck,
+  ThumbsUp,
+  Info,
+  CreditCard,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { BookingWidget } from '@/components/sections/dining/BookingWidget'
 import {
@@ -9,6 +18,10 @@ import {
   PhotoGrid,
   PhotoStrip,
 } from '@/components/sections/dining/PhotoGalleryClient'
+import {
+  MenuGalleryProvider,
+  MenuImageCard,
+} from '@/components/sections/dining/MenuGalleryClient'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,6 +39,8 @@ type Restaurant = {
   is_pure_veg: boolean
   booking_enabled: boolean
   menu_json: MenuJson | null
+  latitude: number | null
+  longitude: number | null
 }
 
 type MenuJson = {
@@ -87,7 +102,7 @@ type ReviewSummary = { avg: number; count: number }
 
 const STORAGE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SELECT_FIELDS =
-  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json'
+  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude'
 
 async function getData(slugOrId: string) {
   const supabase = await createClient()
@@ -120,7 +135,7 @@ async function getData(slugOrId: string) {
     }
   }
 
-  const [offersRes, tagsRes, reviewsRes, storageRes, reviewPhotosRes] =
+  const [offersRes, tagsRes, reviewsRes, storageRes, reviewPhotosRes, menuAssetsRes] =
     await Promise.allSettled([
       supabase
         .from('restaurant_offers')
@@ -151,6 +166,13 @@ async function getData(slugOrId: string) {
         .eq('restaurant_id', restaurant.id)
         .eq('is_approved', true)
         .not('photo_urls', 'eq', '{}'),
+      supabase
+        .from('restaurant_media_assets')
+        .select('file_url, sort_order')
+        .eq('restaurant_id', restaurant.id)
+        .eq('asset_type', 'menu')
+        .eq('is_active', true)
+        .order('sort_order'),
     ])
 
   const offers: Offer[] =
@@ -159,6 +181,10 @@ async function getData(slugOrId: string) {
     tagsRes.status === 'fulfilled' ? (tagsRes.value.data ?? []) : []
   const reviews: Review[] =
     reviewsRes.status === 'fulfilled' ? (reviewsRes.value.data ?? []) : []
+  const menuImages: string[] =
+    menuAssetsRes.status === 'fulfilled'
+      ? (menuAssetsRes.value.data ?? []).map(a => a.file_url).filter(Boolean)
+      : []
 
   const reviewSummary: ReviewSummary =
     reviews.length > 0
@@ -171,7 +197,6 @@ async function getData(slugOrId: string) {
         }
       : { avg: 0, count: 0 }
 
-  // Build gallery from storage + review photos
   const storageFiles =
     storageRes.status === 'fulfilled' ? (storageRes.value.data ?? []) : []
   const storagePhotos = storageFiles
@@ -204,38 +229,17 @@ async function getData(slugOrId: string) {
     reviews,
     reviewSummary,
     galleryPhotos,
+    menuImages,
   }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatOffer(offer: Offer): string {
-  const parts: string[] = []
-  if (offer.discount_value != null) {
-    parts.push(
-      offer.offer_type === 'percentage'
-        ? `${offer.discount_value}% off`
-        : `₹${offer.discount_value} off`,
-    )
-  }
-  if (offer.min_spend != null)
-    parts.push(`Min spend ₹${offer.min_spend.toLocaleString()}`)
-  return parts.join(' · ') || offer.description || ''
-}
 
-function StarRow({ value, max = 5 }: { value: number; max?: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: max }).map((_, i) => (
-        <Star
-          key={i}
-          className={`w-3 h-3 ${
-            i < Math.round(value) ? 'fill-amber-400 text-amber-400' : 'text-gray-200'
-          }`}
-        />
-      ))}
-    </div>
-  )
+function ratingAvg(reviews: Review[], key: 'food_rating' | 'service_rating' | 'ambience_rating'): number | null {
+  const vals = reviews.map(r => r[key]).filter((v): v is number => v != null)
+  if (!vals.length) return null
+  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
 }
 
 function timeAgo(iso: string): string {
@@ -256,7 +260,7 @@ export default async function RestaurantPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { restaurant, offers, tags, reviews, reviewSummary, galleryPhotos } =
+  const { restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages } =
     await getData(id)
 
   if (!restaurant) notFound()
@@ -265,374 +269,573 @@ export default async function RestaurantPage({
   const facilityTags = tags.filter(t => t.tag_type === 'facility').map(t => t.tag_value)
   const cuisineLabel = cuisineTags.join(', ')
   const sections: MenuSection[] = restaurant.menu_json?.sections ?? []
+  // Prefer media_assets menu images, fall back to menu_json urls
+  const fullMenuImages: string[] = menuImages.length > 0
+    ? menuImages
+    : (restaurant.menu_json?.full_menu_image_urls ?? [])
   const breadcrumbCity = restaurant.city ?? restaurant.area ?? 'Dining'
+
+  const foodAvg = ratingAvg(reviews, 'food_rating')
+  const serviceAvg = ratingAvg(reviews, 'service_rating')
+  const ambienceAvg = ratingAvg(reviews, 'ambience_rating')
+
+  const mainOffers = offers.filter(o => o.offer_type !== 'bank_card' && o.offer_type !== 'credit_card')
+  const bankOffers = offers.filter(o => o.offer_type === 'bank_card' || o.offer_type === 'credit_card')
 
   return (
     <PhotoGalleryProvider photos={galleryPhotos}>
-      <main className="min-h-screen bg-white pb-24 md:pb-0">
-
+      <main className='min-h-screen bg-white pb-24 md:pb-0'>
         {/* ── Gallery ── */}
-        <PhotoGrid photos={galleryPhotos} restaurantName={restaurant.name} />
+        <PhotoGrid
+          photos={galleryPhotos}
+          restaurantName={restaurant.name}
+        />
 
         {/* ── Content ── */}
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
-
+        <div className='max-w-7xl mx-auto px-4 md:px-6'>
           {/* Breadcrumb */}
-          <nav className="pt-4 pb-2 text-[13px] text-gray-400 hidden md:flex items-center gap-1.5">
-            <Link href="/dining" className="hover:text-gray-600 transition-colors">
+          <nav className='pt-3 pb-2 text-[12px] text-gray-400 hidden md:flex items-center gap-1.5'>
+            <Link
+              href='/'
+              className='hover:text-gray-600 transition-colors'
+            >
+              Home page
+            </Link>
+            <span>/</span>
+            <Link
+              href='/dining'
+              className='hover:text-gray-600 transition-colors'
+            >
               {breadcrumbCity}
             </Link>
             <span>/</span>
-            <span className="text-gray-700 font-medium">{restaurant.name}</span>
+            <span className='text-gray-600'>{restaurant.name}</span>
           </nav>
 
-          <div className="md:grid md:grid-cols-[1fr_340px] md:gap-10 md:items-start md:pt-2">
-
-
-            <div className="min-w-0">
-
-              <div className="flex items-start gap-2 mt-4 md:mt-0 flex-wrap">
-                <h1 className="text-3xl md:text-[40px] font-bold text-gray-900 leading-tight">
-                  {restaurant.name}
-                </h1>
-                {restaurant.is_pure_veg && (
-                  <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-200 text-[11px] font-semibold text-green-700 mt-1">
-                    <BadgeCheck className="w-3 h-3" /> Pure Veg
-                  </span>
-                )}
-              </div>
-
-
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-3">
-                {reviewSummary.avg > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-600 text-white text-[13px] font-bold">
-                    {reviewSummary.avg}
-                    <Star className="w-3 h-3 fill-white" />
-                  </span>
-                )}
-                {reviewSummary.count > 0 && (
-                  <span className="text-[13px] text-gray-500">
-                    {reviewSummary.count.toLocaleString()}{' '}
-                    {reviewSummary.count === 1 ? 'review' : 'reviews'}
-                  </span>
-                )}
-                {restaurant.cost_for_two != null && (
-                  <>
-                    <span className="text-gray-300">|</span>
-                    <span className="text-[13px] text-gray-600">
-                      ₹{restaurant.cost_for_two.toLocaleString()} for two
+          <div className='md:grid md:grid-cols-[1fr_340px] md:gap-10 md:items-start md:pt-2'>
+            {/* ── Left Column ── */}
+            <div className='min-w-0'>
+              {/* Restaurant name + meta */}
+              <div className='mt-4 md:mt-0'>
+                <div className='flex items-start gap-2 flex-wrap'>
+                  <h1 className='text-[28px] md:text-[36px] font-bold text-gray-900 leading-tight'>
+                    {restaurant.name}
+                  </h1>
+                  {restaurant.is_pure_veg && (
+                    <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-200 text-[11px] font-semibold text-green-700 mt-1.5'>
+                      <BadgeCheck className='w-3 h-3' /> Pure Veg
                     </span>
-                  </>
-                )}
-              </div>
-
-              {cuisineLabel && (
-                <p className="text-[13px] text-gray-500 mt-1.5">{cuisineLabel}</p>
-              )}
-
-              {(restaurant.full_address ?? restaurant.area) && (
-                <div className="flex items-start gap-1.5 mt-2.5">
-                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                  <span className="text-[13px] text-gray-600">
-                    {restaurant.full_address ?? `${restaurant.area}, ${restaurant.city}`}
-                  </span>
+                  )}
                 </div>
-              )}
 
-              {facilityTags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {facilityTags.map(f => (
-                    <span
-                      key={f}
-                      className="px-2.5 py-0.5 rounded-full bg-gray-100 text-[11px] font-medium text-gray-600"
-                    >
-                      {f}
+                {/* Rating + cost + status line */}
+                <div className='flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[14px]'>
+                  {reviewSummary.avg > 0 && (
+                    <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-700 text-white text-[13px] font-bold'>
+                      {reviewSummary.avg}
+                      <Star className='w-3 h-3 fill-white' />
                     </span>
-                  ))}
+                  )}
+                  {restaurant.cost_for_two != null && (
+                    <>
+                      <span className='text-gray-300 font-light'>|</span>
+                      <span className='text-gray-800 font-medium'>
+                        ₹{restaurant.cost_for_two.toLocaleString()} for two
+                      </span>
+                    </>
+                  )}
+                  <span className='text-gray-300 font-light'>|</span>
+                  <span className='text-orange-500 font-semibold'>Closed</span>
+                  <span className='text-gray-400'>•</span>
+                  <span className='text-gray-500'>Opens in 13 min</span>
                 </div>
-              )}
 
-              {/* Actions */}
-              <div className="flex flex-wrap gap-2 mt-4">
-                <button type="button" className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                  <Navigation className="w-3.5 h-3.5" /> Directions
-                </button>
-                <button type="button" className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                  <Share2 className="w-3.5 h-3.5" /> Share
-                </button>
-                {restaurant.phone && (
-                  <a
-                    href={`tel:${restaurant.phone}`}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                {/* Address */}
+                {(restaurant.full_address ?? restaurant.area) && (
+                  <div className='flex items-start gap-1.5 mt-3'>
+                    <MapPin className='w-4 h-4 text-gray-400 mt-0.5 shrink-0' />
+                    <span className='text-[13px] text-gray-500 leading-snug'>
+                      {restaurant.full_address ??
+                        `${restaurant.area}, ${restaurant.city}`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className='flex flex-wrap gap-3 mt-5'>
+                  <button
+                    type='button'
+                    className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
                   >
-                    <Phone className="w-3.5 h-3.5" /> Call
-                  </a>
-                )}
-                <button type="button" className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                  <Store className="w-3.5 h-3.5" /> All outlets
-                </button>
+                    <Navigation className='w-4 h-4' /> Direction
+                  </button>
+                  <button
+                    type='button'
+                    className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
+                  >
+                    <Share2 className='w-4 h-4' /> Share
+                  </button>
+                  {restaurant.phone && (
+                    <a
+                      href={`tel:${restaurant.phone}`}
+                      className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
+                    >
+                      <Phone className='w-4 h-4' /> Call
+                    </a>
+                  )}
+                </div>
               </div>
 
-              {restaurant.description && (
-                <p className="mt-5 text-[14px] text-gray-600 leading-relaxed">
-                  {restaurant.description}
-                </p>
+              {/* ── Info highlight cards ── */}
+              {(restaurant.description ||
+                cuisineLabel ||
+                facilityTags.length > 0) && (
+                <div className='flex gap-4 mt-7 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
+                  {restaurant.description && (
+                    <div className='shrink-0 w-72 border border-gray-200 rounded-2xl p-5 bg-white'>
+                      <div className='flex items-center gap-2.5 mb-3'>
+                        <span className='text-[22px]'>💎</span>
+                        <span className='text-[14px] font-bold text-gray-900'>
+                          About the place
+                        </span>
+                      </div>
+                      <p className='text-[13px] text-gray-500 leading-relaxed line-clamp-3'>
+                        {restaurant.description}
+                      </p>
+                      <button
+                        type='button'
+                        className='text-[13px] text-gray-500 mt-2 hover:text-gray-700'
+                      >
+                        view more
+                      </button>
+                    </div>
+                  )}
+                  {cuisineLabel && (
+                    <div className='shrink-0 w-72 border border-gray-200 rounded-2xl p-5 bg-white'>
+                      <div className='flex items-center gap-2.5 mb-3'>
+                        <span className='text-[22px]'>🍲</span>
+                        <span className='text-[14px] font-bold text-gray-900'>
+                          Must tries dishes and cuisines
+                        </span>
+                      </div>
+                      <p className='text-[13px] text-gray-500 leading-relaxed line-clamp-3'>
+                        {cuisineLabel}
+                      </p>
+                      <button
+                        type='button'
+                        className='text-[13px] text-gray-500 mt-2 hover:text-gray-700'
+                      >
+                        view more
+                      </button>
+                    </div>
+                  )}
+                  {facilityTags.length > 0 && (
+                    <div className='shrink-0 w-72 border border-gray-200 rounded-2xl p-5 bg-white'>
+                      <div className='flex items-center gap-2.5 mb-3'>
+                        <span className='text-[22px]'>✨</span>
+                        <span className='text-[14px] font-bold text-gray-900'>
+                          Must try experiences
+                        </span>
+                      </div>
+                      <p className='text-[13px] text-gray-500 leading-relaxed line-clamp-3'>
+                        {facilityTags.slice(0, 4).join(', ')}
+                      </p>
+                      <button
+                        type='button'
+                        className='text-[13px] text-gray-500 mt-2 hover:text-gray-700'
+                      >
+                        view more
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* ── Offers ── */}
               {offers.length > 0 && (
-                <section className="mt-8 border-t border-gray-100 pt-6">
-                  <h2 className="text-[20px] font-bold text-gray-900 mb-4">Offers</h2>
-                  <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1">
-                    {offers.map(offer => (
+                <section className='mt-8 border-t border-gray-100 pt-6'>
+                  <h2 className='text-[22px] font-bold text-gray-900 mb-4'>
+                    Offers
+                  </h2>
+
+                  {/* Ticket-style offer cards */}
+                  <div className='flex gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
+                    {mainOffers.map((offer) => (
                       <div
                         key={offer.id}
-                        className="shrink-0 w-64 flex items-start gap-3 p-3.5 rounded-2xl border border-gray-200"
+                        className='shrink-0 w-80 relative'
                       >
-                        <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
-                          <Tag className="w-5 h-5 text-brand" />
+                        {/* Card body */}
+                        <div className='flex h-[100px] rounded-2xl overflow-hidden'>
+                          {/* Left: dark purple gradient */}
+                          <div className='w-[140px] shrink-0 bg-gradient-to-br from-violet-600 via-purple-500 to-purple-400 flex flex-col justify-center px-4 py-3'>
+                            <p className='text-white font-black text-[18px] leading-tight'>
+                              {offer.title}
+                            </p>
+                            {offer.badge_text && (
+                              <span className='mt-1.5 text-[10px] font-semibold text-white/80 bg-white/20 rounded px-1.5 py-0.5 inline-block w-fit'>
+                                {offer.badge_text}
+                              </span>
+                            )}
+                          </div>
+                          {/* Right: light section */}
+                          <div className='flex-1 bg-violet-50 flex flex-col justify-center px-4 py-3'>
+                            {offer.description && (
+                              <p className='text-[13px] font-semibold text-gray-900 leading-snug'>
+                                {offer.description}
+                              </p>
+                            )}
+                            {offer.min_spend != null && (
+                              <p className='text-[12px] text-gray-500 mt-0.5'>
+                                Min spend ₹{offer.min_spend.toLocaleString()}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-[13px] font-semibold text-gray-900 leading-tight">
-                            {offer.title}
-                          </p>
-                          <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
-                            {formatOffer(offer)}
-                          </p>
-                          {offer.badge_text && (
-                            <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-brand/10 text-[10px] font-bold text-brand tracking-wide">
-                              {offer.badge_text}
-                            </span>
-                          )}
-                        </div>
+                        {/* Notch circles at divider top/bottom */}
+                        <div className='absolute top-0 left-[140px] -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white border border-gray-200 z-10' />
+                        <div className='absolute bottom-0 left-[140px] -translate-x-1/2 translate-y-1/2 w-5 h-5 rounded-full bg-white border border-gray-200 z-10' />
                       </div>
                     ))}
                   </div>
+
+                  {/* Additional offers (bank card) */}
+                  {bankOffers.length > 0 && (
+                    <div className='mt-5'>
+                      <p className='flex items-center gap-1.5 text-[13px] font-semibold text-gray-500 mb-3'>
+                        <span className='w-1.5 h-1.5 rounded-full bg-gray-400 inline-block' />
+                        Additional offers
+                      </p>
+                      <div className='flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
+                        {bankOffers.map((offer) => (
+                          <div
+                            key={offer.id}
+                            className='shrink-0 w-52 border border-gray-200 rounded-xl p-3 bg-gray-50 flex items-start gap-2.5'
+                          >
+                            <div className='w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0'>
+                              <CreditCard className='w-4 h-4 text-gray-400' />
+                            </div>
+                            <p className='text-[12px] text-gray-700 leading-snug font-medium line-clamp-3'>
+                              {offer.title}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </section>
               )}
 
               {/* ── Menu ── */}
-              {sections.length > 0 && (
-                <section className="mt-8 border-t border-gray-100 pt-6">
-                  <h2 className="text-[20px] font-bold text-gray-900 mb-1">Menu</h2>
-                  {sections.map(section => (
-                    <div key={section.id} className="mt-6">
-                      <h3 className="text-[16px] font-bold text-gray-800 mb-3">
-                        {section.name}
-                      </h3>
-                      {section.description && (
-                        <p className="text-[12px] text-gray-400 -mt-2 mb-3">
-                          {section.description}
-                        </p>
-                      )}
-                      <div className="flex flex-col divide-y divide-gray-50">
-                        {section.items
-                          .filter(item => item.is_available)
-                          .map(item => (
-                            <div key={item.id} className="flex items-start gap-4 py-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                                  <span
-                                    className={`w-3.5 h-3.5 rounded-sm border-2 inline-flex items-center justify-center shrink-0 ${
-                                      item.is_veg ? 'border-green-600' : 'border-red-500'
-                                    }`}
-                                  >
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full ${
-                                        item.is_veg ? 'bg-green-600' : 'bg-red-500'
-                                      }`}
-                                    />
-                                  </span>
-                                  <p className="text-[14px] font-semibold text-gray-900">
-                                    {item.name}
-                                  </p>
-                                  {item.is_bestseller && (
-                                    <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                                      Bestseller
-                                    </span>
-                                  )}
-                                </div>
-                                {item.price != null && (
-                                  <p className="text-[13px] font-bold text-gray-800 mt-0.5">
-                                    ₹{item.price.toLocaleString()}
-                                  </p>
-                                )}
-                                {item.description && (
-                                  <p className="text-[12px] text-gray-400 mt-1 line-clamp-2">
-                                    {item.description}
-                                  </p>
-                                )}
-                              </div>
-                              {item.image_urls?.[0] && (
-                                <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 bg-gray-100">
-                                  <Image
-                                    src={item.image_urls[0]}
-                                    alt={item.name}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                </div>
-                              )}
-                            </div>
+              <section className='mt-8 border-t border-gray-100 pt-6'>
+                <h2 className='text-[22px] font-bold text-gray-900 mb-1'>
+                  Menu
+                </h2>
+
+                <MenuGalleryProvider images={fullMenuImages}>
+                  <div className='flex gap-4 mt-4 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
+                    {sections.length > 0
+                      ? sections.map((section, i) => (
+                          <MenuImageCard
+                            key={section.id}
+                            src={fullMenuImages[i] ?? null}
+                            alt={section.name}
+                            index={i}
+                            label={section.name}
+                            sublabel={`${section.items.length} pages`}
+                          />
+                        ))
+                      : fullMenuImages.length > 0
+                        ? fullMenuImages.map((url, i) => (
+                            <MenuImageCard
+                              key={url}
+                              src={url}
+                              alt={`Menu ${i + 1}`}
+                              index={i}
+                              label='Menu'
+                              sublabel={`${i + 1} of ${fullMenuImages.length}`}
+                            />
+                          ))
+                        : ['Food', 'Beverages', 'Bar'].map((label) => (
+                            <MenuImageCard
+                              key={label}
+                              src={null}
+                              alt={label}
+                              index={0}
+                              label={label}
+                              sublabel='—'
+                            />
                           ))}
+                  </div>
+                </MenuGalleryProvider>
+              </section>
+
+              {/* ── Photos strip ── */}
+              <PhotoStrip photos={galleryPhotos} />
+
+              {/* ── Ratings & reviews ── */}
+              {reviews.length > 0 && (
+                <section className='mt-8 border-t border-gray-100 pt-6'>
+                  <h2 className='text-[22px] font-bold text-gray-900 mb-5'>
+                    Ratings &amp; reviews
+                  </h2>
+
+                  {/* Outer card */}
+                  <div className='rounded-3xl bg-gray-50 border border-gray-200 p-6 md:p-8'>
+                    {/* Large rating number */}
+                    <div className='text-center'>
+                      <div className='flex items-center justify-center gap-2'>
+                        <span className='text-[52px] font-bold text-green-700 leading-none'>
+                          {reviewSummary.avg}
+                        </span>
+                        <Star className='w-9 h-9 fill-green-700 text-green-700' />
+                      </div>
+                      <p className='text-[16px] font-bold text-gray-900 mt-3'>
+                        Based on {reviewSummary.count.toLocaleString()} ratings
+                      </p>
+                      <div className='flex items-center justify-center gap-1 mt-1'>
+                        <span className='text-[13px] text-gray-400'>
+                          how are ratings calculated?
+                        </span>
+                        <Info className='w-4 h-4 text-gray-400' />
                       </div>
                     </div>
-                  ))}
+
+                    {/* Sub-ratings pill */}
+                    {(foodAvg != null ||
+                      serviceAvg != null ||
+                      ambienceAvg != null) && (
+                      <div className='flex justify-center mt-6'>
+                        <div className='inline-flex rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden divide-x divide-gray-200'>
+                          {foodAvg != null && (
+                            <div className='flex flex-col items-center px-8 py-3.5'>
+                              <span className='text-[17px] font-bold text-gray-900'>
+                                {foodAvg}
+                              </span>
+                              <span className='text-[13px] text-gray-500 mt-0.5'>
+                                Food
+                              </span>
+                            </div>
+                          )}
+                          {serviceAvg != null && (
+                            <div className='flex flex-col items-center px-8 py-3.5'>
+                              <span className='text-[17px] font-bold text-gray-900'>
+                                {serviceAvg}
+                              </span>
+                              <span className='text-[13px] text-gray-500 mt-0.5'>
+                                Service
+                              </span>
+                            </div>
+                          )}
+                          {ambienceAvg != null && (
+                            <div className='flex flex-col items-center px-8 py-3.5'>
+                              <span className='text-[17px] font-bold text-gray-900'>
+                                {ambienceAvg}
+                              </span>
+                              <span className='text-[13px] text-gray-500 mt-0.5'>
+                                Ambience
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reviews count */}
+                    <p className='text-center text-[22px] font-bold text-gray-900 mt-7 mb-5'>
+                      {reviewSummary.count.toLocaleString()} reviews
+                    </p>
+
+                    {/* Review cards — horizontal scroll */}
+                    <div className='flex gap-4 overflow-x-auto scrollbar-hide -mx-6 px-6 pb-1'>
+                      {reviews.map((review) => (
+                        <div
+                          key={review.id}
+                          className='shrink-0 w-72 bg-white border border-gray-100 rounded-2xl p-4'
+                        >
+                          <div className='flex items-center justify-between gap-2'>
+                            <div className='flex items-center gap-2.5'>
+                              <div className='w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0'>
+                                <span className='text-[14px] font-bold text-gray-600'>
+                                  {(review.username_snapshot ??
+                                    'A')[0].toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <p className='text-[14px] font-bold text-gray-900 leading-tight'>
+                                  {review.username_snapshot ?? 'Anonymous'}
+                                </p>
+                                <p className='text-[12px] text-gray-400'>
+                                  {timeAgo(review.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                            <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-700 text-white text-[13px] font-bold shrink-0'>
+                              {review.rating}
+                              <Star className='w-3 h-3 fill-white' />
+                            </span>
+                          </div>
+
+                          {review.review_text && (
+                            <p className='mt-3 text-[13px] text-gray-600 leading-relaxed line-clamp-3'>
+                              {review.review_text}
+                            </p>
+                          )}
+                          {review.review_text &&
+                            review.review_text.length > 120 && (
+                              <button
+                                type='button'
+                                className='text-[13px] font-bold text-gray-800 mt-1'
+                              >
+                                Read more
+                              </button>
+                            )}
+
+                          {(review.liked_tags ?? []).length > 0 && (
+                            <div className='flex flex-wrap gap-1.5 mt-2.5'>
+                              <ThumbsUp className='w-3 h-3 text-green-500 shrink-0 mt-0.5' />
+                              {review.liked_tags!.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className='px-1.5 py-0.5 rounded-full bg-green-50 border border-green-100 text-[10px] font-medium text-green-700'
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </section>
               )}
 
-              {/* ── Photos strip (opens dialog) ── */}
-              <PhotoStrip photos={galleryPhotos} />
+              {/* ── About the restaurant ── */}
+              <section className='mt-8 border-t border-gray-100 pt-6'>
+                <h2 className='text-[18px] font-bold text-gray-900 mb-5'>
+                  About the restaurant
+                </h2>
 
-              {/* ── Reviews ── */}
-              {reviews.length > 0 && (
-                <section className="mt-8 border-t border-gray-100 pt-6 pb-6">
-                  <div className="flex items-baseline gap-3 mb-5">
-                    <h2 className="text-[20px] font-bold text-gray-900">Reviews</h2>
-                    {reviewSummary.avg > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-600 text-white text-[13px] font-bold">
-                        {reviewSummary.avg}
-                        <Star className="w-3 h-3 fill-white" />
-                      </span>
-                    )}
-                    <span className="text-[13px] text-gray-400">
-                      {reviewSummary.count} {reviewSummary.count === 1 ? 'review' : 'reviews'}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-5">
-                    {reviews.map(review => (
-                      <div
-                        key={review.id}
-                        className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50"
-                      >
-                        {/* Header */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                              <span className="text-[13px] font-bold text-brand">
-                                {(review.username_snapshot ?? 'A')[0].toUpperCase()}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="text-[13px] font-semibold text-gray-900">
-                                {review.username_snapshot ?? 'Anonymous'}
-                              </p>
-                              <p className="text-[11px] text-gray-400">
-                                {timeAgo(review.created_at)}
-                              </p>
-                            </div>
+                <div className='space-y-4'>
+                  {restaurant.cost_for_two != null && (
+                    <div>
+                      <p className=' font-semibold text-gray-900 mb-0.5'>
+                        Cost
+                      </p>
+                      <p className='text-sm font-semibold text-gray-500'>
+                        ₹{restaurant.cost_for_two.toLocaleString()} for two
+                      </p>
+                    </div>
+                  )}
+                  {cuisineLabel && (
+                    <div>
+                      <p className=' font-semibold text-gray-900 mb-0.5'>
+                        Cuisines
+                      </p>
+                      <p className='text-sm font-semibold text-gray-500'>
+                        {cuisineLabel}
+                      </p>
+                    </div>
+                  )}
+                  {facilityTags.length > 0 && (
+                    <div>
+                      <p className=' font-semibold text-gray-900 mb-2.5'>
+                        Available facilities
+                      </p>
+                      <div className='grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4'>
+                        {facilityTags.map((f) => (
+                          <div
+                            key={f}
+                            className='flex items-center gap-1.5'
+                          >
+                            <span className='w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0' />
+                            <span className='text-sm text-gray-500 font-semibold'>
+                              {f}
+                            </span>
                           </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-600 text-white text-[12px] font-bold shrink-0">
-                            {review.rating}
-                            <Star className="w-3 h-3 fill-white" />
-                          </span>
-                        </div>
-
-                        {/* Review text */}
-                        {review.review_text && (
-                          <p className="mt-3 text-[13px] text-gray-700 leading-relaxed">
-                            {review.review_text}
-                          </p>
-                        )}
-
-                        {/* Sub-ratings */}
-                        {(review.food_rating != null ||
-                          review.service_rating != null ||
-                          review.ambience_rating != null) && (
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
-                            {review.food_rating != null && (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-gray-400">Food</span>
-                                <StarRow value={review.food_rating} />
-                                <span className="text-[11px] font-semibold text-gray-600">
-                                  {review.food_rating}
-                                </span>
-                              </div>
-                            )}
-                            {review.service_rating != null && (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-gray-400">Service</span>
-                                <StarRow value={review.service_rating} />
-                                <span className="text-[11px] font-semibold text-gray-600">
-                                  {review.service_rating}
-                                </span>
-                              </div>
-                            )}
-                            {review.ambience_rating != null && (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-gray-400">Ambience</span>
-                                <StarRow value={review.ambience_rating} />
-                                <span className="text-[11px] font-semibold text-gray-600">
-                                  {review.ambience_rating}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Liked tags */}
-                        {(review.liked_tags ?? []).length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-3">
-                            <ThumbsUp className="w-3.5 h-3.5 text-green-500 shrink-0 mt-0.5" />
-                            {review.liked_tags!.map(tag => (
-                              <span
-                                key={tag}
-                                className="px-2 py-0.5 rounded-full bg-green-50 border border-green-100 text-[11px] font-medium text-green-700"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Review photos */}
-                        {(review.photo_urls ?? []).length > 0 && (
-                          <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide">
-                            {review.photo_urls!.map((url, i) => (
-                              <div
-                                key={i}
-                                className="relative shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gray-200"
-                              >
-                                <Image
-                                  src={url}
-                                  alt=""
-                                  fill
-                                  className="object-cover"
-                                  sizes="80px"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* ── Location ── */}
+              {(restaurant.full_address ?? restaurant.area) && (
+                <section className='mt-8 border-t border-gray-200 pt-6 pb-8'>
+                  <h2 className='text-[18px] font-bold text-gray-900 mb-4'>
+                    Location
+                  </h2>
+
+                  <div className='border rounded-2xl'>
+                    {/* Map */}
+                    <div className='w-full h-52 rounded-t-2xl overflow-hidden mb-4 bg-gray-100'>
+                      {restaurant.latitude && restaurant.longitude ? (
+                        <iframe
+                          title='Restaurant location'
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${restaurant.longitude - 0.006},${restaurant.latitude - 0.004},${restaurant.longitude + 0.006},${restaurant.latitude + 0.004}&layer=mapnik&marker=${restaurant.latitude},${restaurant.longitude}`}
+                          className='w-full h-full border-0'
+                        />
+                      ) : (
+                        <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+                          <p className='text-[13px] text-gray-400'>
+                            Map not available
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className='px-4 pb-4'>
+                      <p className=' font-bold text-gray-900'>
+                        {restaurant.name}
+                      </p>
+                      <p className='text-sm text-gray-500 mt-0.5 leading-relaxed'>
+                        {restaurant.full_address ??
+                          `${restaurant.area}, ${restaurant.city}`}
+                      </p>
+                      <a
+                        href={
+                          restaurant.latitude && restaurant.longitude
+                            ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
+                            : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(restaurant.full_address ?? `${restaurant.area}, ${restaurant.city}`)}`
+                        }
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='inline-flex items-center gap-1 mt-2.5 text-[12px] font-semibold text-brand hover:underline'
+                      >
+                        <Navigation className='w-3.5 h-3.5' /> Get Directions
+                      </a>
+                      {restaurant.phone && (
+                        <p className='text-[12px] text-gray-600 mt-2'>
+                          ☎ {restaurant.phone}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </section>
               )}
             </div>
 
             {/* ── Right sticky sidebar ── */}
-            <div className="hidden md:block sticky top-20 pt-4">
+            <div className='hidden md:block sticky top-20 pt-4'>
               <BookingWidget restaurantName={restaurant.name} />
             </div>
-
           </div>
         </div>
 
         {/* ── Mobile CTA ── */}
         {restaurant.booking_enabled && (
-          <div className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 z-20 shadow-lg">
+          <div className='md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 z-20 shadow-lg'>
             <button
-              type="button"
-              className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] hover:bg-black transition-colors"
+              type='button'
+              className='w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] hover:bg-black transition-colors'
             >
               Book a table
             </button>
           </div>
         )}
-
       </main>
     </PhotoGalleryProvider>
-  )
+  );
 }
