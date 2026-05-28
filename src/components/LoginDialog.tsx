@@ -23,6 +23,7 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('signin')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,13 +37,17 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
     if (next) {
       setError('')
       setSuccess('')
+      setName('')
       setEmail('')
       setPassword('')
+      setLoading(false)
+      setGoogleLoading(false)
       setMode('signin')
     }
   }
 
   async function handleSubmit() {
+    if (mode === 'signup' && !name.trim()) { setError('Name is required'); return }
     if (!email || !password) { setError('Email and password are required'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
 
@@ -54,7 +59,7 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, name: name.trim() }),
     })
 
     const data = await res.json()
@@ -91,6 +96,7 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
 
   function switchMode(next: Mode) {
     setMode(next)
+    setName('')
     setError('')
     setSuccess('')
   }
@@ -145,6 +151,20 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
 
           {/* Fields */}
           <div className="flex flex-col gap-3">
+            {mode === 'signup' && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Jane Doe"
+                  value={name}
+                  autoFocus
+                  onChange={(e) => { setName(e.target.value); setError('') }}
+                  onKeyDown={(e) => e.key === 'Enter' && !loading && handleSubmit()}
+                />
+              </div>
+            )}
             <div className="grid gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -152,7 +172,7 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                autoFocus
+                autoFocus={mode === 'signin'}
                 onChange={(e) => { setEmail(e.target.value); setError('') }}
                 onKeyDown={(e) => e.key === 'Enter' && !loading && handleSubmit()}
               />

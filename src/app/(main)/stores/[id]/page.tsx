@@ -2,42 +2,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { MapPin, Phone, Share2, Navigation, Globe } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { getStoreBySlugOrId } from '@/lib/services/stores'
+import type { OpeningHour } from '@/lib/types/stores'
 import { PhotoGalleryProvider, PhotoGrid } from '@/components/sections/dining/PhotoGalleryClient'
 import { MenuGalleryProvider, MenuGalleryImageButton } from '@/components/sections/dining/MenuGalleryClient'
-
-type Store = {
-  id: string
-  name: string
-  slug: string | null
-  description: string | null
-  category: string | null
-  subcategory: string | null
-  location_name: string | null
-  address_line1: string | null
-  city: string | null
-  logo_url: string | null
-  cover_image: string | null
-  phone: string | null
-  whatsapp: string | null
-  website: string | null
-}
-
-type MediaAsset = { file_url: string; sort_order: number }
-type OpeningHour = { day_of_week: number; open_time: string; close_time: string; is_closed: boolean }
-type CatalogueItem = {
-  id: string
-  category_id: string
-  title: string | null
-  price: number | null
-  description: string | null
-  image_url: string | null
-  is_available: boolean
-  updated_at: string | null
-}
-type StoreTag = { tag_value: string }
-type Offer = { id: string; title?: string; description?: string; code?: string }
-type SocialLink = { platform: string; url: string }
 
 function formatTime(t: string) {
   const [h, m] = t.split(':').map(Number)
@@ -61,48 +29,6 @@ function timeAgo(iso: string): string {
   if (days < 30) return `${Math.floor(days / 7)}w ago`
   if (days < 365) return `${Math.floor(days / 30)}mo ago`
   return `${Math.floor(days / 365)}y ago`
-}
-
-async function getData(slugOrId: string) {
-  const supabase = await createClient()
-
-  let { data: store } = await supabase
-    .from('stores')
-    .select('id,name,slug,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website')
-    .eq('slug', slugOrId)
-    .eq('is_active', true)
-    .maybeSingle()
-
-  if (!store) {
-    const res = await supabase
-      .from('stores')
-      .select('id,name,slug,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website')
-      .eq('id', slugOrId)
-      .eq('is_active', true)
-      .maybeSingle()
-    store = res.data
-  }
-
-  if (!store) return null
-
-  const [galleryRes, hoursRes, itemsRes, tagsRes, offersRes, socialRes] = await Promise.allSettled([
-    supabase.from('store_media_assets').select('file_url, sort_order').eq('store_id', store.id).eq('asset_type', 'gallery').eq('is_active', true).order('sort_order'),
-    supabase.from('store_opening_hours').select('day_of_week, open_time, close_time, is_closed').eq('store_id', store.id).order('day_of_week'),
-    supabase.from('store_catalogue_items').select('id, category_id, title, price, description, image_url, is_available, updated_at').eq('store_id', store.id).eq('is_available', true).order('sort_order'),
-    supabase.from('store_tags').select('tag_value').eq('store_id', store.id).eq('tag_type', 'tag'),
-    supabase.from('store_offers').select('id, title, description, code').eq('store_id', store.id),
-    supabase.from('store_social_links').select('platform, url').eq('store_id', store.id).order('sort_order'),
-  ])
-
-  return {
-    store: store as Store,
-    gallery:  galleryRes.status  === 'fulfilled' ? (galleryRes.value.data  ?? []) as MediaAsset[]   : [] as MediaAsset[],
-    hours:    hoursRes.status    === 'fulfilled' ? (hoursRes.value.data    ?? []) as OpeningHour[]   : [] as OpeningHour[],
-    items:    itemsRes.status    === 'fulfilled' ? (itemsRes.value.data    ?? []) as CatalogueItem[] : [] as CatalogueItem[],
-    tags:     tagsRes.status     === 'fulfilled' ? (tagsRes.value.data     ?? []) as StoreTag[]      : [] as StoreTag[],
-    offers:   offersRes.status   === 'fulfilled' ? (offersRes.value.data   ?? []) as Offer[]         : [] as Offer[],
-    socials:  socialRes.status   === 'fulfilled' ? (socialRes.value.data   ?? []) as SocialLink[]    : [] as SocialLink[],
-  }
 }
 
 function QrCodeSvg() {
@@ -138,7 +64,7 @@ function QrCodeSvg() {
 
 export default async function StorePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const data = await getData(id)
+  const data = await getStoreBySlugOrId(id)
   if (!data) notFound()
 
   const { store, gallery, hours, items, tags, offers } = data

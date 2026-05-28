@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Next.js route files are discovered by the framework, not imported
+    "**/page.tsx",
+    "**/layout.tsx",
+    "**/route.ts",
+    "**/loading.tsx",
+    "**/error.tsx",
+    "**/not-found.tsx",
   ]),
 ]);
 

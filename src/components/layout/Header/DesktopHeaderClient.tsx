@@ -9,7 +9,7 @@ import { SearchBar } from '@/components/SearchBar'
 import { LocationButton } from './LocationButton'
 
 interface Props {
-  user: { email?: string } | null
+  user: { email?: string; name?: string | null; phone?: string | null } | null
 }
 
 export function DesktopHeaderClient({ user }: Props) {

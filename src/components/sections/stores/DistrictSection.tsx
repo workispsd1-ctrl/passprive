@@ -1,53 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Tag } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
-
-type SectionStore = {
-  section_id: string
-  store_id: string
-  sort_order: number
-  stores: {
-    name: string
-    slug: string
-    logo_url: string | null
-    location_name: string | null
-    city: string | null
-  }
-}
-
-type HomeSection = {
-  id: string
-  title: string
-  subtitle: string | null
-  items: SectionStore[]
-}
-
-async function getHomeSections(): Promise<HomeSection[]> {
-  const supabase = await createClient()
-
-  const { data: sections } = await supabase
-    .from('stores_home_sections')
-    .select('id, title, subtitle')
-    .eq('is_active', true)
-    .order('created_at')
-
-  if (!sections?.length) return []
-
-  const { data: items } = await supabase
-    .from('stores_home_section_items')
-    .select('section_id, store_id, sort_order, stores(name, slug, logo_url, location_name, city)')
-    .in('section_id', sections.map(s => s.id))
-    .eq('is_active', true)
-    .order('sort_order')
-
-  return sections.map(section => ({
-    ...section,
-    items: ((items ?? []) as unknown as SectionStore[]).filter(
-      i => i.section_id === section.id,
-    ),
-  }))
-}
+import { getHomeSections } from '@/lib/services/stores'
 
 export async function DistrictSection() {
   const sections = await getHomeSections()

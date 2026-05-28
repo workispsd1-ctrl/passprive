@@ -1,57 +1,45 @@
 'use client'
 
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Accessories: 'bg-sky-100',
-  Apparel: 'bg-red-100',
-  Beauty: 'bg-pink-100',
-  Footwear: 'bg-gray-100',
-  'Home Furniture': 'bg-yellow-100',
-  Jewellery: 'bg-amber-100',
-  'Salon & Wellness': 'bg-teal-100',
-}
-
-const DEFAULT_COLOR = 'bg-purple-100'
+import type { StoreMoodCategory } from '@/lib/types/stores'
 
 interface Props {
-  categories: string[]
+  moodCategories: StoreMoodCategory[]
   active: string
-  onSelect: (category: string) => void
+  onSelect: (slug: string) => void
 }
 
-export function CategoryBar({ categories, active, onSelect }: Props) {
-  const all = [{ id: 'all', label: 'All Stores', color: 'bg-brand/10' }]
-  const items = [
-    ...all,
-    ...categories.map(cat => ({
-      id: cat,
-      label: cat,
-      color: CATEGORY_COLORS[cat] ?? DEFAULT_COLOR,
-    })),
-  ]
-
+export function CategoryBar({ moodCategories, active, onSelect }: Props) {
   return (
-    <section className="relative  bg-white pt-5 pb-4 overflow-hidden">
+    <section className="relative bg-white pt-5 pb-4 overflow-hidden">
       <div className="px-4 md:px-6">
         <h2 className="text-[15px] font-bold text-gray-900 mb-3">Shop by Category</h2>
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1 md:mx-0 md:px-0 md:overflow-visible md:grid md:grid-cols-[repeat(auto-fit,minmax(90px,1fr))]">
-          {items.map(({ id, label, color }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onSelect(id)}
-              className={cn(
-                'flex flex-col shrink-0 rounded-xl border overflow-hidden w-24 md:w-full text-left transition-all',
-                active === id ? 'border-brand' : 'border-gray-200',
-              )}
-            >
-              <span className="text-[11px] md:text-[12px] font-medium text-gray-600 px-2 pt-2 pb-1 leading-tight">
-                {label}
-              </span>
-              <div className={cn('w-full h-16 md:h-20', color)} />
-            </button>
-          ))}
+        <div className="flex gap-6 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1 md:mx-0 md:px-0 md:overflow-visible md:grid md:grid-cols-[repeat(auto-fit,minmax(90px,1fr))]">
+          {moodCategories.map(cat => {
+            const imgUrl = cat.light_theme_image_url ?? cat.image_url
+            return (
+              <button
+                key={cat.slug}
+                type="button"
+                onClick={() => onSelect(cat.slug)}
+                className={cn(
+                  'relative shrink-0 rounded-xl overflow-hidden w-24 aspect-square md:w-full transition-all',
+                  active === cat.slug ? 'ring-2 ring-inset ring-brand' : 'ring-2 ring-inset ring-transparent',
+                )}
+              >
+                {imgUrl && (
+                  <Image
+                    src={imgUrl}
+                    alt={cat.title}
+                    fill
+                    className="object-fill"
+                    sizes="(max-width: 768px) 96px, 20vw"
+                  />
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
     </section>
