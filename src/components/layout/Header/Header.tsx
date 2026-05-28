@@ -1,15 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
 import { HeaderNav } from './HeaderNav'
 import { HeaderActions } from './HeaderActions'
 import { SearchBar } from '@/components/SearchBar'
 import { DesktopHeaderClient } from './DesktopHeaderClient'
 import { LocationButton } from './LocationButton'
+import { getCurrentUser } from '@/lib/services/user'
 
 export async function Header() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100">

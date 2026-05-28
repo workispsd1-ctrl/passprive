@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import type { StoreRow } from '@/app/stores/page'
+import type { StoreRow } from '@/lib/types/stores'
 
 interface Props {
   stores: StoreRow[]

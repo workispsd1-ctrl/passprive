@@ -11,7 +11,8 @@ import {
   Info,
   CreditCard,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { getRestaurantBySlugOrId } from '@/lib/services/dining'
+import type { Review } from '@/lib/types/dining'
 import { BookingWidget } from '@/components/sections/dining/BookingWidget'
 import {
   PhotoGalleryProvider,
@@ -23,217 +24,6 @@ import {
   MenuImageCard,
 } from '@/components/sections/dining/MenuGalleryClient'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type Restaurant = {
-  id: string
-  name: string
-  slug: string | null
-  description: string | null
-  area: string | null
-  city: string | null
-  full_address: string | null
-  cover_image: string | null
-  cost_for_two: number | null
-  phone: string | null
-  is_pure_veg: boolean
-  booking_enabled: boolean
-  menu_json: MenuJson | null
-  latitude: number | null
-  longitude: number | null
-}
-
-type MenuJson = {
-  sections: MenuSection[]
-  full_menu_image_url?: string
-  full_menu_image_urls?: string[]
-}
-
-type MenuSection = {
-  id: string
-  name: string
-  description: string | null
-  items: MenuItemJson[]
-}
-
-type MenuItemJson = {
-  id: string
-  name: string
-  price: number | null
-  is_veg: boolean
-  image_urls: string[]
-  description: string | null
-  is_available: boolean
-  is_bestseller: boolean
-}
-
-type Offer = {
-  id: string
-  title: string
-  description: string | null
-  badge_text: string | null
-  offer_type: string | null
-  discount_value: number | null
-  min_spend: number | null
-}
-
-type RestaurantTag = {
-  id: string
-  tag_type: string
-  tag_value: string
-}
-
-type Review = {
-  id: string
-  rating: number
-  review_text: string | null
-  username_snapshot: string | null
-  liked_tags: string[] | null
-  photo_urls: string[] | null
-  food_rating: number | null
-  service_rating: number | null
-  ambience_rating: number | null
-  created_at: string
-}
-
-type ReviewSummary = { avg: number; count: number }
-
-// ── Data fetching ─────────────────────────────────────────────────────────────
-
-const STORAGE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SELECT_FIELDS =
-  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude'
-
-async function getData(slugOrId: string) {
-  const supabase = await createClient()
-
-  let { data: restaurant } = await supabase
-    .from('restaurants')
-    .select(SELECT_FIELDS)
-    .eq('slug', slugOrId)
-    .eq('is_active', true)
-    .maybeSingle()
-
-  if (!restaurant) {
-    const res = await supabase
-      .from('restaurants')
-      .select(SELECT_FIELDS)
-      .eq('id', slugOrId)
-      .eq('is_active', true)
-      .maybeSingle()
-    restaurant = res.data
-  }
-
-  if (!restaurant) {
-    return {
-      restaurant: null,
-      offers: [] as Offer[],
-      tags: [] as RestaurantTag[],
-      reviews: [] as Review[],
-      reviewSummary: { avg: 0, count: 0 } as ReviewSummary,
-      galleryPhotos: [] as string[],
-    }
-  }
-
-  const [offersRes, tagsRes, reviewsRes, storageRes, reviewPhotosRes, menuAssetsRes] =
-    await Promise.allSettled([
-      supabase
-        .from('restaurant_offers')
-        .select('id, title, description, badge_text, offer_type, discount_value, min_spend')
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_active', true)
-        .order('created_at'),
-      supabase
-        .from('restaurant_tags')
-        .select('id, tag_type, tag_value')
-        .eq('restaurant_id', restaurant.id)
-        .order('sort_order'),
-      supabase
-        .from('restaurant_reviews')
-        .select(
-          'id, rating, review_text, username_snapshot, liked_tags, photo_urls, food_rating, service_rating, ambience_rating, created_at',
-        )
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false })
-        .limit(20),
-      supabase.storage
-        .from('restaurant')
-        .list(`restaurant/food/${restaurant.id}`, { limit: 20 }),
-      supabase
-        .from('restaurant_reviews')
-        .select('photo_urls')
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_approved', true)
-        .not('photo_urls', 'eq', '{}'),
-      supabase
-        .from('restaurant_media_assets')
-        .select('file_url, sort_order')
-        .eq('restaurant_id', restaurant.id)
-        .eq('asset_type', 'menu')
-        .eq('is_active', true)
-        .order('sort_order'),
-    ])
-
-  const offers: Offer[] =
-    offersRes.status === 'fulfilled' ? (offersRes.value.data ?? []) : []
-  const tags: RestaurantTag[] =
-    tagsRes.status === 'fulfilled' ? (tagsRes.value.data ?? []) : []
-  const reviews: Review[] =
-    reviewsRes.status === 'fulfilled' ? (reviewsRes.value.data ?? []) : []
-  const menuImages: string[] =
-    menuAssetsRes.status === 'fulfilled'
-      ? (menuAssetsRes.value.data ?? []).map(a => a.file_url).filter(Boolean)
-      : []
-
-  const reviewSummary: ReviewSummary =
-    reviews.length > 0
-      ? {
-          avg:
-            Math.round(
-              (reviews.reduce((s, r) => s + (r.rating ?? 0), 0) / reviews.length) * 10,
-            ) / 10,
-          count: reviews.length,
-        }
-      : { avg: 0, count: 0 }
-
-  const storageFiles =
-    storageRes.status === 'fulfilled' ? (storageRes.value.data ?? []) : []
-  const storagePhotos = storageFiles
-    .filter(f => f.name && /\.(jpe?g|png|webp)$/i.test(f.name))
-    .map(
-      f =>
-        `${STORAGE_URL}/storage/v1/object/public/restaurant/restaurant/food/${restaurant!.id}/${f.name}`,
-    )
-
-  const reviewPhotos =
-    reviewPhotosRes.status === 'fulfilled'
-      ? (reviewPhotosRes.value.data ?? [])
-          .flatMap(r => r.photo_urls ?? [])
-          .filter(Boolean)
-      : []
-
-  const seen = new Set<string>()
-  const galleryPhotos: string[] = []
-  for (const url of [restaurant.cover_image, ...storagePhotos, ...reviewPhotos]) {
-    if (url && !seen.has(url)) {
-      seen.add(url)
-      galleryPhotos.push(url)
-    }
-  }
-
-  return {
-    restaurant: restaurant as Restaurant,
-    offers,
-    tags,
-    reviews,
-    reviewSummary,
-    galleryPhotos,
-    menuImages,
-  }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 
 function ratingAvg(reviews: Review[], key: 'food_rating' | 'service_rating' | 'ambience_rating'): number | null {
@@ -252,7 +42,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(days / 365)}y ago`
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+
 
 export default async function RestaurantPage({
   params,
@@ -261,14 +51,14 @@ export default async function RestaurantPage({
 }) {
   const { id } = await params
   const { restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages } =
-    await getData(id)
+    await getRestaurantBySlugOrId(id)
 
   if (!restaurant) notFound()
 
   const cuisineTags = tags.filter(t => t.tag_type === 'cuisine').map(t => t.tag_value)
   const facilityTags = tags.filter(t => t.tag_type === 'facility').map(t => t.tag_value)
   const cuisineLabel = cuisineTags.join(', ')
-  const sections: MenuSection[] = restaurant.menu_json?.sections ?? []
+  const sections = restaurant.menu_json?.sections ?? []
   // Prefer media_assets menu images, fall back to menu_json urls
   const fullMenuImages: string[] = menuImages.length > 0
     ? menuImages
