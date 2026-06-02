@@ -23,9 +23,6 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // getUser() validates the JWT and silently refreshes the token when needed.
-  // This keeps server and browser cookies in sync, preventing "refresh_token_already_used".
-  // Do NOT use getSession() here — it doesn't validate or refresh.
   await supabase.auth.getUser()
 
   return supabaseResponse

@@ -126,9 +126,7 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
           backHref='/stores'
         />
 
-        {/* ── Content wrapper ── */}
         <div className=' mx-auto px-4 md:px-6'>
-          {/* Breadcrumb */}
           <nav className='hidden md:flex items-center gap-1.5 pt-2 pb-1 text-[11px] text-gray-400'>
             <Link
               href='/'
@@ -147,11 +145,8 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
             <span className='text-gray-600'>{store.name}</span>
           </nav>
 
-          {/* ── Store info row: left info + right QR ── */}
           <div className='flex items-start justify-between gap-6 mt-3'>
-            {/* Left block */}
             <div className='min-w-0 flex-1'>
-              {/* Logo + name */}
               <div className='flex items-center gap-2.5'>
                 {store.logo_url && (
                   <div className='relative w-10 h-10 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-200'>
@@ -168,7 +163,6 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                 </h1>
               </div>
 
-              {/* Categories + open status */}
               <div className='flex flex-wrap items-center gap-x-1 mt-1 text-[13px] text-gray-500'>
                 {categoriesList.map((cat, i) => (
                   <span
@@ -195,7 +189,6 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                 )}
               </div>
 
-              {/* Address */}
               {(store.address_line1 ?? store.location_name) && (
                 <div className='flex items-start gap-1 mt-1.5'>
                   <MapPin className='w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0' />
@@ -206,12 +199,14 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                 </div>
               )}
               <div className='flex flex-wrap gap-2 mt-4'>
-                <button
-                  type='button'
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(store.address_line1 ?? `${store.location_name ?? ''}, ${store.city ?? ''}`)}`}
+                  target='_blank'
+                  rel='noopener noreferrer'
                   className='flex items-center gap-1.5 px-5 py-1.5 rounded-full border border-gray-200 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors'
                 >
                   <Navigation className='w-3.5 h-3.5' /> Direction
-                </button>
+                </a>
                 <button
                   type='button'
                   className='flex items-center gap-1.5 px-5 py-1.5 rounded-full border border-gray-200 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors'
@@ -238,7 +233,6 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                 )}
               </div>
 
-              {/* ── PassPrivé pay offers ── */}
               {offers.length > 0 && (
                 <section className='mt-6 border-t border-gray-100 pt-5'>
                   <p className='text-[16px] font-bold text-gray-900'>
@@ -270,7 +264,6 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                   </div>
                 </section>
               )}
-              {/* ── Catalouge ── */}
               {items.length > 0 && (
                 <section className='mt-6 border-t border-gray-100 pt-5 w-full'>
                   <div className='flex items-start justify-between mb-1'>
@@ -293,7 +286,6 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                   </div>
 
                   <MenuGalleryProvider images={catalogueImages}>
-                    {/* Top mosaic: 4 columns — col 1+2 are portrait (row-span-2), col 3+4 are 2×2 */}
                     <div className='grid grid-cols-4 grid-rows-2 gap-1 h-44 mt-3'>
                       <MenuGalleryImageButton
                         src={items[0]?.image_url ?? null}
@@ -321,7 +313,6 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                       ))}
                     </div>
 
-                    {/* Bottom row: 3 images */}
                     {items.length > 6 && (
                       <div className='grid grid-cols-3 gap-1 mt-1 h-28'>
                         {items.slice(6, 9).map((item, j) => (
@@ -340,7 +331,6 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                 </section>
               )}
 
-              {/* ── About the brand ── */}
               {store.description && (
                 <section className='mt-6 border-t border-gray-100 pt-5 pb-10'>
                   <h2 className='text-[18px] font-bold text-gray-900 mb-2'>
@@ -375,7 +365,6 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
               )}
             </div>
 
-            {/* Right: QR code (desktop) */}
             <div className='hidden md:flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl shrink-0'>
               <div className='w-14 h-14 shrink-0'>
                 <QrCodeSvg />

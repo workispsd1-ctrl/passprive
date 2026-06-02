@@ -26,7 +26,6 @@ export default function Dining() {
   return (
     <main>
       <HeroSection />
-      {/* <FeaturedRestaurantsSection /> */}
       <DiscoverSection />
       <BookSection />
       <PaySection />

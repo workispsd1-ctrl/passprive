@@ -12,14 +12,14 @@ export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
       <h2 className="text-[17px] md:text-[19px] font-bold text-gray-900 px-4 md:px-6 mb-4">
         Stores near you
       </h2>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 md:px-6 pb-2 md:grid md:grid-cols-3 lg:grid-cols-4 md:overflow-visible">
+      <div className="mt-5 flex gap-4 overflow-x-auto scrollbar-hide px-4 md:px-8 pb-2 md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible">
         {items.map(store => {
           const offer = store.store_offers?.[0]
           return (
             <Link
               key={store.id}
               href={`/stores/${store.slug}`}
-              className="relative shrink-0 w-[50vw] max-w-[200px] md:w-auto aspect-[3/4] rounded-2xl overflow-hidden block bg-gray-900"
+              className="relative shrink-0 w-[85vw] max-w-96 md:w-auto aspect-4/3 rounded-2xl overflow-hidden block bg-gray-900"
             >
               {store.cover_image ? (
                 <Image
@@ -27,7 +27,7 @@ export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
                   alt={store.name}
                   fill
                   className="object-cover opacity-80"
-                  sizes="(max-width: 768px) 50vw, 25vw"
+                  sizes="(max-width: 768px) 85vw, 50vw"
                 />
               ) : (
                 <div className="absolute inset-0 bg-linear-to-br from-purple-900 to-gray-900" />

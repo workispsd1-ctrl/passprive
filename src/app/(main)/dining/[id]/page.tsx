@@ -47,7 +47,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     },
   }
 }
-import { BookingWidget } from '@/components/sections/dining/BookingWidget'
 import {
   PhotoGalleryProvider,
   PhotoGrid,
@@ -93,7 +92,6 @@ export default async function RestaurantPage({
   const facilityTags = tags.filter(t => t.tag_type === 'facility').map(t => t.tag_value)
   const cuisineLabel = cuisineTags.join(', ')
   const sections = restaurant.menu_json?.sections ?? []
-  // Prefer media_assets menu images, fall back to menu_json urls
   const fullMenuImages: string[] = menuImages.length > 0
     ? menuImages
     : (restaurant.menu_json?.full_menu_image_urls ?? [])
@@ -109,15 +107,12 @@ export default async function RestaurantPage({
   return (
     <PhotoGalleryProvider photos={galleryPhotos}>
       <main className='min-h-screen bg-white pb-24 md:pb-0'>
-        {/* ── Gallery ── */}
         <PhotoGrid
           photos={galleryPhotos}
           restaurantName={restaurant.name}
         />
 
-        {/* ── Content ── */}
         <div className='max-w-7xl mx-auto px-4 md:px-6'>
-          {/* Breadcrumb */}
           <nav className='pt-3 pb-2 text-[12px] text-gray-400 hidden md:flex items-center gap-1.5'>
             <Link
               href='/'
@@ -137,9 +132,7 @@ export default async function RestaurantPage({
           </nav>
 
           <div className='md:grid md:grid-cols-[1fr_340px] md:gap-10 md:items-start md:pt-2'>
-            {/* ── Left Column ── */}
             <div className='min-w-0'>
-              {/* Restaurant name + meta */}
               <div className='mt-4 md:mt-0'>
                 <div className='flex items-start gap-2 flex-wrap'>
                   <h1 className='text-[28px] md:text-[36px] font-bold text-gray-900 leading-tight'>
@@ -152,7 +145,6 @@ export default async function RestaurantPage({
                   )}
                 </div>
 
-                {/* Rating + cost + status line */}
                 <div className='flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[14px]'>
                   {reviewSummary.avg > 0 && (
                     <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-700 text-white text-[13px] font-bold'>
@@ -174,7 +166,6 @@ export default async function RestaurantPage({
                   <span className='text-gray-500'>Opens in 13 min</span>
                 </div>
 
-                {/* Address */}
                 {(restaurant.full_address ?? restaurant.area) && (
                   <div className='flex items-start gap-1.5 mt-3'>
                     <MapPin className='w-4 h-4 text-gray-400 mt-0.5 shrink-0' />
@@ -185,7 +176,6 @@ export default async function RestaurantPage({
                   </div>
                 )}
 
-                {/* Action buttons */}
                 <div className='flex flex-wrap gap-3 mt-5'>
                   <button
                     type='button'
@@ -210,7 +200,6 @@ export default async function RestaurantPage({
                 </div>
               </div>
 
-              {/* ── Info highlight cards ── */}
               {(restaurant.description ||
                 cuisineLabel ||
                 facilityTags.length > 0) && (
@@ -275,23 +264,19 @@ export default async function RestaurantPage({
                 </div>
               )}
 
-              {/* ── Offers ── */}
               {offers.length > 0 && (
                 <section className='mt-8 border-t border-gray-100 pt-6'>
                   <h2 className='text-[22px] font-bold text-gray-900 mb-4'>
                     Offers
                   </h2>
 
-                  {/* Ticket-style offer cards */}
                   <div className='flex gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
                     {mainOffers.map((offer) => (
                       <div
                         key={offer.id}
                         className='shrink-0 w-80 relative'
                       >
-                        {/* Card body */}
                         <div className='flex h-[100px] rounded-2xl overflow-hidden'>
-                          {/* Left: dark purple gradient */}
                           <div className='w-[140px] shrink-0 bg-gradient-to-br from-violet-600 via-purple-500 to-purple-400 flex flex-col justify-center px-4 py-3'>
                             <p className='text-white font-black text-[18px] leading-tight'>
                               {offer.title}
@@ -302,7 +287,6 @@ export default async function RestaurantPage({
                               </span>
                             )}
                           </div>
-                          {/* Right: light section */}
                           <div className='flex-1 bg-violet-50 flex flex-col justify-center px-4 py-3'>
                             {offer.description && (
                               <p className='text-[13px] font-semibold text-gray-900 leading-snug'>
@@ -316,14 +300,12 @@ export default async function RestaurantPage({
                             )}
                           </div>
                         </div>
-                        {/* Notch circles at divider top/bottom */}
                         <div className='absolute top-0 left-[140px] -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white border border-gray-200 z-10' />
                         <div className='absolute bottom-0 left-[140px] -translate-x-1/2 translate-y-1/2 w-5 h-5 rounded-full bg-white border border-gray-200 z-10' />
                       </div>
                     ))}
                   </div>
 
-                  {/* Additional offers (bank card) */}
                   {bankOffers.length > 0 && (
                     <div className='mt-5'>
                       <p className='flex items-center gap-1.5 text-[13px] font-semibold text-gray-500 mb-3'>
@@ -350,7 +332,6 @@ export default async function RestaurantPage({
                 </section>
               )}
 
-              {/* ── Menu ── */}
               <section className='mt-8 border-t border-gray-100 pt-6'>
                 <h2 className='text-[22px] font-bold text-gray-900 mb-1'>
                   Menu
@@ -375,9 +356,9 @@ export default async function RestaurantPage({
                               key={url}
                               src={url}
                               alt={`Menu ${i + 1}`}
-                              index={i}
-                              label='Menu'
-                              sublabel={`${i + 1} of ${fullMenuImages.length}`}
+                            index={i}
+                            label=''
+                              sublabel=''
                             />
                           ))
                         : ['Food', 'Beverages', 'Bar'].map((label) => (
@@ -394,19 +375,15 @@ export default async function RestaurantPage({
                 </MenuGalleryProvider>
               </section>
 
-              {/* ── Photos strip ── */}
               <PhotoStrip photos={galleryPhotos} />
 
-              {/* ── Ratings & reviews ── */}
               {reviews.length > 0 && (
                 <section className='mt-8 border-t border-gray-100 pt-6'>
                   <h2 className='text-[22px] font-bold text-gray-900 mb-5'>
                     Ratings &amp; reviews
                   </h2>
 
-                  {/* Outer card */}
                   <div className='rounded-3xl bg-gray-50 border border-gray-200 p-6 md:p-8'>
-                    {/* Large rating number */}
                     <div className='text-center'>
                       <div className='flex items-center justify-center gap-2'>
                         <span className='text-[52px] font-bold text-green-700 leading-none'>
@@ -425,7 +402,6 @@ export default async function RestaurantPage({
                       </div>
                     </div>
 
-                    {/* Sub-ratings pill */}
                     {(foodAvg != null ||
                       serviceAvg != null ||
                       ambienceAvg != null) && (
@@ -465,12 +441,10 @@ export default async function RestaurantPage({
                       </div>
                     )}
 
-                    {/* Reviews count */}
                     <p className='text-center text-[22px] font-bold text-gray-900 mt-7 mb-5'>
                       {reviewSummary.count.toLocaleString()} reviews
                     </p>
 
-                    {/* Review cards — horizontal scroll */}
                     <div className='flex gap-4 overflow-x-auto scrollbar-hide -mx-6 px-6 pb-1'>
                       {reviews.map((review) => (
                         <div
@@ -535,7 +509,6 @@ export default async function RestaurantPage({
                 </section>
               )}
 
-              {/* ── About the restaurant ── */}
               <section className='mt-8 border-t border-gray-100 pt-6'>
                 <h2 className='text-[18px] font-bold text-gray-900 mb-5'>
                   About the restaurant
@@ -585,7 +558,6 @@ export default async function RestaurantPage({
                 </div>
               </section>
 
-              {/* ── Location ── */}
               {(restaurant.full_address ?? restaurant.area) && (
                 <section className='mt-8 border-t border-gray-200 pt-6 pb-8'>
                   <h2 className='text-[18px] font-bold text-gray-900 mb-4'>
@@ -593,7 +565,6 @@ export default async function RestaurantPage({
                   </h2>
 
                   <div className='border rounded-2xl'>
-                    {/* Map */}
                     <div className='w-full h-52 rounded-t-2xl overflow-hidden mb-4 bg-gray-100'>
                       {restaurant.latitude && restaurant.longitude ? (
                         <iframe
@@ -641,15 +612,13 @@ export default async function RestaurantPage({
               )}
             </div>
 
-            {/* ── Right sticky sidebar ── */}
-            <div className='hidden md:block sticky top-20 pt-4'>
+            {/* <div className='hidden md:block sticky top-20 pt-4'>
               <BookingWidget restaurantName={restaurant.name} />
-            </div>
+            </div> */}
           </div>
         </div>
 
-        {/* ── Mobile CTA ── */}
-        {restaurant.booking_enabled && (
+        {/* {restaurant.booking_enabled && (
           <div className='md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 z-20 shadow-lg'>
             <button
               type='button'
@@ -658,7 +627,7 @@ export default async function RestaurantPage({
               Book a table
             </button>
           </div>
-        )}
+        )} */}
       </main>
     </PhotoGalleryProvider>
   );

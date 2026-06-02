@@ -22,7 +22,6 @@ function formatDateTime(date: string, time: string) {
 function getStatusBadge(status: string, bookingDate: string) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  // Parse as local midnight to match today's local midnight — avoids UTC off-by-one
   const [y, mo, d] = bookingDate.split('-').map(Number)
   const bDate = new Date(y, mo - 1, d)
   const isPast = bDate < today
@@ -42,7 +41,6 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
       <div className="flex gap-3 p-4">
-        {/* Left content */}
         <div className="flex-1 min-w-0 flex flex-col gap-3">
           <div>
             <h3 className="text-base font-bold text-gray-900 leading-tight">{restaurant?.name ?? '—'}</h3>
@@ -73,7 +71,6 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
           </div>
         </div>
 
-        {/* Right image */}
         <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-200 shrink-0 self-start">
           {restaurant?.cover_image ? (
             <Image
@@ -87,7 +84,6 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
         <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge.className}`}>
           {badge.label}
@@ -117,7 +113,6 @@ export function BookingsClient({ diningBookings }: { diningBookings: DiningBooki
 
   return (
     <div>
-      {/* Tabs */}
       <div className="flex justify-center gap-2 py-5">
         {(['dining', 'store'] as Tab[]).map(t => (
           <button
@@ -135,7 +130,6 @@ export function BookingsClient({ diningBookings }: { diningBookings: DiningBooki
         ))}
       </div>
 
-      {/* Content */}
       <div className="px-4 pb-10 flex flex-col gap-4 max-w-xl mx-auto">
         {tab === 'dining' ? (
           diningBookings.length > 0

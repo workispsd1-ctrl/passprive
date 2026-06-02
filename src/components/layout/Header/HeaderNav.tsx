@@ -33,7 +33,6 @@ export function HeaderNav() {
                 href={href}
                 className="flex items-center justify-center transition-colors w-full md:w-auto"
               >
-                {/* Mobile: icon + label card */}
                 <span className={cn(
                   'flex flex-col items-center gap-1 px-5 py-2 rounded-t-xl transition-colors whitespace-nowrap md:hidden border-b-2',
                   isActive ? 'bg-purple-100 border-brand' : 'border-transparent'
@@ -47,7 +46,6 @@ export function HeaderNav() {
                   </span>
                 </span>
 
-                {/* Desktop: pill for active, plain text for inactive */}
                 <span className={cn(
                   'hidden md:flex items-center px-4 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors',
                   isActive

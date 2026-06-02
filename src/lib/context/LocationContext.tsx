@@ -17,9 +17,9 @@ interface LocationContextValue {
 }
 
 const DEFAULT: LocationState = {
-  city: 'Gurugram',
-  state: 'Haryana',
-  countryCode: 'in',
+  city: '',
+  state: '',
+  countryCode: 'mu',
   lat: null,
   lng: null,
 }
@@ -40,7 +40,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<{ city: string;
   return {
     city: addr.city ?? addr.town ?? addr.village ?? addr.county ?? DEFAULT.city,
     state: addr.state ?? DEFAULT.state,
-    countryCode: (data.address?.country_code ?? 'in').toLowerCase(),
+    countryCode: (data.address?.country_code ?? 'mu').toLowerCase(),
   }
 }
 
@@ -75,7 +75,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
-  const setLocationByCity = useCallback(async (city: string, region: string, countryCode = 'in') => {
+  const setLocationByCity = useCallback(async (city: string, region: string, countryCode = 'mu') => {
     // Optimistically update city name immediately
     setLocation(prev => ({ ...prev, city, state: region, countryCode, lat: null, lng: null }))
     // Geocode in background to get coordinates
@@ -85,7 +85,6 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Auto-detect on mount
   useEffect(() => { detectFromGPS() }, [detectFromGPS])
 
   return (

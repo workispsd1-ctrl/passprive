@@ -20,12 +20,13 @@ function useGallery() {
 
 // ── Provider + Dialog ─────────────────────────────────────────────────────────
 export function PhotoGalleryProvider({
-  photos,
+  photos: rawPhotos,
   children,
 }: {
   photos: string[]
   children: ReactNode
 }) {
+  const photos = rawPhotos.filter(Boolean)
   const [current, setCurrent] = useState(-1)
   const isOpen = current >= 0
 
@@ -80,17 +81,18 @@ export function PhotoGalleryProvider({
             </button>
           </div>
 
-          {/* Main photo */}
           <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-            <Image
-              key={current}
-              src={photos[current]}
-              alt=""
-              fill
-              className="object-contain"
-              sizes="100vw"
-              priority
-            />
+            {photos[current] && (
+              <Image
+                key={current}
+                src={photos[current]}
+                alt=""
+                fill
+                className="object-contain"
+                sizes="100vw"
+                priority
+              />
+            )}
 
             {photos.length > 1 && (
               <>
@@ -116,9 +118,9 @@ export function PhotoGalleryProvider({
 
           {/* Thumbnail strip */}
           <div className="flex justify-center gap-2 overflow-x-auto px-4 py-3 shrink-0 scrollbar-hide">
-              {photos.map((url, i) => (
+              {photos.map((url, i) => url && (
                 <button
-                  key={url}
+                  key={`${url}-${i}`}
                   type="button"
                   onClick={() => setCurrent(i)}
                   aria-label={`View photo ${i + 1}`}

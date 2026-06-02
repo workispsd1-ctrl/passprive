@@ -17,7 +17,6 @@ export function DesktopHeaderClient({ user }: Props) {
 
   return (
     <div className='hidden md:flex mx-auto max-w-7xl px-6 h-18 items-center gap-5'>
-      {/* Logo + tagline */}
       <Link
         href='/'
         aria-label='PassPrive home'
@@ -35,16 +34,12 @@ export function DesktopHeaderClient({ user }: Props) {
         </span>
       </Link>
 
-      {/* Divider */}
       <div className='h-9 w-px bg-gray-200 shrink-0' />
 
-      {/* Location */}
       {!showSearch && <LocationButton variant='desktop' />}
 
-      {/* Nav — takes remaining space, centered */}
       <HeaderNav />
 
-      {/* Inline search when active */}
       {showSearch && (
         <div className='flex w-72 shrink-0'>
           <SearchBar

@@ -40,17 +40,14 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 z-50 bg-black/40 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
-      {/* Drawer panel */}
       <div
         className={`fixed inset-y-0 right-0 z-50 w-full max-w-md bg-gray-100 flex flex-col transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        {/* Header */}
         <div className="flex items-center gap-3 bg-white px-4 py-4 border-b border-gray-100">
           <button type="button" aria-label="Close profile" onClick={onClose} className="p-1 -ml-1 rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-800" />
@@ -58,10 +55,8 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
           <span className="text-base font-bold text-gray-900">Profile</span>
         </div>
 
-        {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-4">
 
-          {/* Avatar + info */}
           <div className="flex items-center gap-4 bg-white rounded-2xl px-4 py-4 shadow-sm">
             <div className="w-16 h-16 rounded-full bg-violet-200 flex items-center justify-center shrink-0">
               <span className="text-2xl font-bold text-violet-700">
@@ -78,7 +73,6 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
             </div>
           </div>
 
-          {/* Bookings */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <Link
               href="/bookings"
@@ -91,7 +85,6 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
             </Link>
           </div>
 
-          {/* Support */}
           <div>
             <p className="text-sm font-bold text-gray-900 mb-2 px-1">Support</p>
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -107,7 +100,6 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
             </div>
           </div>
 
-          {/* More */}
           <div>
             <p className="text-sm font-bold text-gray-900 mb-2 px-1">More</p>
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100">
@@ -132,7 +124,6 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
             </div>
           </div>
 
-          {/* Logout */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <button
               type="button"
