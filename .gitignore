@@ -43,3 +43,6 @@ next-env.d.ts
 # Claude
 CLAUDE.md
 AGENTS.md
+
+# Supabase migrations (kept out of repo)
+supabase/migrations/
