@@ -19,7 +19,7 @@ export function PaySection() {
 
           <div className='relative w-full aspect-video md:aspect-square rounded-none md:rounded-2xl overflow-hidden bg-gray-200'>
             <Image
-              src='/images/pay-dining.jpg'
+              src='/pay.png'
               alt='Elegant dining table with premium tableware'
               fill
               className='object-cover'

@@ -20,7 +20,7 @@ export function DiscoverSection() {
 
           <div className='relative w-full aspect-video md:aspect-square rounded-none md:rounded-2xl overflow-hidden bg-gray-300'>
             <Image
-              src='/images/discover-dining.jpg'
+              src='/discover.png'
               alt='Atmospheric restaurant interior with wine glasses and warm bokeh lighting'
               fill
               className='object-cover'
