@@ -34,9 +34,9 @@ export default async function Home() {
   return (
     <main className="min-h-screen pb-10">
       {featured.length > 0 && <NewlyFeaturedSection restaurants={featured} />}
-      <PopularChainsSection stores={stores} />
+      {/* <PopularChainsSection stores={stores} /> */}
       {newStores.length > 0 && <NewKickInStores stores={newStores} />}
-      <OffersForYouSection />
+      {/* <OffersForYouSection /> */}
       {stores.length > 0 && <StoresNearYouSection stores={stores} />}
       {restaurants.length > 0 && <NowTrendingSection restaurants={restaurants} />}
     </main>
