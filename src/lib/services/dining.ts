@@ -7,6 +7,7 @@ import type {
   ReviewSummary,
   RestaurantDetail,
   FeaturedRestaurant,
+  RestaurantHours,
 } from '@/lib/types/dining';
 
 const SELECT_FIELDS =
@@ -76,10 +77,12 @@ export async function getRestaurantBySlugOrId(
       foodPhotos: [],
       ambiencePhotos: [],
       menuImages: [],
+      todayHours: null,
+      allHours: [],
     };
   }
 
-  const [offersRes, tagsRes, reviewsRes, mediaAssetsRes, reviewPhotosRes] =
+  const [offersRes, tagsRes, reviewsRes, mediaAssetsRes, reviewPhotosRes, hoursRes] =
     await Promise.allSettled([
       supabase
         .from('restaurant_offers')
@@ -115,6 +118,15 @@ export async function getRestaurantBySlugOrId(
         .eq('restaurant_id', restaurant.id)
         .eq('is_approved', true)
         .not('photo_urls', 'eq', '{}'),
+      supabase
+        .from('restaurant_opening_hours')
+        .select('day_of_week, open_time, close_time, is_closed')
+        .eq('restaurant_id', restaurant.id)
+        .order('day_of_week')
+        .then(res => {
+          console.log('[restaurant_opening_hours] result:', res.data, 'error:', res.error)
+          return res
+        }),
     ]);
 
   const offers: DiningOffer[] =
@@ -202,6 +214,10 @@ export async function getRestaurantBySlugOrId(
     }
   }
 
+  const allHours: RestaurantHours[] =
+    hoursRes.status === 'fulfilled' ? (hoursRes.value.data ?? []) : [];
+  const todayHours = allHours.find(h => h.day_of_week === new Date().getDay()) ?? null;
+
   return {
     restaurant: restaurant as Restaurant,
     offers,
@@ -212,5 +228,7 @@ export async function getRestaurantBySlugOrId(
     foodPhotos,
     ambiencePhotos,
     menuImages,
+    todayHours,
+    allHours,
   };
 }

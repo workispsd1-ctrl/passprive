@@ -18,6 +18,13 @@ export type Restaurant = {
   ad_priority: number | null;
 };
 
+export type RestaurantHours = {
+  day_of_week: number;
+  open_time: string | null;
+  close_time: string | null;
+  is_closed: boolean;
+};
+
 export type MenuJson = {
   sections: MenuSection[];
   full_menu_image_url?: string;
@@ -83,6 +90,8 @@ export type RestaurantDetail = {
   foodPhotos: string[];
   ambiencePhotos: string[];
   menuImages: string[];
+  todayHours: RestaurantHours | null;
+  allHours: RestaurantHours[];
 };
 
 export type FeaturedRestaurant = Restaurant & {

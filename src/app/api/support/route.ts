@@ -9,12 +9,16 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('support_requests').insert({
-    topic,
-    name,
-    email,
-    mobile,
-    message,
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const fullMessage = mobile ? `Mobile: ${mobile}\n\n${message}` : message
+
+  const { error } = await supabase.from('feedback').insert({
+    category: topic,
+    user_name: name,
+    user_email: email,
+    message: fullMessage,
+    user_id: user?.id ?? null,
   })
 
   if (error) {

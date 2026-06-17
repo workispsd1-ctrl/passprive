@@ -6,6 +6,9 @@ export type DiningBooking = {
   party_size: number
   status: string
   booking_code: string
+  source: string | null
+  customer_name: string | null
+  special_request: string | null
   restaurants: {
     id: string
     name: string

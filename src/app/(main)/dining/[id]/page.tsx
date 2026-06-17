@@ -14,6 +14,8 @@ import {
   CreditCard,
 } from 'lucide-react'
 import { getRestaurantBySlugOrId } from '@/lib/services/dining'
+import { getUserCashbackInfo } from '@/lib/services/wallet'
+import { createClient } from '@/lib/supabase/server'
 import type { Review } from '@/lib/types/dining'
 
 const fetchRestaurant = cache((id: string) => getRestaurantBySlugOrId(id))
@@ -56,8 +58,32 @@ import {
   MenuGalleryProvider,
   MenuImageCard,
 } from '@/components/sections/dining/MenuGalleryClient'
+import { HoursPopover } from '@/components/sections/dining/HoursPopover'
+import { BookingWidget } from '@/components/sections/dining/BookingWidget'
 
 
+
+function getOpenStatus(hours: import('@/lib/types/dining').RestaurantHours | null) {
+  if (!hours) return null
+  if (hours.is_closed || !hours.open_time || !hours.close_time)
+    return { isOpen: false, statusText: 'Closed today', label: null }
+  const now = new Date()
+  const [oh, om] = hours.open_time.split(':').map(Number)
+  const [ch, cm] = hours.close_time.split(':').map(Number)
+  const nowMins = now.getHours() * 60 + now.getMinutes()
+  const openMins = oh * 60 + om
+  const closeMins = ch * 60 + cm
+  const isOpen = closeMins > openMins
+    ? nowMins >= openMins && nowMins < closeMins
+    : nowMins >= openMins || nowMins < closeMins
+  const fmt = (h: number, m: number) =>
+    `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+  return {
+    isOpen,
+    statusText: isOpen ? `Open until ${fmt(ch, cm)}` : `Opens at ${fmt(oh, om)}`,
+    label: null,
+  }
+}
 
 function ratingAvg(reviews: Review[], key: 'food_rating' | 'service_rating' | 'ambience_rating'): number | null {
   const vals = reviews.map(r => r[key]).filter((v): v is number => v != null)
@@ -83,10 +109,13 @@ export default async function RestaurantPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages } =
-    await fetchRestaurant(id)
+  const [{ restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages, todayHours, allHours }, supabase] =
+    await Promise.all([fetchRestaurant(id), createClient()])
 
   if (!restaurant) notFound()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const cashbackInfo = user ? await getUserCashbackInfo(user.id) : null
 
   const cuisineTags = tags.filter(t => t.tag_type === 'cuisine').map(t => t.tag_value)
   const facilityTags = tags.filter(t => t.tag_type === 'facility').map(t => t.tag_value)
@@ -160,10 +189,25 @@ export default async function RestaurantPage({
                       </span>
                     </>
                   )}
-                  <span className='text-gray-300 font-light'>|</span>
-                  <span className='text-orange-500 font-semibold'>Closed</span>
-                  <span className='text-gray-400'>•</span>
-                  <span className='text-gray-500'>Opens in 13 min</span>
+                  {(() => {
+                    const status = getOpenStatus(todayHours)
+                    if (!status) return null
+                    return (
+                      <>
+                        <span className='text-gray-300 font-light'>|</span>
+                        <span className={status.isOpen ? 'text-green-600 font-semibold' : 'text-orange-500 font-semibold'}>
+                          {status.isOpen ? 'Open' : 'Closed'}
+                        </span>
+                        <span className='text-gray-400'>•</span>
+                        <HoursPopover
+                          todayHours={todayHours}
+                          allHours={allHours}
+                          statusText={status.statusText}
+                          isOpen={status.isOpen}
+                        />
+                      </>
+                    )
+                  })()}
                 </div>
 
                 {(restaurant.full_address ?? restaurant.area) && (
@@ -173,6 +217,13 @@ export default async function RestaurantPage({
                       {restaurant.full_address ??
                         `${restaurant.area}, ${restaurant.city}`}
                     </span>
+                  </div>
+                )}
+
+                {cashbackInfo && (
+                  <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
+                    <span className='text-violet-600 font-black text-[15px]'>{cashbackInfo.cashback_rate}%</span>
+                    <span className='text-[13px] font-semibold text-violet-700'>cashback on your bill</span>
                   </div>
                 )}
 
@@ -610,24 +661,32 @@ export default async function RestaurantPage({
                   </div>
                 </section>
               )}
+            {restaurant.booking_enabled && (
+              <section id='book' className='md:hidden mt-8 border-t border-gray-100 pt-6 pb-2'>
+                <h2 className='text-[18px] font-bold text-gray-900 mb-4'>Book a table</h2>
+                <BookingWidget restaurantId={restaurant.id} restaurantName={restaurant.name} />
+              </section>
+            )}
             </div>
 
-            {/* <div className='hidden md:block sticky top-20 pt-4'>
-              <BookingWidget restaurantName={restaurant.name} />
-            </div> */}
+            {restaurant.booking_enabled && (
+              <div className='hidden md:block sticky top-20 pt-4'>
+                <BookingWidget restaurantId={restaurant.id} restaurantName={restaurant.name} />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* {restaurant.booking_enabled && (
+        {restaurant.booking_enabled && (
           <div className='md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 z-20 shadow-lg'>
-            <button
-              type='button'
-              className='w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] hover:bg-black transition-colors'
+            <a
+              href='#book'
+              className='block w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] text-center hover:bg-black transition-colors'
             >
               Book a table
-            </button>
+            </a>
           </div>
-        )} */}
+        )}
       </main>
     </PhotoGalleryProvider>
   );

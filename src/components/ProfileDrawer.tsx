@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, BookText, MessageSquareText, HelpCircle, FileText, LogOut } from 'lucide-react'
+import { ArrowLeft, BookText, MessageSquareText, HelpCircle, FileText, LogOut, Wallet, Crown } from 'lucide-react'
 import Link from 'next/link'
 
 interface Props {
@@ -73,7 +73,7 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100">
             <Link
               href="/bookings"
               onClick={onClose}
@@ -81,6 +81,24 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
             >
               <BookText className="w-5 h-5 text-gray-500 shrink-0" />
               <span className="flex-1 text-sm font-medium text-gray-800">View all bookings</span>
+              <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
+            </Link>
+            <Link
+              href="/wallet"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors"
+            >
+              <Wallet className="w-5 h-5 text-gray-500 shrink-0" />
+              <span className="flex-1 text-sm font-medium text-gray-800">My Wallet</span>
+              <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
+            </Link>
+            <Link
+              href="/membership"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors"
+            >
+              <Crown className="w-5 h-5 text-gray-500 shrink-0" />
+              <span className="flex-1 text-sm font-medium text-gray-800">Membership</span>
               <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
             </Link>
           </div>

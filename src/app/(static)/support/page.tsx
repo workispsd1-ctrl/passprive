@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { SupportForm } from './SupportForm'
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export default function SupportPage() {
         <h1 className="text-4xl font-bold text-gray-900 text-center mb-10">
           How can we help you?
         </h1>
-        <SupportForm />
+        <Suspense>
+          <SupportForm />
+        </Suspense>
       </div>
     </main>
   )
