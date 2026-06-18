@@ -89,14 +89,11 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge.className}`}>
             {badge.label}
           </span>
-          {booking.source && (
-            <span className="flex items-center gap-1 text-[11px] font-medium text-gray-400 px-2 py-1 rounded-full bg-gray-50 border border-gray-100">
-              {booking.source === 'web'
-                ? <Globe className="w-3 h-3" />
-                : <Smartphone className="w-3 h-3" />}
-              {booking.source === 'web' ? 'Web' : 'App'}
-            </span>
-          )}
+          <span className="flex items-center gap-1 text-[11px] font-medium text-gray-400 px-2 py-1 rounded-full bg-gray-50 border border-gray-100">
+            {booking.source === 'app'
+              ? <><Smartphone className="w-3 h-3" /> App</>
+              : <><Globe className="w-3 h-3" /> Web</>}
+          </span>
         </div>
         <div className="flex items-center gap-3">
           {(booking.status === 'confirmed' || booking.status === 'pending') && (

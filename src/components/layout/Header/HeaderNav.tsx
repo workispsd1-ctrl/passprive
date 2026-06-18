@@ -14,7 +14,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { label: 'For you', href: '/', icon: '/foryou.png' },
   { label: 'Dining', href: '/dining', icon: '/dining.png' },
-  { label: 'Stores', href: '/stores', icon: '/stores.png' },
+  { label: 'Stores', href: '/stores', icon: '/store.png' },
 ]
 
 export function HeaderNav() {
@@ -37,7 +37,7 @@ export function HeaderNav() {
                   'flex flex-col items-center gap-1 px-5 py-2 rounded-t-xl transition-colors whitespace-nowrap md:hidden border-b-2',
                   isActive ? 'bg-purple-100 border-brand' : 'border-transparent'
                 )}>
-                  <Image src={icon} alt="" width={28} height={28} aria-hidden="true" />
+                  <Image src={icon} alt="" width={40} height={40} aria-hidden="true" />
                   <span className={cn(
                     'text-[11px] font-semibold uppercase tracking-wide',
                     isActive ? 'text-brand' : 'text-gray-400'

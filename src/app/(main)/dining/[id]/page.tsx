@@ -59,7 +59,6 @@ import {
   MenuImageCard,
 } from '@/components/sections/dining/MenuGalleryClient'
 import { HoursPopover } from '@/components/sections/dining/HoursPopover'
-import { BookingWidget } from '@/components/sections/dining/BookingWidget'
 
 
 
@@ -661,30 +660,37 @@ export default async function RestaurantPage({
                   </div>
                 </section>
               )}
-            {restaurant.booking_enabled && (
-              <section id='book' className='md:hidden mt-8 border-t border-gray-100 pt-6 pb-2'>
-                <h2 className='text-[18px] font-bold text-gray-900 mb-4'>Book a table</h2>
-                <BookingWidget restaurantId={restaurant.id} restaurantName={restaurant.name} />
-              </section>
-            )}
             </div>
 
+            {/* Desktop sidebar — Book a table CTA */}
             {restaurant.booking_enabled && (
               <div className='hidden md:block sticky top-20 pt-4'>
-                <BookingWidget restaurantId={restaurant.id} restaurantName={restaurant.name} />
+                <div className='rounded-2xl border border-gray-200 bg-white shadow-sm p-6 flex flex-col gap-4'>
+                  <div>
+                    <h2 className='text-[17px] font-extrabold text-gray-900'>Book a table</h2>
+                    <p className='text-sm text-gray-500 mt-1'>Reserve your spot at {restaurant.name}</p>
+                  </div>
+                  <Link
+                    href={`/dining/${restaurant.slug ?? restaurant.id}/book`}
+                    className='block w-full py-3.5 rounded-xl bg-gray-900 text-white font-bold text-[14px] text-center hover:bg-black transition-colors'
+                  >
+                    Book a table
+                  </Link>
+                </div>
               </div>
             )}
           </div>
         </div>
 
+        {/* Mobile sticky bottom CTA */}
         {restaurant.booking_enabled && (
           <div className='md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 z-20 shadow-lg'>
-            <a
-              href='#book'
+            <Link
+              href={`/dining/${restaurant.slug ?? restaurant.id}/book`}
               className='block w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] text-center hover:bg-black transition-colors'
             >
               Book a table
-            </a>
+            </Link>
           </div>
         )}
       </main>

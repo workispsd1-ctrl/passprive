@@ -46,7 +46,6 @@ export async function POST(request: Request) {
       special_request: special_request ?? null,
       booking_code,
       status: 'pending',
-      source: 'web',
     })
     .select('id, booking_code')
     .single()

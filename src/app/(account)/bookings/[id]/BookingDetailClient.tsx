@@ -239,12 +239,10 @@ export function BookingDetailClient({ booking, userName, ppBalance, cashbackRate
               ))}
             </div>
 
-            {booking.source && (
-              <div className="px-5 py-3 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-400">
-                {booking.source === 'web' ? <Globe className="w-3.5 h-3.5" /> : <Smartphone className="w-3.5 h-3.5" />}
-                Booked via {booking.source === 'web' ? 'Web' : 'App'}
-              </div>
-            )}
+            <div className="px-5 py-3 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-400">
+                {booking.source === 'app' ? <Smartphone className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+                Booked via {booking.source === 'app' ? 'App' : 'Web'}
+            </div>
           </div>
 
           {/* Special instructions */}

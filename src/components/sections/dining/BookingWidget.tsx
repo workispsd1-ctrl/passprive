@@ -1,9 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, QrCode, CheckCircle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronDown, QrCode, CheckCircle2, Loader2, MapPin, Users, CalendarDays, MessageCircle, XCircle } from 'lucide-react'
 
 const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
+
+const TERMS = [
+  'You should be above the legal drinking age to book slots with complimentary item(s).',
+  'The choice of brand provided as part of this promotion is solely at the discretion of the restaurant.',
+  'If there are more guests than seats booked, you will receive complimentary item(s) equivalent to the number of seats booked.',
+  'Offers can be availed only by paying via PassPrivé.',
+  'Cover charges cannot be refunded if slot is cancelled within 30 minutes of slot start time.',
+  'Other T&Cs may apply.',
+]
 
 function getDateOptions() {
   const options: { label: string; value: string }[] = []
@@ -16,56 +26,116 @@ function getDateOptions() {
         ? `Today, ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`
         : i === 1
           ? `Tomorrow, ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`
-          : `${d.toLocaleString('en', { weekday: 'short' })}, ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`
+          : `${d.toLocaleString('en', { weekday: 'long' })}, ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`
     options.push({ label, value: d.toISOString().split('T')[0] })
   }
   return options
 }
 
-function getTimeSlots() {
+type MealPeriod = 'lunch' | 'dinner'
+
+function generateSlots(period: MealPeriod) {
   const slots: { label: string; value: string }[] = []
-  for (let h = 11; h <= 22; h++) {
-    for (const m of [0, 30]) {
-      if (h === 22 && m === 30) break
+  const [startH, endH] = period === 'lunch' ? [11, 15] : [18, 22]
+  for (let h = startH; h < endH; h++) {
+    for (const m of [0, 15, 30, 45]) {
       const hh = String(h).padStart(2, '0')
       const mm = String(m).padStart(2, '0')
-      const period = h < 12 ? 'AM' : 'PM'
       const displayH = h % 12 === 0 ? 12 : h % 12
-      slots.push({ label: `${displayH}:${mm} ${period}`, value: `${hh}:${mm}` })
+      const period12 = h < 12 ? 'AM' : 'PM'
+      slots.push({ label: `${displayH}:${mm} ${period12}`, value: `${hh}:${mm}` })
     }
   }
   return slots
 }
 
+function formatBookingDate(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+function formatTime(timeStr: string) {
+  const [h, m] = timeStr.split(':').map(Number)
+  const period = h >= 12 ? 'PM' : 'AM'
+  const displayH = h % 12 === 0 ? 12 : h % 12
+  return `${displayH}:${String(m).padStart(2, '0')} ${period}`
+}
+
+function DownloadAppCard() {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 flex items-start gap-3">
+      <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+        <QrCode className="w-9 h-9 text-gray-400" />
+      </div>
+      <div>
+        <p className="text-sm font-bold text-gray-900">Download PassPrivé</p>
+        <ul className="mt-1.5 space-y-1">
+          {['Exclusive offers and deals', 'Pay via District'].map(t => (
+            <li key={t} className="flex items-center gap-1.5 text-xs text-gray-500">
+              <span className="w-1 h-1 rounded-full bg-gray-400 shrink-0" />
+              {t}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 interface Props {
   restaurantId: string
   restaurantName: string
+  restaurantLocation?: string
+  backHref?: string
+  defaultName?: string
+  defaultPhone?: string
 }
 
-type Step = 'form' | 'success'
+type Step = 'slots' | 'details' | 'success'
 
-export function BookingWidget({ restaurantId, restaurantName }: Props) {
+interface BookingResult {
+  bookingCode: string
+  bookingId: string
+  date: string
+  time: string
+  guests: number
+  name: string
+  phone: string
+}
+
+export function BookingWidget({ restaurantId, restaurantName, restaurantLocation, backHref, defaultName = '', defaultPhone = '' }: Props) {
   const dateOptions = getDateOptions()
-  const timeSlots = getTimeSlots()
 
-  const [step, setStep] = useState<Step>('form')
+  const [step, setStep] = useState<Step>('slots')
   const [loading, setLoading] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelled, setCancelled] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [bookingCode, setBookingCode] = useState('')
+  const [result, setResult] = useState<BookingResult | null>(null)
 
+  // Step 1
   const [date, setDate] = useState(dateOptions[0].value)
-  const [time, setTime] = useState('19:00')
   const [guests, setGuests] = useState(2)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
+  const [mealPeriod, setMealPeriod] = useState<MealPeriod>('dinner')
+  const [selectedTime, setSelectedTime] = useState<string | null>(null)
+  const [showAllSlots, setShowAllSlots] = useState(false)
+
+  // Step 2
+  const [name, setName] = useState(defaultName)
+  const [phone, setPhone] = useState(defaultPhone)
   const [request, setRequest] = useState('')
 
-  async function handleSubmit(e: React.FormEvent) {
+  const allSlots = generateSlots(mealPeriod)
+  const visibleSlots = showAllSlots ? allSlots : allSlots.slice(0, 8)
+
+  const now = new Date()
+  const transactionDate = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
+    ', ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+
+  async function handleBook(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!name.trim() || !phone.trim()) {
-      setError('Please enter your name and phone number.')
-      return
-    }
+    if (!name.trim() || !phone.trim()) { setError('Please enter your name and phone number.'); return }
     setError(null)
     setLoading(true)
     try {
@@ -75,16 +145,24 @@ export function BookingWidget({ restaurantId, restaurantName }: Props) {
         body: JSON.stringify({
           restaurant_id: restaurantId,
           booking_date: date,
-          booking_time: time,
+          booking_time: selectedTime,
           party_size: guests,
           customer_name: name.trim(),
           customer_phone: phone.trim(),
           special_request: request.trim() || null,
         }),
       })
-      const json = await res.json() as { booking_code?: string; error?: string }
+      const json = await res.json() as { booking_code?: string; id?: string; error?: string }
       if (!res.ok) throw new Error(json.error ?? 'Booking failed')
-      setBookingCode(json.booking_code ?? '')
+      setResult({
+        bookingCode: json.booking_code ?? '',
+        bookingId: json.id ?? '',
+        date,
+        time: selectedTime ?? '',
+        guests,
+        name: name.trim(),
+        phone: phone.trim(),
+      })
       setStep('success')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -93,159 +171,403 @@ export function BookingWidget({ restaurantId, restaurantName }: Props) {
     }
   }
 
-  if (step === 'success') {
+  async function handleCancel() {
+    if (!result?.bookingId) return
+    setCancelling(true)
+    try {
+      await fetch(`/api/bookings/dining/${result.bookingId}/cancel`, { method: 'PATCH' })
+      setCancelled(true)
+    } catch {
+      // silently fail — booking still shows
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  /* ── Success state ────────────────────────────────────────────── */
+  if (step === 'success' && result) {
     return (
-      <div className="rounded-2xl border border-gray-200 p-6 shadow-sm bg-white flex flex-col items-center text-center gap-3">
-        <CheckCircle className="w-12 h-12 text-green-500" />
-        <h2 className="text-[17px] font-bold text-gray-900">Booking Confirmed!</h2>
-        <p className="text-sm text-gray-500">
-          Your table at <span className="font-semibold text-gray-800">{restaurantName}</span> is reserved.
-        </p>
-        {bookingCode && (
-          <div className="mt-1 px-4 py-2 rounded-xl bg-violet-50 border border-violet-100">
-            <p className="text-[11px] font-semibold text-violet-400 uppercase tracking-wider">Booking Code</p>
-            <p className="text-2xl font-extrabold text-violet-700 tracking-widest mt-0.5">{bookingCode}</p>
+      <div className="flex flex-col gap-5">
+
+        {/* Info banner */}
+        <div className="rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
+          <p className="text-sm text-violet-700 leading-snug">
+            You will be able to redeem your cover charge when you pay your bill using the PassPrivé app
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+          {/* Left: booking detail */}
+          <div className="lg:col-span-2 flex flex-col gap-5">
+
+            {/* Booking confirmed card */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              {cancelled ? (
+                <div className="p-6 flex flex-col items-center text-center gap-3">
+                  <XCircle className="w-10 h-10 text-red-400" />
+                  <p className="font-bold text-gray-800">Booking Cancelled</p>
+                  <p className="text-sm text-gray-500">Your reservation has been cancelled.</p>
+                  {backHref && (
+                    <Link href={backHref} className="text-sm font-semibold text-violet-600 hover:underline">
+                      Back to restaurant
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="px-5 pt-5 pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <h2 className="text-lg font-extrabold text-gray-900">Booking Confirmed</h2>
+                    </div>
+                    <p className="text-xs text-gray-400 ml-7">Reach restaurant 15 mins before your slot</p>
+                  </div>
+
+                  <div className="divide-y divide-gray-50">
+                    <div className="flex items-center gap-3 px-5 py-4">
+                      <CalendarDays className="w-4 h-4 text-gray-400 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Date &amp; Time</p>
+                        <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                          {formatBookingDate(result.date)} at {formatTime(result.time)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 px-5 py-4">
+                      <Users className="w-4 h-4 text-gray-400 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Number of Guests</p>
+                        <p className="text-sm font-semibold text-gray-800 mt-0.5">{result.guests}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                        <div>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Location</p>
+                          <p className="text-sm font-semibold text-gray-800 mt-0.5">{restaurantName}</p>
+                          {restaurantLocation && (
+                            <p className="text-xs text-gray-400 mt-0.5">{restaurantLocation}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cancel */}
+                  <div className="px-5 py-3 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                      className="flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 disabled:opacity-50"
+                    >
+                      {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                      Cancel booking
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Restaurant Terms */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <p className="text-sm font-bold text-gray-900 mb-3">Restaurant Terms</p>
+              <ul className="flex flex-col gap-2">
+                {['Staff contributions is on the discretion of the restaurant',
+                  'Discounts not applicable on btl, tower, beer bucket, pitchers and platters'].map(t => (
+                  <li key={t} className="flex items-start gap-2 text-xs text-gray-500 leading-relaxed">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Your details */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <p className="text-sm font-bold text-gray-900 mb-3">Your details</p>
+              <div className="flex items-center gap-3 py-2 border border-gray-100 rounded-xl px-3">
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <span className="text-xs text-gray-500">👤</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{result.name}</p>
+                  <p className="text-xs text-gray-400">{result.phone}</p>
+                </div>
+              </div>
+              {result.bookingId && (
+                <div className="mt-3 flex flex-col gap-0.5">
+                  <p className="text-xs text-gray-400">Transaction ID: {result.bookingId}</p>
+                  <p className="text-xs text-gray-400">Transaction date: {transactionDate}</p>
+                </div>
+              )}
+            </div>
+
+            {/* T&Cs */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <p className="text-sm font-bold text-gray-900 mb-3">Terms &amp; Conditions</p>
+              <ul className="flex flex-col gap-2">
+                {TERMS.map(term => (
+                  <li key={term} className="flex items-start gap-2 text-xs text-gray-500 leading-relaxed">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
+                    {term}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Chat with support */}
+            <button
+              type="button"
+              className="flex items-center gap-2.5 w-full bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <MessageCircle className="w-4 h-4 text-gray-400" />
+              Chat with support
+            </button>
           </div>
-        )}
-        <p className="text-xs text-gray-400">Show this code at the restaurant. Check <a href="/bookings" className="underline text-gray-500">My Bookings</a> for details.</p>
-        <button
-          type="button"
-          onClick={() => { setStep('form'); setBookingCode('') }}
-          className="mt-1 text-sm font-medium text-gray-500 hover:text-gray-700"
-        >
-          Make another booking
-        </button>
+
+          {/* Right: QR panel */}
+          <div className="lg:col-span-1">
+            <DownloadAppCard />
+          </div>
+        </div>
+
+        {/* Booking code bar */}
+        <div className="mt-2 rounded-2xl bg-gray-900 text-white px-6 py-4 flex items-center justify-center gap-4">
+          <div className="flex items-center gap-0.5">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className={`bg-white h-8 rounded-full ${i % 3 === 0 ? 'w-0.75' : i % 2 === 0 ? 'w-0.5' : 'w-px'}`}
+              />
+            ))}
+          </div>
+          <p className="font-mono text-xl font-extrabold tracking-widest shrink-0">{result.bookingCode}</p>
+          <div className="flex items-center gap-0.5">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className={`bg-white h-8 rounded-full ${i % 2 === 0 ? 'w-0.5' : 'w-px'}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
 
-  return (
-    <div className="flex flex-col gap-3">
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 p-5 shadow-sm bg-white">
-        <h2 className="text-[17px] font-bold text-gray-900 mb-4">Book a table</h2>
-
-        {/* Date + Guests */}
-        <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Date</span>
-            <div className="relative">
-              <select
-                title="Select date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] font-semibold text-gray-800 bg-white pr-7 cursor-pointer focus:outline-none focus:border-gray-400"
-              >
-                {dateOptions.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Guests</span>
-            <div className="relative">
-              <select
-                title="Select number of guests"
-                value={guests}
-                onChange={e => setGuests(Number(e.target.value))}
-                className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] font-semibold text-gray-800 bg-white pr-7 cursor-pointer focus:outline-none focus:border-gray-400"
-              >
-                {GUEST_OPTIONS.map(n => (
-                  <option key={n} value={n}>{n} {n === 1 ? 'guest' : 'guests'}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Time */}
-        <div className="flex flex-col gap-1 mb-2.5">
-          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Time</span>
-          <div className="relative">
-            <select
-              title="Select time"
-              value={time}
-              onChange={e => setTime(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] font-semibold text-gray-800 bg-white pr-7 cursor-pointer focus:outline-none focus:border-gray-400"
+  /* ── Step 2: Guest details ────────────────────────────────────── */
+  if (step === 'details') {
+    return (
+      <form onSubmit={handleBook} className="flex flex-col gap-5">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <button
+              type="button"
+              aria-label="Go back"
+              onClick={() => setStep('slots')}
+              className="text-sm font-medium text-gray-500 hover:text-gray-800 mb-1"
             >
-              {timeSlots.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              ← Back
+            </button>
+            <p className="text-base font-extrabold text-gray-900">Your details</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {dateOptions.find(d => d.value === date)?.label} ·{' '}
+              {allSlots.find(s => s.value === selectedTime)?.label} ·{' '}
+              {guests} {guests === 1 ? 'guest' : 'guests'}
+            </p>
+          </div>
+
+          <div className="p-6 flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Your name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Full name"
+                  required
+                  className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:border-violet-400"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Phone</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+230 5XXX XXXX"
+                  required
+                  className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:border-violet-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                Special request <span className="normal-case font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={request}
+                onChange={e => setRequest(e.target.value)}
+                placeholder="Allergies, celebrations, seating preference…"
+                rows={2}
+                className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 resize-none focus:outline-none focus:border-violet-400"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-sm transition-colors disabled:opacity-60"
+              >
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loading ? 'Booking…' : 'Confirm booking'}
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Name + Phone */}
-        <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Your name</span>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Full name"
-              className="rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] font-semibold text-gray-800 placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:border-gray-400"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Phone</span>
-            <input
-              type="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="+230 5XXX XXXX"
-              className="rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] font-semibold text-gray-800 placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:border-gray-400"
-            />
-          </div>
-        </div>
-
-        {/* Special request */}
-        <div className="flex flex-col gap-1 mb-3">
-          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Special request <span className="normal-case font-normal">(optional)</span></span>
-          <textarea
-            value={request}
-            onChange={e => setRequest(e.target.value)}
-            placeholder="Allergies, celebrations, seating preference…"
-            rows={2}
-            className="rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-800 placeholder:text-gray-400 resize-none focus:outline-none focus:border-gray-400"
-          />
-        </div>
-
-        {error && (
-          <p className="text-[12px] text-red-500 font-medium mb-2.5">{error}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3.5 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-[14px] transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-        >
-          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {loading ? 'Booking…' : 'Book a table'}
-        </button>
       </form>
+    )
+  }
 
-      {/* Download app card */}
-      <div className="rounded-2xl border border-gray-200 p-4 shadow-sm bg-white">
-        <div className="flex items-start gap-3">
-          <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-            <QrCode className="w-9 h-9 text-gray-500" />
+  /* ── Step 1: Slot selection ───────────────────────────────────── */
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* Main form */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+
+          {/* Form header */}
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-base font-extrabold text-gray-900">Book a table</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{restaurantName}</p>
           </div>
-          <div>
-            <p className="text-[14px] font-bold text-gray-900">Download PassPrivé</p>
-            <ul className="mt-1.5 space-y-1">
-              {['Exclusive offers and deals', 'Pay & earn rewards', 'Book tables instantly'].map(t => (
-                <li key={t} className="flex items-center gap-1.5 text-[12px] text-gray-500">
-                  <span className="w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-                  {t}
-                </li>
-              ))}
-            </ul>
+
+          <div className="p-6 flex flex-col gap-6">
+
+            {/* Date + Guests */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Date</span>
+                <div className="relative">
+                  <select
+                    title="Select date"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 bg-white pr-8 cursor-pointer focus:outline-none focus:border-violet-400"
+                  >
+                    {dateOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">No. of guests</span>
+                <div className="relative">
+                  <select
+                    title="Select guests"
+                    value={guests}
+                    onChange={e => setGuests(Number(e.target.value))}
+                    className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 bg-white pr-8 cursor-pointer focus:outline-none focus:border-violet-400"
+                  >
+                    {GUEST_OPTIONS.map(n => <option key={n} value={n}>{n} {n === 1 ? 'Guest' : 'Guests'}</option>)}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Time slots */}
+            <div>
+              <p className="text-sm font-bold text-gray-900 mb-3">Select time slot</p>
+              <div className="flex items-center gap-2 mb-4">
+                {(['lunch', 'dinner'] as MealPeriod[]).map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => { setMealPeriod(p); setSelectedTime(null) }}
+                    className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors capitalize ${
+                      mealPeriod === p
+                        ? 'bg-gray-900 text-white'
+                        : 'border border-gray-200 text-gray-500 hover:border-gray-400'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                {visibleSlots.map(slot => (
+                  <button
+                    key={slot.value}
+                    type="button"
+                    onClick={() => setSelectedTime(slot.value)}
+                    className={`flex flex-col items-center py-2.5 px-1 rounded-xl border text-center transition-all ${
+                      selectedTime === slot.value
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    <span className="text-[13px] font-bold leading-tight">{slot.label}</span>
+                    <span className={`text-[10px] mt-0.5 ${selectedTime === slot.value ? 'text-white/60' : 'text-violet-500'}`}>
+                      2 offers
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {allSlots.length > 8 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSlots(v => !v)}
+                  className="mt-3 text-sm font-semibold text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                >
+                  {showAllSlots ? 'View fewer slots ↑' : 'View all slots ↓'}
+                </button>
+              )}
+            </div>
+
+            {/* T&Cs */}
+            <div>
+              <p className="text-sm font-bold text-gray-900 mb-3">Terms &amp; Conditions</p>
+              <ul className="flex flex-col gap-2">
+                {TERMS.map(term => (
+                  <li key={term} className="flex items-start gap-2 text-xs text-gray-500 leading-relaxed">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
+                    {term}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={!selectedTime}
+                onClick={() => setStep('details')}
+                className="px-8 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Proceed to book
+              </button>
+            </div>
           </div>
+        </div>
+
+        {/* Right: QR panel */}
+        <div className="lg:col-span-1">
+          <DownloadAppCard />
         </div>
       </div>
     </div>

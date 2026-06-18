@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useMemo } from 'react';
-import { Bookmark } from 'lucide-react';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocation } from '@/lib/context/LocationContext';
 import type { FeaturedRestaurant } from '@/lib/types/dining';
+
+const SCROLL_BY = 300
 
 function compareCity(
   aCity: string | null,
@@ -25,6 +27,32 @@ export function NewlyFeaturedSection({
 }) {
   const { location } = useLocation();
   const userCity = location.city.trim().toLowerCase();
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+
+  function updateArrows() {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 0)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    updateArrows()
+    el.addEventListener('scroll', updateArrows, { passive: true })
+    return () => el.removeEventListener('scroll', updateArrows)
+  }, [])
+
+  function scrollLeft() {
+    scrollRef.current?.scrollBy({ left: -SCROLL_BY, behavior: 'smooth' })
+  }
+
+  function scrollRight() {
+    scrollRef.current?.scrollBy({ left: SCROLL_BY, behavior: 'smooth' })
+  }
 
   const sortedRestaurants = useMemo(() => {
     return restaurants
@@ -63,10 +91,33 @@ export function NewlyFeaturedSection({
 
   return (
     <section className='bg-white pt-5 pb-2 md:pt-8'>
-      <h2 className='text-[17px] md:text-[19px] font-bold text-gray-900 px-4 md:px-6 mb-4'>
-        Newly featured for you
-      </h2>
-      <div className='flex gap-3 overflow-x-auto scrollbar-hide px-4 md:px-6 pb-3'>
+      <div className='flex items-center justify-between px-4 md:px-6 mb-4'>
+        <h2 className='text-[17px] md:text-[19px] font-bold text-gray-900'>
+          Newly featured for you
+        </h2>
+        <div className='flex items-center gap-1.5'>
+          <button
+            type='button'
+            onClick={scrollLeft}
+            disabled={!canScrollLeft}
+            aria-label='Scroll left'
+            className='w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
+          >
+            <ChevronLeft className='w-4 h-4' />
+          </button>
+          <button
+            type='button'
+            onClick={scrollRight}
+            disabled={!canScrollRight}
+            aria-label='Scroll right'
+            className='w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
+          >
+            <ChevronRight className='w-4 h-4' />
+          </button>
+        </div>
+      </div>
+
+      <div ref={scrollRef} className='flex gap-3 overflow-x-auto scrollbar-hide px-4 md:px-6 pb-3'>
         {sortedRestaurants.map((restaurant) => {
           const offer = restaurant.restaurant_offers?.[0];
           return (

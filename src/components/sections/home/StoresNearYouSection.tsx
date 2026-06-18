@@ -5,14 +5,14 @@ import type { StoreRow } from '@/lib/types/stores'
 
 export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
   if (!stores.length) return null
-  const items = stores.slice(0, 8)
+  const items = stores.slice(0, 6)
 
   return (
     <section className="bg-white py-5 md:py-8">
       <h2 className="text-[17px] md:text-[19px] font-bold text-gray-900 px-4 md:px-6 mb-4">
         Stores near you
       </h2>
-      <div className="mt-5 flex gap-4 overflow-x-auto scrollbar-hide px-4 md:px-8 pb-2 md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible">
+      <div className="mt-5 flex gap-4 overflow-x-auto scrollbar-hide px-4 md:px-8 pb-2 md:grid md:grid-cols-3 md:overflow-visible">
         {items.map(store => {
           const offer = store.store_offers?.[0]
           return (

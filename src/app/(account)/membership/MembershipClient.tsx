@@ -33,7 +33,7 @@ function BasicCard({ isActive }: { isActive: boolean }) {
         </div>
         <p className="text-5xl font-extrabold text-gray-900 leading-none">Free</p>
         <div className="mt-4 inline-flex items-center gap-1.5 bg-gray-200/80 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-full">
-          ✦ 0.5% cashback
+          ✦ 0.5% at all merchants
         </div>
       </div>
 
@@ -89,7 +89,7 @@ function PremiumCard({ plan, isActive, isLoggedIn }: { plan: SubscriptionPlan; i
           <span className="text-sm text-white/50 mb-1">/yr</span>
         </div>
         <div className="mt-4 inline-flex items-center gap-1.5 bg-white/15 border border-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-          ✦ {plan.cashback}% cashback
+          ✦ {plan.cashback}% at Preferred Partners
         </div>
       </div>
 
@@ -154,7 +154,7 @@ function BlackCard({ plan, isActive, isLoggedIn }: { plan: SubscriptionPlan; isA
           <span className="text-sm text-zinc-600 mb-1">/yr</span>
         </div>
         <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-semibold px-3 py-1.5 rounded-full">
-          ✦ {plan.cashback}% cashback
+          ✦ {plan.cashback}% at Preferred Partners
         </div>
       </div>
 
@@ -237,8 +237,8 @@ export function MembershipClient({ plans, membership, isLoggedIn }: Props) {
       {/* Hero */}
       <div className="relative px-6 pt-10 pb-6 max-w-5xl mx-auto">
         <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Choose your plan</h1>
-        <p className="mt-2 text-[15px] text-gray-500 max-w-sm leading-relaxed">
-          Earn cashback on every bill and unlock exclusive dining benefits.
+        <p className="mt-2 text-[15px] text-gray-500 max-w-lg leading-relaxed">
+          Discover more. Pay easily. Earn every time. Upgrade to earn more at Preferred Partners.
         </p>
 
         {/* Active membership status pill */}
@@ -281,7 +281,57 @@ export function MembershipClient({ plans, membership, isLoggedIn }: Props) {
         </div>
       </div>
 
-      <p className="text-center text-xs text-gray-400 mt-10">
+      {/* Rewards rate comparison table */}
+      <div className="relative px-5 max-w-5xl mx-auto mt-10">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <p className="text-sm font-bold text-gray-800">How rewards work by merchant type</p>
+            <p className="text-xs text-gray-400 mt-0.5">Your reward rate depends on both your membership and the merchant's PassPrivé plan</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider w-1/3">Membership</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Verified Pay Partner</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-violet-500 uppercase tracking-wider">Preferred Partner ✦</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                <tr className={currentTier === 'none' ? 'bg-gray-50' : ''}>
+                  <td className="px-6 py-3.5 font-semibold text-gray-700">
+                    Privé Free
+                    {currentTier === 'none' && <span className="ml-2 text-[10px] font-bold text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">Your plan</span>}
+                  </td>
+                  <td className="text-center px-4 py-3.5 font-bold text-gray-500">0.5%</td>
+                  <td className="text-center px-4 py-3.5 font-bold text-gray-500">0.5%</td>
+                </tr>
+                <tr className={currentTier === 'premium' ? 'bg-violet-50' : ''}>
+                  <td className="px-6 py-3.5 font-semibold text-gray-700">
+                    Privé Premium
+                    {currentTier === 'premium' && <span className="ml-2 text-[10px] font-bold text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded-full">Your plan</span>}
+                  </td>
+                  <td className="text-center px-4 py-3.5 font-bold text-gray-500">0.5%</td>
+                  <td className="text-center px-4 py-3.5 font-bold text-violet-600">2%</td>
+                </tr>
+                <tr className={currentTier === 'black' ? 'bg-zinc-50' : ''}>
+                  <td className="px-6 py-3.5 font-semibold text-gray-700">
+                    Privé Black
+                    {currentTier === 'black' && <span className="ml-2 text-[10px] font-bold text-zinc-500 bg-zinc-200 px-1.5 py-0.5 rounded-full">Your plan</span>}
+                  </td>
+                  <td className="text-center px-4 py-3.5 font-bold text-gray-500">0.5%</td>
+                  <td className="text-center px-4 py-3.5 font-bold text-zinc-800">4%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50">
+            <p className="text-xs text-gray-400">✦ Preferred Partners offer higher rewards for Premium &amp; Black members. At Verified Pay Partners, all tiers earn the standard 0.5%.</p>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-center text-xs text-gray-400 mt-8">
         Questions? <a href="/support" className="underline text-gray-500">Contact support</a>.
       </p>
     </div>
