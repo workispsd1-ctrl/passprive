@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid bill_amount' }, { status: 400 })
   }
 
-  const cashbackInfo = await getUserCashbackInfo(user.id)
+  const cashbackInfo = await getUserCashbackInfo(user.id, body.restaurant_id)
   if (!cashbackInfo) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }

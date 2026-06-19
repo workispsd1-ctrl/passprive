@@ -19,10 +19,10 @@ export default async function BookingDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')
 
-  const [booking, wallet, cashbackInfo] = await Promise.all([
-    getBookingById(id, user.id),
+  const booking = await getBookingById(id, user.id)
+  const [wallet, cashbackInfo] = await Promise.all([
     getWalletBalance(user.id),
-    getUserCashbackInfo(user.id),
+    getUserCashbackInfo(user.id, booking?.restaurant_id),
   ])
   if (!booking) notFound()
 

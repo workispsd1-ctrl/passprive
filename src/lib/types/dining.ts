@@ -16,6 +16,9 @@ export type Restaurant = {
   longitude: number | null;
   is_advertised: boolean;
   ad_priority: number | null;
+  merchant_type: 'preferred_partner' | 'verified_pay' | null;
+  cover_charge_enabled: boolean;
+  cover_charge_amount: number | null;
 };
 
 export type RestaurantHours = {

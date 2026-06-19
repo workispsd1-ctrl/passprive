@@ -6,9 +6,10 @@ import Link from 'next/link'
 import {
   CheckCircle2, Clock, MapPin, Users, Tag, ChevronDown, ChevronUp,
   PenLine, Ban, User, Wallet, Globe, Smartphone, CalendarDays,
-  Coins, Loader2,
+  Coins, Loader2, ArrowRight, CreditCard,
 } from 'lucide-react'
 import type { DiningBooking } from '@/lib/types/bookings'
+
 
 const TERMS = [
   'Please arrive 15 minutes prior to your reservation time.',
@@ -63,7 +64,8 @@ interface Props {
   membershipTier: string
 }
 
-function PPCoinsPayment({ restaurantId, ppBalance }: { restaurantId: string; ppBalance: number }) {
+
+function PPCoinsPayment({ restaurantId, ppBalance, onPaid }: { restaurantId: string; ppBalance: number; onPaid: (amount: number) => void }) {
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -93,7 +95,9 @@ function PPCoinsPayment({ restaurantId, ppBalance }: { restaurantId: string; ppB
       })
       const data = await res.json() as { paid?: number; error?: string }
       if (!res.ok) throw new Error(data.error ?? 'Payment failed')
-      setPaid(data.paid ?? numAmount)
+      const deducted = data.paid ?? numAmount
+      setPaid(deducted)
+      onPaid(deducted)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -165,13 +169,15 @@ function PPCoinsPayment({ restaurantId, ppBalance }: { restaurantId: string; ppB
   )
 }
 
-export function BookingDetailClient({ booking, userName, ppBalance, cashbackRate }: Props) {
+export function BookingDetailClient({ booking, userName, ppBalance: initialBalance, cashbackRate }: Props) {
   const [showTerms, setShowTerms] = useState(true)
   const [showInstructions, setShowInstructions] = useState(false)
+  const [liveBalance, setLiveBalance] = useState(initialBalance)
   const restaurant = booking.restaurants
   const location = restaurant?.full_address ?? restaurant?.area ?? '—'
-  const payBillHref = `/pay-bill?restaurant_id=${booking.restaurant_id}${restaurant?.name ? `&restaurant_name=${encodeURIComponent(restaurant.name)}` : ''}`
   const isActive = booking.status === 'confirmed' || booking.status === 'pending'
+  const costForTwo = restaurant?.cost_for_two ?? 0
+  const estimatedBill = costForTwo > 0 ? Math.round(costForTwo * booking.party_size / 2) : 0
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8 pb-16">
@@ -299,29 +305,35 @@ export function BookingDetailClient({ booking, userName, ppBalance, cashbackRate
         {/* ── Right / Sidebar ─────────────────────────────────── */}
         <div className="flex flex-col gap-5">
 
-          {/* Pay Bill CTA */}
+          {/* Pay Bill — links to dedicated checkout page */}
           {isActive && (
             <div className="bg-linear-to-br from-violet-600 to-purple-700 rounded-2xl p-5 text-white">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1">
                 <Wallet className="w-4 h-4 text-white/80" />
-                <p className="text-sm font-bold">Earn cashback</p>
+                <p className="text-sm font-bold">Pay Bill &amp; Earn PP Coins</p>
               </div>
               <p className="text-xs text-white/70 leading-relaxed mb-4">
-                Submit your bill amount after dining to earn {cashbackRate}% cashback directly into your PassPrivé wallet.
+                Pay your bill securely via card and earn {cashbackRate}% back as PP Coins. 1 coin = Rs 1.
               </p>
               <Link
-                href={payBillHref}
+                href={`/bookings/${booking.id}/pay${estimatedBill > 0 ? `?amount=${estimatedBill}` : ''}`}
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-violet-700 text-sm font-bold hover:bg-violet-50 transition-colors"
               >
-                <Wallet className="w-4 h-4" />
-                Pay Bill &amp; Earn Cashback
+                <Coins className="w-4 h-4" />
+                Pay Bill &amp; Earn Coins
+                <ArrowRight className="w-4 h-4" />
               </Link>
+              <p className="text-[10px] text-white/40 text-center mt-2">Secured by iVeri · 3D Secure</p>
             </div>
           )}
 
           {/* Pay with PP Points */}
           {isActive && (
-            <PPCoinsPayment restaurantId={booking.restaurant_id} ppBalance={ppBalance} />
+            <PPCoinsPayment
+              restaurantId={booking.restaurant_id}
+              ppBalance={liveBalance}
+              onPaid={amt => setLiveBalance(b => b - amt)}
+            />
           )}
 
           {/* Booking reference */}

@@ -32,6 +32,15 @@ export async function POST(request: Request) {
 
   const booking_code = generateBookingCode()
 
+  const { data: restaurantData } = await supabase
+    .from('restaurants')
+    .select('cover_charge_enabled, cover_charge_amount')
+    .eq('id', restaurant_id)
+    .single()
+
+  const coverChargeEnabled = restaurantData?.cover_charge_enabled ?? false
+  const coverChargeAmount = restaurantData?.cover_charge_amount ?? null
+
   const { data, error } = await supabase
     .from('restaurant_bookings')
     .insert({
@@ -46,6 +55,11 @@ export async function POST(request: Request) {
       special_request: special_request ?? null,
       booking_code,
       status: 'pending',
+      ...(coverChargeEnabled && coverChargeAmount != null ? {
+        payment_required: true,
+        payment_amount: coverChargeAmount * party_size,
+        payment_status: 'pending',
+      } : {}),
     })
     .select('id, booking_code')
     .single()
@@ -54,5 +68,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ booking_code: data.booking_code, id: data.id })
+  return NextResponse.json({
+    booking_code: data.booking_code,
+    id: data.id,
+    cover_charge_required: coverChargeEnabled && coverChargeAmount != null,
+    cover_charge_amount: coverChargeEnabled ? (coverChargeAmount ?? 0) * party_size : 0,
+  })
 }

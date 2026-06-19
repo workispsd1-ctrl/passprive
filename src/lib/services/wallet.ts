@@ -22,26 +22,35 @@ export async function getWalletTransactions(userId: string): Promise<WalletTrans
   return (data ?? []) as WalletTransaction[]
 }
 
-const TIER_CASHBACK_RATE: Record<string, number> = {
+// Rates at a Preferred Partner — tier determines the reward
+const PREFERRED_RATE: Record<string, number> = {
   none: 0.5,
   premium: 2,
   black: 4,
 }
 
-export async function getUserCashbackInfo(userId: string): Promise<UserCashbackInfo | null> {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('users')
-    .select('cashback, membership_tier')
-    .eq('id', userId)
-    .single()
-  if (!data) return null
+// At a Verified Pay Partner (or unclaimed/null), every tier earns the same flat rate
+const VERIFIED_PAY_RATE = 0.5
 
-  const tier = (data.membership_tier as string | null) ?? 'none'
-  // Prefer stored value only if it's a valid positive number; otherwise derive from tier
-  // This ensures Premium (2%) and Black (4%) members always get the correct rate
-  const storedRate = typeof data.cashback === 'number' && data.cashback > 0 ? data.cashback : null
-  const cashback_rate = storedRate ?? TIER_CASHBACK_RATE[tier] ?? 0.5
+export async function getUserCashbackInfo(userId: string, restaurantId?: string): Promise<UserCashbackInfo | null> {
+  const supabase = await createClient()
+
+  const [userResult, restaurantResult] = await Promise.all([
+    supabase.from('users').select('cashback, membership_tier').eq('id', userId).single(),
+    restaurantId
+      ? supabase.from('restaurants').select('merchant_type').eq('id', restaurantId).single()
+      : Promise.resolve({ data: null }),
+  ])
+
+  if (!userResult.data) return null
+
+  const tier = (userResult.data.membership_tier as string | null) ?? 'none'
+  const merchantType = (restaurantResult.data as { merchant_type?: string | null } | null)?.merchant_type ?? null
+
+  // Preferred Partners give tier-based rewards; everyone else gets the flat 0.5%
+  const cashback_rate = merchantType === 'preferred_partner'
+    ? (PREFERRED_RATE[tier] ?? 0.5)
+    : VERIFIED_PAY_RATE
 
   return { cashback_rate, membership_tier: tier }
 }

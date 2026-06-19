@@ -16,5 +16,6 @@ export type DiningBooking = {
     cover_image: string | null
     area: string | null
     full_address: string | null
+    cost_for_two: number | null
   } | null
 }

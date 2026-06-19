@@ -12,6 +12,8 @@ import {
   ThumbsUp,
   Info,
   CreditCard,
+  Award,
+  Lock,
 } from 'lucide-react'
 import { getRestaurantBySlugOrId } from '@/lib/services/dining'
 import { getUserCashbackInfo } from '@/lib/services/wallet'
@@ -114,7 +116,7 @@ export default async function RestaurantPage({
   if (!restaurant) notFound()
 
   const { data: { user } } = await supabase.auth.getUser()
-  const cashbackInfo = user ? await getUserCashbackInfo(user.id) : null
+  const cashbackInfo = user ? await getUserCashbackInfo(user.id, restaurant.id) : null
 
   const cuisineTags = tags.filter(t => t.tag_type === 'cuisine').map(t => t.tag_value)
   const facilityTags = tags.filter(t => t.tag_type === 'facility').map(t => t.tag_value)
@@ -171,6 +173,21 @@ export default async function RestaurantPage({
                       <BadgeCheck className='w-3 h-3' /> Pure Veg
                     </span>
                   )}
+                  {restaurant.merchant_type === 'preferred_partner' && (
+                    <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-50 border border-violet-200 text-[11px] font-semibold text-violet-700 mt-1.5'>
+                      <Award className='w-3 h-3' /> Preferred Partner
+                    </span>
+                  )}
+                  {restaurant.merchant_type === 'verified_pay' && (
+                    <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700 mt-1.5'>
+                      <CreditCard className='w-3 h-3' /> Verified Pay
+                    </span>
+                  )}
+                  {restaurant.merchant_type === null && (
+                    <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-50 border border-gray-200 text-[11px] font-semibold text-gray-500 mt-1.5'>
+                      <Lock className='w-3 h-3' /> Unclaimed
+                    </span>
+                  )}
                 </div>
 
                 <div className='flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[14px]'>
@@ -219,10 +236,21 @@ export default async function RestaurantPage({
                   </div>
                 )}
 
-                {cashbackInfo && (
-                  <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
-                    <span className='text-violet-600 font-black text-[15px]'>{cashbackInfo.cashback_rate}%</span>
-                    <span className='text-[13px] font-semibold text-violet-700'>cashback on your bill</span>
+                {restaurant.merchant_type !== null ? (
+                  cashbackInfo ? (
+                    <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
+                      <span className='text-violet-600 font-black text-[15px]'>{cashbackInfo.cashback_rate}%</span>
+                      <span className='text-[13px] font-semibold text-violet-700'>PP Coins cashback on your bill</span>
+                    </div>
+                  ) : (
+                    <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
+                      <span className='text-[13px] font-semibold text-violet-700'>Earn PP Coins cashback here</span>
+                    </div>
+                  )
+                ) : (
+                  <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gray-50 border border-gray-200'>
+                    <Info className='w-3.5 h-3.5 text-gray-400 shrink-0' />
+                    <span className='text-[13px] text-gray-500'>PassPrivé payments not available here yet</span>
                   </div>
                 )}
 

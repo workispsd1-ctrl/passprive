@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bookmark, ChevronLeft, ChevronRight, Award, CreditCard } from 'lucide-react';
 import { useLocation } from '@/lib/context/LocationContext';
 import type { FeaturedRestaurant } from '@/lib/types/dining';
 
@@ -139,11 +139,19 @@ export function NewlyFeaturedSection({
               )}
               <div className='absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-black/15' />
 
-              {offer?.badge_text && (
+              {restaurant.merchant_type === 'preferred_partner' ? (
+                <span className='absolute top-2.5 left-2.5 flex items-center gap-1 bg-violet-600/90 text-white text-[9px] font-bold px-2 py-1 rounded-lg leading-none'>
+                  <Award className='w-2.5 h-2.5' /> Preferred Partner
+                </span>
+              ) : restaurant.merchant_type === 'verified_pay' ? (
+                <span className='absolute top-2.5 left-2.5 flex items-center gap-1 bg-emerald-600/90 text-white text-[9px] font-bold px-2 py-1 rounded-lg leading-none'>
+                  <CreditCard className='w-2.5 h-2.5' /> Verified Pay
+                </span>
+              ) : offer?.badge_text ? (
                 <span className='absolute top-2.5 left-2.5 bg-green-500/90 text-white text-[10px] font-bold px-2 py-1 rounded-lg leading-none'>
                   {offer.badge_text}
                 </span>
-              )}
+              ) : null}
 
               <button
                 type='button'

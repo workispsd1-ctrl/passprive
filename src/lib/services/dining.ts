@@ -11,7 +11,7 @@ import type {
 } from '@/lib/types/dining';
 
 const SELECT_FIELDS =
-  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority';
+  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, merchant_type, cover_charge_enabled, cover_charge_amount';
 
 async function fetchNewestRestaurants(
   limit = 8,
@@ -20,7 +20,7 @@ async function fetchNewestRestaurants(
   const { data } = await supabase
     .from('restaurants')
     .select(
-      'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, restaurant_offers(id, badge_text, discount_value)',
+      'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, merchant_type, cover_charge_enabled, cover_charge_amount, restaurant_offers(id, badge_text, discount_value)',
     )
     .eq('is_active', true)
     .order('created_at', { ascending: false })

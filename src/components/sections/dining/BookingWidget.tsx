@@ -2,7 +2,47 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronDown, QrCode, CheckCircle2, Loader2, MapPin, Users, CalendarDays, MessageCircle, XCircle } from 'lucide-react'
+import { ChevronDown, QrCode, CheckCircle2, Loader2, MapPin, Users, CalendarDays, MessageCircle, XCircle, CreditCard } from 'lucide-react'
+
+const COVER_CHARGE_SESSION_KEY = 'pp_cover_charge_session'
+
+function resolveSessionId(payload: Record<string, unknown>): string {
+  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
+  return String(session?.id ?? session?.session_id ?? payload?.session_id ?? payload?.id ?? '')
+}
+
+function resolveMerchantTrace(payload: Record<string, unknown>): string {
+  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
+  return String(session?.merchant_trace ?? session?.merchantTrace ?? payload?.merchant_trace ?? payload?.merchantTrace ?? '')
+}
+
+function resolveGatewayUrl(payload: Record<string, unknown>): string {
+  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
+  const candidates = [
+    payload?.redirect_url, payload?.redirectUrl, payload?.payment_url, payload?.paymentUrl,
+    payload?.hosted_url, payload?.hostedUrl, payload?.launch_url, payload?.launchUrl,
+    session?.redirect_url, session?.redirectUrl, session?.payment_url, session?.paymentUrl,
+    session?.hosted_url, session?.hostedUrl, session?.launch_url, session?.launchUrl,
+    payload?.gateway_url, payload?.gatewayUrl, session?.gateway_url, session?.gatewayUrl,
+    payload?.url, session?.url,
+  ]
+  return String(candidates.find(v => typeof v === 'string' && (v as string).trim()) ?? '')
+}
+
+function submitGatewayForm(url: string, fields: Record<string, string>) {
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = url
+  Object.entries(fields).forEach(([name, value]) => {
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = name
+    input.value = value
+    form.appendChild(input)
+  })
+  document.body.appendChild(form)
+  form.submit()
+}
 
 const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
 
@@ -90,6 +130,8 @@ interface Props {
   backHref?: string
   defaultName?: string
   defaultPhone?: string
+  coverChargeEnabled?: boolean
+  coverChargeAmount?: number | null
 }
 
 type Step = 'slots' | 'details' | 'success'
@@ -102,9 +144,11 @@ interface BookingResult {
   guests: number
   name: string
   phone: string
+  coverChargeRequired: boolean
+  coverChargeTotal: number
 }
 
-export function BookingWidget({ restaurantId, restaurantName, restaurantLocation, backHref, defaultName = '', defaultPhone = '' }: Props) {
+export function BookingWidget({ restaurantId, restaurantName, restaurantLocation, backHref, defaultName = '', defaultPhone = '', coverChargeEnabled = false, coverChargeAmount = null }: Props) {
   const dateOptions = getDateOptions()
 
   const [step, setStep] = useState<Step>('slots')
@@ -113,6 +157,8 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
   const [cancelled, setCancelled] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<BookingResult | null>(null)
+  const [coverChargeLoading, setCoverChargeLoading] = useState(false)
+  const [coverChargeError, setCoverChargeError] = useState<string | null>(null)
 
   // Step 1
   const [date, setDate] = useState(dateOptions[0].value)
@@ -152,7 +198,7 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
           special_request: request.trim() || null,
         }),
       })
-      const json = await res.json() as { booking_code?: string; id?: string; error?: string }
+      const json = await res.json() as { booking_code?: string; id?: string; error?: string; cover_charge_required?: boolean; cover_charge_amount?: number }
       if (!res.ok) throw new Error(json.error ?? 'Booking failed')
       setResult({
         bookingCode: json.booking_code ?? '',
@@ -162,6 +208,8 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
         guests,
         name: name.trim(),
         phone: phone.trim(),
+        coverChargeRequired: json.cover_charge_required ?? false,
+        coverChargeTotal: json.cover_charge_amount ?? 0,
       })
       setStep('success')
     } catch (err) {
@@ -184,17 +232,95 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
     }
   }
 
+  async function handlePayCoverCharge() {
+    if (!result) return
+    setCoverChargeLoading(true)
+    setCoverChargeError(null)
+    try {
+      const res = await fetch('/api/payments/booking/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: result.bookingId,
+          restaurant_id: restaurantId,
+          amount: result.coverChargeTotal,
+          currency_code: 'MUR',
+        }),
+      })
+      const data = await res.json() as Record<string, unknown>
+      if (!res.ok) throw new Error((data?.error as string) ?? 'Could not initiate payment')
+
+      const sessionId = resolveSessionId(data)
+      const merchantTrace = resolveMerchantTrace(data)
+      const gatewayUrl = resolveGatewayUrl(data)
+
+      sessionStorage.setItem(COVER_CHARGE_SESSION_KEY, JSON.stringify({
+        sessionId,
+        merchantTrace,
+        bookingId: result.bookingId,
+        restaurantId,
+        amount: result.coverChargeTotal,
+      }))
+
+      if (gatewayUrl) {
+        const formFields = (data?.form_fields ?? data?.fields ?? {}) as Record<string, string>
+        if (Object.keys(formFields).length > 0) {
+          submitGatewayForm(gatewayUrl, formFields)
+        } else {
+          window.location.href = gatewayUrl
+        }
+      } else {
+        throw new Error('Payment gateway URL not returned. Please try again.')
+      }
+    } catch (err) {
+      setCoverChargeError(err instanceof Error ? err.message : 'Payment failed')
+    } finally {
+      setCoverChargeLoading(false)
+    }
+  }
+
   /* ── Success state ────────────────────────────────────────────── */
   if (step === 'success' && result) {
     return (
       <div className="flex flex-col gap-5">
 
-        {/* Info banner */}
-        <div className="rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
-          <p className="text-sm text-violet-700 leading-snug">
-            You will be able to redeem your cover charge when you pay your bill using the PassPrivé app
-          </p>
-        </div>
+        {/* Cover charge payment card — shown when restaurant requires upfront cover charge */}
+        {result.coverChargeRequired && !cancelled && (
+          <div className="rounded-2xl bg-white border border-violet-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-violet-100 bg-violet-50">
+              <p className="text-sm font-bold text-violet-800">Cover Charge Required</p>
+              <p className="text-xs text-violet-600 mt-0.5">Pay your cover charge to secure this booking</p>
+            </div>
+            <div className="px-5 py-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Amount Due</p>
+                <p className="text-2xl font-extrabold text-gray-900 mt-0.5">Rs {result.coverChargeTotal.toFixed(2)}</p>
+                <p className="text-xs text-gray-400 mt-0.5">Redeemable at the restaurant on your visit</p>
+              </div>
+              <button
+                type="button"
+                onClick={handlePayCoverCharge}
+                disabled={coverChargeLoading}
+                className="shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-colors disabled:opacity-60"
+              >
+                {coverChargeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                {coverChargeLoading ? 'Redirecting…' : 'Pay Now'}
+              </button>
+            </div>
+            {coverChargeError && (
+              <p className="px-5 pb-4 text-sm text-red-500 font-medium">{coverChargeError}</p>
+            )}
+          </div>
+        )}
+
+        {/* Info banner — only shown when no cover charge required */}
+        {!result.coverChargeRequired && (
+          <div className="rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
+            <p className="text-sm text-violet-700 leading-snug">
+              You will be able to redeem your cover charge when you pay your bill using the PassPrivé app
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
