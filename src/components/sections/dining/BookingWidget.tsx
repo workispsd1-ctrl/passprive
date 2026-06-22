@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronDown, QrCode, CheckCircle2, Loader2, MapPin, Users, CalendarDays, MessageCircle, XCircle, CreditCard } from 'lucide-react'
 
@@ -149,7 +150,22 @@ interface BookingResult {
 }
 
 export function BookingWidget({ restaurantId, restaurantName, restaurantLocation, backHref, defaultName = '', defaultPhone = '', coverChargeEnabled = false, coverChargeAmount = null }: Props) {
+  const router = useRouter()
   const dateOptions = getDateOptions()
+
+  // If the user returns from iVeri without "Return to PassPrive" working (common on localhost),
+  // detect the pending session and redirect to the return page so cashback is still credited.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(COVER_CHARGE_SESSION_KEY)
+      if (raw) {
+        const stored = JSON.parse(raw) as { sessionId?: string; bookingId?: string }
+        if (stored?.sessionId && stored?.bookingId) {
+          router.push('/dining/cover-charge-return')
+        }
+      }
+    } catch { /* ignore */ }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [step, setStep] = useState<Step>('slots')
   const [loading, setLoading] = useState(false)

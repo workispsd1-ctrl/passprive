@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { WalletBalance, WalletTransaction, UserCashbackInfo } from '@/lib/types/wallet'
+import { getUserMembership } from '@/lib/services/subscription'
 
 export async function getWalletBalance(userId: string): Promise<WalletBalance | null> {
   const supabase = await createClient()
@@ -15,44 +16,42 @@ export async function getWalletTransactions(userId: string): Promise<WalletTrans
   const supabase = await createClient()
   const { data } = await supabase
     .from('gift_transactions')
-    .select('id, amount, type, created_at, restaurant_id, store_id')
+    .select('id, amount, type, created_at, restaurant_id, store_id, restaurants(name)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50)
-  return (data ?? []) as WalletTransaction[]
+  return ((data ?? []) as unknown[]).map((row) => {
+    const r = row as Record<string, unknown>
+    return {
+      id: r.id as string,
+      amount: r.amount as number,
+      type: r.type as string,
+      created_at: r.created_at as string,
+      restaurant_id: r.restaurant_id as string | null,
+      store_id: r.store_id as string | null,
+      restaurant_name: (r.restaurants as { name?: string } | null)?.name ?? null,
+    } satisfies WalletTransaction
+  })
 }
-
-// Rates at a Preferred Partner — tier determines the reward
-const PREFERRED_RATE: Record<string, number> = {
-  none: 0.5,
-  premium: 2,
-  black: 4,
-}
-
-// At a Verified Pay Partner (or unclaimed/null), every tier earns the same flat rate
-const VERIFIED_PAY_RATE = 0.5
 
 export async function getUserCashbackInfo(userId: string, restaurantId?: string): Promise<UserCashbackInfo | null> {
   const supabase = await createClient()
 
-  const [userResult, restaurantResult] = await Promise.all([
-    supabase.from('users').select('cashback, membership_tier').eq('id', userId).single(),
+  const [membership, restaurantResult] = await Promise.all([
+    getUserMembership(userId),
     restaurantId
       ? supabase.from('restaurants').select('merchant_type').eq('id', restaurantId).single()
       : Promise.resolve({ data: null }),
   ])
 
-  if (!userResult.data) return null
+  if (!membership) return null
 
-  const tier = (userResult.data.membership_tier as string | null) ?? 'none'
   const merchantType = (restaurantResult.data as { merchant_type?: string | null } | null)?.merchant_type ?? null
 
-  // Preferred Partners give tier-based rewards; everyone else gets the flat 0.5%
-  const cashback_rate = merchantType === 'preferred_partner'
-    ? (PREFERRED_RATE[tier] ?? 0.5)
-    : VERIFIED_PAY_RATE
+  // users.cashback is the stored rate — preferred partners use it, others get flat 0.5%
+  const cashback_rate = merchantType === 'preferred_partner' ? membership.cashback_rate : 0.5
 
-  return { cashback_rate, membership_tier: tier }
+  return { cashback_rate, membership_tier: membership.membership_tier }
 }
 
 export async function debitWallet(

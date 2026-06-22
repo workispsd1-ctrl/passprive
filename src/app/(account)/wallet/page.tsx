@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { SetPageTitle } from '@/components/layout/MinimalHeader/SetPageTitle'
-import { getWalletBalance, getWalletTransactions, getUserCashbackInfo } from '@/lib/services/wallet'
+import { getWalletBalance, getWalletTransactions } from '@/lib/services/wallet'
+import { getUserMembership } from '@/lib/services/subscription'
 import { WalletClient } from './WalletClient'
 
 export const metadata: Metadata = {
@@ -15,11 +16,12 @@ export default async function WalletPage() {
 
   if (!user) redirect('/')
 
-  const [balance, transactions, cashbackInfo] = await Promise.all([
+  const [balance, transactions, membership] = await Promise.all([
     getWalletBalance(user.id),
     getWalletTransactions(user.id),
-    getUserCashbackInfo(user.id),
+    getUserMembership(user.id),
   ])
+
 
   return (
     <main className="min-h-screen">
@@ -27,7 +29,7 @@ export default async function WalletPage() {
       <WalletClient
         balance={balance}
         transactions={transactions}
-        cashbackInfo={cashbackInfo}
+        membership={membership}
       />
     </main>
   )

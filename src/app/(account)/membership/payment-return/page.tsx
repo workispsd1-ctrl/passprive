@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Loader2, CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, RefreshCw, Clock } from 'lucide-react'
 import { Suspense } from 'react'
 
 const SESSION_KEY = 'pp_payment_session'
@@ -10,14 +10,25 @@ const SESSION_KEY = 'pp_payment_session'
 type Phase =
   | { status: 'loading'; message: string }
   | { status: 'success' }
+  | { status: 'pending'; sessionId: string; merchantTrace: string }
   | { status: 'error'; message: string; canRetry: boolean }
 
-function isVerifiedPaymentSuccess(data: Record<string, unknown>): boolean {
-  const status = String(data?.status ?? data?.payment_status ?? data?.transaction_status ?? '').toLowerCase()
-  if (status === 'success' || status === 'approved' || status === 'completed') return true
+function classifyVerifyResponse(data: Record<string, unknown>): 'success' | 'pending' | 'failure' {
+  if (data?.verified === true) return 'success'
+  const status = String(
+    data?.status ?? data?.payment_status ?? data?.transaction_status ??
+    data?.outcome ?? data?.inferred_outcome ?? data?.result ?? ''
+  ).toLowerCase()
+  const SUCCESS_STATUSES = ['success', 'approved', 'completed', 'authorized', 'finalized', 'paid', 'verified_success']
+  if (SUCCESS_STATUSES.includes(status)) return 'success'
+  if (String(data?.gateway_status) === '0') return 'success'
+  if (String(data?.result_description ?? '').toLowerCase() === 'approved') return 'success'
+  if (['pending', 'processing', 'in_progress'].includes(status)) return 'pending'
   const authCode = data?.authorization_code ?? data?.auth_code ?? data?.authCode
-  if (authCode && status !== 'failed' && status !== 'declined' && status !== 'error') return true
-  return false
+  if (authCode && !['failed', 'declined', 'error', 'cancelled'].includes(status)) return 'success'
+  if (['failed', 'declined', 'error', 'cancelled'].includes(status)) return 'failure'
+  if (!status) return 'pending'
+  return 'failure'
 }
 
 function PaymentReturnInner() {
@@ -27,91 +38,95 @@ function PaymentReturnInner() {
 
   const [phase, setPhase] = useState<Phase>({ status: 'loading', message: 'Verifying your payment…' })
 
+  const runVerification = useCallback(async (sessionId: string, merchantTrace: string, urlStatus: string) => {
+    setPhase({ status: 'loading', message: 'Verifying your payment…' })
+
+    let verifyData: Record<string, unknown>
+    try {
+      const vRes = await fetch('/api/payments/membership/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, merchant_trace: merchantTrace, status: urlStatus }),
+      })
+      verifyData = await vRes.json() as Record<string, unknown>
+      if (!vRes.ok) throw new Error((verifyData?.error as string) ?? 'Payment verification failed')
+    } catch (err) {
+      try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
+      setPhase({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Could not verify payment. Please contact support.',
+        canRetry: false,
+      })
+      return
+    }
+
+    const outcome = classifyVerifyResponse(verifyData)
+
+    if (outcome === 'pending') {
+      setPhase({ status: 'pending', sessionId, merchantTrace })
+      return
+    }
+
+    if (outcome === 'failure') {
+      try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
+      const msg = String(verifyData?.message ?? verifyData?.error ?? 'Payment was not successful.')
+      setPhase({ status: 'error', message: msg, canRetry: true })
+      return
+    }
+
+    // Success — activate membership
+    setPhase({ status: 'loading', message: 'Activating your membership…' })
+    try {
+      const aRes = await fetch('/api/payments/membership/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      })
+      const aData = await aRes.json() as Record<string, unknown>
+      if (!aRes.ok) throw new Error((aData?.error as string) ?? 'Membership activation failed')
+    } catch (err) {
+      setPhase({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Payment succeeded but activation failed. Contact support.',
+        canRetry: false,
+      })
+      return
+    }
+
+    try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
+
+    setPhase({ status: 'success' })
+    setTimeout(() => router.replace('/membership'), 2500)
+  }, [router])
+
   useEffect(() => {
     if (ran.current) return
     ran.current = true
 
-    async function run() {
-      // Read URL params first
-      const urlSessionId = searchParams.get('session_id') ?? searchParams.get('sessionId') ?? ''
-      const urlMerchantTrace = searchParams.get('merchant_trace') ?? searchParams.get('merchantTrace') ?? ''
-      const urlStatus = searchParams.get('status') ?? searchParams.get('payment_status') ?? ''
+    const urlSessionId = searchParams.get('session_id') ?? searchParams.get('sessionId') ?? ''
+    const urlMerchantTrace = searchParams.get('merchant_trace') ?? searchParams.get('merchantTrace') ?? ''
+    const urlStatus = searchParams.get('outcome') ?? searchParams.get('status') ?? searchParams.get('payment_status') ?? ''
 
-      // Merge with sessionStorage
-      let storedSessionId = ''
-      let storedMerchantTrace = ''
-      try {
-        const raw = sessionStorage.getItem(SESSION_KEY)
-        if (raw) {
-          const stored = JSON.parse(raw) as { sessionId?: string; merchantTrace?: string }
-          storedSessionId = stored.sessionId ?? ''
-          storedMerchantTrace = stored.merchantTrace ?? ''
-        }
-      } catch { /* ignore */ }
-
-      const sessionId = urlSessionId || storedSessionId
-      const merchantTrace = urlMerchantTrace || storedMerchantTrace
-
-      if (!sessionId) {
-        setPhase({ status: 'error', message: 'Payment session not found. Please try again.', canRetry: true })
-        return
+    let storedSessionId = ''
+    let storedMerchantTrace = ''
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY)
+      if (raw) {
+        const stored = JSON.parse(raw) as { sessionId?: string; merchantTrace?: string }
+        storedSessionId = stored.sessionId ?? ''
+        storedMerchantTrace = stored.merchantTrace ?? ''
       }
+    } catch { /* ignore */ }
 
-      // Step 1: verify
-      setPhase({ status: 'loading', message: 'Verifying your payment…' })
-      let verifyData: Record<string, unknown>
-      try {
-        const vRes = await fetch('/api/payments/membership/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId, merchant_trace: merchantTrace, status: urlStatus }),
-        })
-        verifyData = await vRes.json() as Record<string, unknown>
-        if (!vRes.ok) throw new Error((verifyData?.error as string) ?? 'Payment verification failed')
-      } catch (err) {
-        setPhase({
-          status: 'error',
-          message: err instanceof Error ? err.message : 'Could not verify payment. Please contact support.',
-          canRetry: false,
-        })
-        return
-      }
+    const sessionId = urlSessionId || storedSessionId
+    const merchantTrace = urlMerchantTrace || storedMerchantTrace
 
-      if (!isVerifiedPaymentSuccess(verifyData)) {
-        const msg = String(verifyData?.message ?? verifyData?.error ?? 'Payment was not successful.')
-        setPhase({ status: 'error', message: msg, canRetry: true })
-        return
-      }
-
-      // Step 2: activate
-      setPhase({ status: 'loading', message: 'Activating your membership…' })
-      try {
-        const aRes = await fetch('/api/payments/membership/activate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId }),
-        })
-        const aData = await aRes.json() as Record<string, unknown>
-        if (!aRes.ok) throw new Error((aData?.error as string) ?? 'Membership activation failed')
-      } catch (err) {
-        setPhase({
-          status: 'error',
-          message: err instanceof Error ? err.message : 'Payment succeeded but activation failed. Contact support.',
-          canRetry: false,
-        })
-        return
-      }
-
-      // Clean up sessionStorage
-      try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
-
-      setPhase({ status: 'success' })
-
-      // Redirect to membership page after short delay
-      setTimeout(() => router.replace('/membership'), 2500)
+    if (!sessionId) {
+      setPhase({ status: 'error', message: 'Payment session not found. Please try again.', canRetry: true })
+      return
     }
 
-    run()
+    runVerification(sessionId, merchantTrace, urlStatus)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -131,6 +146,32 @@ function PaymentReturnInner() {
           <p className="text-sm text-gray-500 max-w-xs">
             Welcome to PassPrivé. Your cashback benefits are now live. Redirecting you…
           </p>
+        </div>
+      )}
+
+      {phase.status === 'pending' && (
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <Clock className="w-16 h-16 text-amber-400" />
+          <p className="text-xl font-extrabold text-gray-900">Payment being processed</p>
+          <p className="text-sm text-gray-500">
+            Your bank is still processing this payment. This can take a few minutes.
+            Your membership will be activated automatically once confirmed.
+          </p>
+          <div className="flex flex-col gap-2 w-full mt-2">
+            <button
+              onClick={() => runVerification(phase.sessionId, phase.merchantTrace, 'pending')}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Check again
+            </button>
+            <button
+              onClick={() => router.replace('/membership')}
+              className="w-full py-3 rounded-2xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50"
+            >
+              Return to membership
+            </button>
+          </div>
         </div>
       )}
 

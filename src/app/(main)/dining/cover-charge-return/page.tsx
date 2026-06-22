@@ -2,14 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Loader2, CheckCircle2, XCircle, CalendarDays, RefreshCw } from 'lucide-react'
+import { Loader2, XCircle, RefreshCw } from 'lucide-react'
 import { Suspense } from 'react'
 
 const SESSION_KEY = 'pp_cover_charge_session'
 
 type Phase =
   | { status: 'loading'; message: string }
-  | { status: 'success'; amount: number; bookingId: string }
   | { status: 'error'; message: string; canRetry: boolean; bookingId: string }
 
 interface StoredSession {
@@ -21,10 +20,17 @@ interface StoredSession {
 }
 
 function isPaymentSuccess(data: Record<string, unknown>): boolean {
-  const status = String(data?.status ?? data?.payment_status ?? data?.transaction_status ?? '').toLowerCase()
-  if (status === 'success' || status === 'approved' || status === 'completed') return true
+  if (data?.verified === true) return true
+  const status = String(
+    data?.status ?? data?.payment_status ?? data?.transaction_status ??
+    data?.outcome ?? data?.inferred_outcome ?? data?.result ?? ''
+  ).toLowerCase()
+  const SUCCESS_STATUSES = ['success', 'approved', 'completed', 'authorized', 'finalized', 'paid', 'verified_success']
+  if (SUCCESS_STATUSES.includes(status)) return true
+  if (String(data?.gateway_status) === '0') return true
+  if (String(data?.result_description ?? '').toLowerCase() === 'approved') return true
   const authCode = data?.authorization_code ?? data?.auth_code ?? data?.authCode
-  if (authCode && status !== 'failed' && status !== 'declined' && status !== 'error') return true
+  if (authCode && !['failed', 'declined', 'error', 'cancelled'].includes(status)) return true
   return false
 }
 
@@ -42,7 +48,7 @@ function CoverChargeReturnInner() {
     async function run() {
       const urlSessionId = searchParams.get('session_id') ?? searchParams.get('sessionId') ?? ''
       const urlMerchantTrace = searchParams.get('merchant_trace') ?? searchParams.get('merchantTrace') ?? ''
-      const urlStatus = searchParams.get('status') ?? searchParams.get('payment_status') ?? ''
+      const urlStatus = searchParams.get('outcome') ?? searchParams.get('status') ?? searchParams.get('payment_status') ?? ''
 
       let stored: StoredSession | null = null
       try {
@@ -70,6 +76,7 @@ function CoverChargeReturnInner() {
         verifyData = await vRes.json() as Record<string, unknown>
         if (!vRes.ok) throw new Error((verifyData?.error as string) ?? 'Verification failed')
       } catch (err) {
+        try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
         setPhase({
           status: 'error',
           message: err instanceof Error ? err.message : 'Could not verify payment. Please contact support.',
@@ -80,6 +87,7 @@ function CoverChargeReturnInner() {
       }
 
       if (!isPaymentSuccess(verifyData)) {
+        try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
         const msg = String(verifyData?.message ?? verifyData?.error ?? 'Payment was not successful.')
         setPhase({ status: 'error', message: msg, canRetry: true, bookingId })
         return
@@ -87,8 +95,7 @@ function CoverChargeReturnInner() {
 
       try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
 
-      setPhase({ status: 'success', amount: stored?.amount ?? 0, bookingId })
-      setTimeout(() => router.replace(bookingId ? `/bookings/${bookingId}` : '/bookings'), 3000)
+      router.replace(bookingId ? `/bookings/${bookingId}?cover_paid=1` : '/bookings')
     }
 
     run()
@@ -104,25 +111,7 @@ function CoverChargeReturnInner() {
         </div>
       )}
 
-      {phase.status === 'success' && (
-        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-          <CheckCircle2 className="w-16 h-16 text-green-500" />
-          <p className="text-2xl font-extrabold text-gray-900">Cover Charge Paid!</p>
-          <p className="text-sm text-gray-500">
-            Your cover charge of <span className="font-semibold text-gray-800">Rs {phase.amount.toFixed(2)}</span> has been paid.
-          </p>
-          <div className="w-full bg-violet-50 border border-violet-100 rounded-2xl px-6 py-4 text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <CalendarDays className="w-5 h-5 text-violet-500" />
-              <p className="text-sm font-bold text-violet-700">Booking Confirmed</p>
-            </div>
-            <p className="text-xs text-violet-500 mt-1">Your cover charge will be redeemable at the restaurant</p>
-          </div>
-          <p className="text-xs text-gray-400">Redirecting you to your booking…</p>
-        </div>
-      )}
-
-      {phase.status === 'error' && (
+{phase.status === 'error' && (
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
           <XCircle className="w-16 h-16 text-red-400" />
           <p className="text-xl font-extrabold text-gray-900">Payment unsuccessful</p>

@@ -10,6 +10,7 @@ export type WalletTransaction = {
   created_at: string
   restaurant_id: string | null
   store_id: string | null
+  restaurant_name?: string | null
 }
 
 export type UserCashbackInfo = {

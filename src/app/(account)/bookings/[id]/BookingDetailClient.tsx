@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   CheckCircle2, Clock, MapPin, Users, Tag, ChevronDown, ChevronUp,
   PenLine, Ban, User, Wallet, Globe, Smartphone, CalendarDays,
-  Coins, Loader2, ArrowRight, CreditCard,
+  Coins, Loader2, ArrowRight,
 } from 'lucide-react'
 import type { DiningBooking } from '@/lib/types/bookings'
 
@@ -170,6 +171,11 @@ function PPCoinsPayment({ restaurantId, ppBalance, onPaid }: { restaurantId: str
 }
 
 export function BookingDetailClient({ booking, userName, ppBalance: initialBalance, cashbackRate }: Props) {
+  const searchParams = useSearchParams()
+  const billJustPaid = searchParams.get('bill_paid') === '1'
+  const coverJustPaid = searchParams.get('cover_paid') === '1'
+  const earnedFromUrl = parseFloat(searchParams.get('earned') ?? '0') || 0
+
   const [showTerms, setShowTerms] = useState(true)
   const [showInstructions, setShowInstructions] = useState(false)
   const [liveBalance, setLiveBalance] = useState(initialBalance)
@@ -305,8 +311,37 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
         {/* ── Right / Sidebar ─────────────────────────────────── */}
         <div className="flex flex-col gap-5">
 
+          {/* Cover charge paid banner */}
+          {coverJustPaid && (
+            <div className="bg-green-50 border border-green-100 rounded-2xl p-5">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <p className="text-sm font-bold text-green-700">Cover Charge Paid — Booking Confirmed!</p>
+              </div>
+            </div>
+          )}
+
+          {/* Bill paid success banner */}
+          {billJustPaid && (
+            <div className="bg-green-50 border border-green-100 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <p className="text-sm font-bold text-green-700">Bill Paid!</p>
+              </div>
+              {earnedFromUrl > 0 && (
+                <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-1.5">
+                    <Coins className="w-4 h-4 text-violet-500" />
+                    <p className="text-sm font-semibold text-gray-700">PP Coins credited</p>
+                  </div>
+                  <p className="text-sm font-extrabold text-violet-600">Rs {earnedFromUrl.toFixed(2)}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Pay Bill — links to dedicated checkout page */}
-          {isActive && (
+          {isActive && !billJustPaid && (
             <div className="bg-linear-to-br from-violet-600 to-purple-700 rounded-2xl p-5 text-white">
               <div className="flex items-center gap-2 mb-1">
                 <Wallet className="w-4 h-4 text-white/80" />
@@ -328,7 +363,7 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
           )}
 
           {/* Pay with PP Points */}
-          {isActive && (
+          {isActive && !billJustPaid && (
             <PPCoinsPayment
               restaurantId={booking.restaurant_id}
               ppBalance={liveBalance}

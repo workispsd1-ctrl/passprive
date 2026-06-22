@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { PaymentRecovery } from "@/components/PaymentRecovery";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -77,6 +78,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${plusJakarta.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
+        <PaymentRecovery />
         {children}
       </body>
     </html>

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getBookingById } from '@/lib/services/bookings'
 import { getWalletBalance, getUserCashbackInfo } from '@/lib/services/wallet'
@@ -31,13 +32,15 @@ export default async function BookingDetailPage({
   return (
     <main className="min-h-screen bg-gray-50">
       <SetPageTitle title="Booking Details" />
-      <BookingDetailClient
-        booking={booking}
-        userName={userName}
-        ppBalance={wallet?.balance ?? 0}
-        cashbackRate={cashbackInfo?.cashback_rate ?? 0.5}
-        membershipTier={cashbackInfo?.membership_tier ?? 'none'}
-      />
+      <Suspense>
+        <BookingDetailClient
+          booking={booking}
+          userName={userName}
+          ppBalance={wallet?.balance ?? 0}
+          cashbackRate={cashbackInfo?.cashback_rate ?? 0.5}
+          membershipTier={cashbackInfo?.membership_tier ?? 'none'}
+        />
+      </Suspense>
     </main>
   )
 }

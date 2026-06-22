@@ -16,19 +16,29 @@ export async function POST(request: Request) {
       restaurant_id: string
       booking_id?: string
       amount: number
+      original_amount?: number
+      discount_amount?: number
+      cashback_amount?: number
+      selected_offer_ids?: string[]
+      payment_instrument_type?: string
       currency_code: string
     }
   }
 
   const host = request.headers.get('host') ?? 'localhost:3000'
   const proto = host.startsWith('localhost') ? 'http' : 'https'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `${proto}://${host}`
   const bookingId = body.dining_payload.booking_id ?? ''
-  const returnUrl = `${proto}://${host}/bookings/${bookingId}/payment-return`
+  const returnUrl = `${appUrl}/bookings/${bookingId}/payment-return`
 
   const amount = Number(body.dining_payload.amount)
   const billPayload: Record<string, unknown> = {
-    restaurant_id: body.dining_payload.restaurant_id,
-    amount,
+    bill_amount: amount,
+    original_amount: Number(body.dining_payload.original_amount ?? amount),
+    discount_amount: Number(body.dining_payload.discount_amount ?? 0),
+    cashback_amount: Number(body.dining_payload.cashback_amount ?? 0),
+    selected_offer_ids: body.dining_payload.selected_offer_ids ?? [],
+    payment_instrument_type: body.dining_payload.payment_instrument_type ?? 'CARD',
     currency_code: body.dining_payload.currency_code,
   }
   if (body.dining_payload.booking_id) {
@@ -38,20 +48,28 @@ export async function POST(request: Request) {
   const payload = {
     payment_context: 'BILL_PAYMENT',
     platform: 'web',
+    restaurant_id: body.dining_payload.restaurant_id,
     return_url: returnUrl,
     bill_payload: billPayload,
   }
 
   console.log('[dining/initiate] sending payload:', JSON.stringify(payload))
 
-  const upstream = await fetch(`${PAYMENTS_API}/api/payments/iveri/initiate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify(payload),
-  })
+  let upstream: Response
+  try {
+    upstream = await fetch(`${PAYMENTS_API}/api/payments/iveri/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch (err) {
+    console.error('[dining/initiate] fetch failed:', err)
+    return NextResponse.json({ error: 'Payment service unavailable. Please try again.' }, { status: 503 })
+  }
 
   const data = await upstream.json() as Record<string, unknown>
 

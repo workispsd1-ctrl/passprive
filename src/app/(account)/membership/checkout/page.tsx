@@ -3,14 +3,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { SetPageTitle } from '@/components/layout/MinimalHeader/SetPageTitle'
 import { getSubscriptionPlans } from '@/lib/services/subscription'
+import { PLAN_TIER } from '@/lib/types/subscription'
 import { CheckoutClient } from './CheckoutClient'
 
 export const metadata: Metadata = { title: 'Checkout | PassPrivé' }
-
-const PLAN_TIER: Record<string, string> = {
-  BasePlan_1: 'premium',
-  black_tier: 'black',
-}
 
 export default async function CheckoutPage({
   searchParams,

@@ -4,12 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ShieldCheck, CreditCard, Loader2, Check } from 'lucide-react'
 import type { SubscriptionPlan } from '@/lib/types/subscription'
-import { TIER_PERKS } from '@/lib/types/subscription'
-
-const PLAN_TIER: Record<string, string> = {
-  BasePlan_1: 'premium',
-  black_tier: 'black',
-}
+import { TIER_PERKS, PLAN_TIER } from '@/lib/types/subscription'
 
 const SESSION_KEY = 'pp_payment_session'
 

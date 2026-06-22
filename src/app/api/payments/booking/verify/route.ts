@@ -18,23 +18,33 @@ export async function POST(request: Request) {
     booking_id?: string
   }
 
-  const upstream = await fetch(`${PAYMENTS_API}/api/payments/iveri/verify`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({
-      session_id: body.session_id,
-      merchant_trace: body.merchant_trace,
-      status: body.status,
-      payment_context: 'BOOKING',
-    }),
-  })
+  let upstream: Response
+  try {
+    upstream = await fetch(`${PAYMENTS_API}/api/payments/iveri/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        session_id: body.session_id,
+        merchant_trace: body.merchant_trace,
+        status: body.status,
+        outcome: body.status,
+        payment_context: 'BOOKING',
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch (err) {
+    console.error('[booking/verify] fetch failed:', err)
+    return NextResponse.json({ error: 'Payment service unavailable. Please try again.' }, { status: 503 })
+  }
 
   const data = await upstream.json() as Record<string, unknown>
+  console.log('[booking/verify] upstream response:', upstream.status, JSON.stringify(data))
 
   if (!upstream.ok) {
+    console.error('[booking/verify] upstream error:', JSON.stringify(data))
     return NextResponse.json(
       { error: (data?.error as string) ?? (data?.message as string) ?? 'Payment verification failed' },
       { status: upstream.status },

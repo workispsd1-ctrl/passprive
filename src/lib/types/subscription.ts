@@ -16,6 +16,14 @@ export type UserMembership = {
   cashback_rate: number
 }
 
+// Maps subscription product_id → canonical tier name used throughout the app
+export const PLAN_TIER: Record<string, string> = {
+  BasePlan_1: 'premium',
+  black_tier: 'black',
+  'Privé Black': 'black',
+  'Privé Premium': 'premium',
+}
+
 export const TIER_PERKS: Record<string, string[]> = {
   none: [
     '0.5% reward on every eligible PassPrivé payment',

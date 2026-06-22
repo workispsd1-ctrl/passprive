@@ -1,7 +1,23 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { creditCashback, getUserCashbackInfo } from '@/lib/services/wallet'
 
 const PAYMENTS_API = (process.env.PAYMENTS_API_URL ?? 'https://nxxacdlmcc.execute-api.ap-south-1.amazonaws.com').replace(/\/+$/, '')
+
+function isPaymentSuccess(data: Record<string, unknown>): boolean {
+  if (data?.verified === true) return true
+  const status = String(
+    data?.status ?? data?.payment_status ?? data?.transaction_status ??
+    data?.outcome ?? data?.inferred_outcome ?? data?.result ?? ''
+  ).toLowerCase()
+  const SUCCESS_STATUSES = ['success', 'approved', 'completed', 'authorized', 'finalized', 'paid', 'verified_success']
+  if (SUCCESS_STATUSES.includes(status)) return true
+  if (String(data?.gateway_status) === '0') return true
+  if (String(data?.result_description ?? '').toLowerCase() === 'approved') return true
+  const authCode = data?.authorization_code ?? data?.auth_code ?? data?.authCode
+  if (authCode && !['failed', 'declined', 'error', 'cancelled'].includes(status)) return true
+  return false
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -17,23 +33,88 @@ export async function POST(request: Request) {
     status?: string
   }
 
-  const upstream = await fetch(`${PAYMENTS_API}/api/payments/iveri/verify`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify(body),
-  })
+  // Step 1: verifyIveriPayment — confirm card was charged
+  let verifyUpstream: Response
+  try {
+    verifyUpstream = await fetch(`${PAYMENTS_API}/api/payments/iveri/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        session_id: body.session_id,
+        merchant_trace: body.merchant_trace,
+        status: body.status,
+        outcome: body.status,
+        payment_context: 'BILL_PAYMENT',
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch (err) {
+    console.error('[dining/verify] fetch failed:', err)
+    return NextResponse.json({ error: 'Payment service unavailable. Please try again.' }, { status: 503 })
+  }
 
-  const data = await upstream.json() as Record<string, unknown>
+  const verifyData = await verifyUpstream.json() as Record<string, unknown>
+  console.log('[dining/verify] upstream response:', verifyUpstream.status, JSON.stringify(verifyData))
 
-  if (!upstream.ok) {
+  if (!verifyUpstream.ok) {
+    console.error('[dining/verify] upstream error:', JSON.stringify(verifyData))
     return NextResponse.json(
-      { error: (data?.error as string) ?? (data?.message as string) ?? 'Payment verification failed' },
-      { status: upstream.status },
+      { error: (verifyData?.error as string) ?? (verifyData?.message as string) ?? 'Payment verification failed' },
+      { status: verifyUpstream.status },
     )
   }
 
-  return NextResponse.json(data)
+  if (!isPaymentSuccess(verifyData)) {
+    return NextResponse.json({ ...verifyData, cashback_credited: 0 })
+  }
+
+  // Step 2: finalizeIveriBill — upstream records the payment in bill_payments
+  let restaurantId: string | undefined
+  let billAmount = 0
+  try {
+    const finalizeRes = await fetch(`${PAYMENTS_API}/api/payments/iveri/finalize-bill`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        session_id: body.session_id,
+        merchant_trace: body.merchant_trace,
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+    const finalizeData = await finalizeRes.json() as Record<string, unknown>
+    console.log('[dining/finalize-bill] upstream response:', finalizeRes.status, JSON.stringify(finalizeData))
+
+    if (finalizeRes.ok) {
+      const bp = finalizeData?.bill_payment as Record<string, unknown> | undefined
+      restaurantId = (bp?.restaurant_id as string | undefined) ?? undefined
+      billAmount = Number(bp?.final_paid_amount ?? bp?.original_amount ?? 0)
+    }
+  } catch (err) {
+    console.error('[dining/finalize-bill] failed (non-fatal):', err)
+  }
+
+  // Step 3: Credit PP Points ourselves — upstream records the payment but does not auto-credit cashback
+  let cashback_credited = 0
+  if (billAmount > 0) {
+    try {
+      const cashbackInfo = await getUserCashbackInfo(session.user.id, restaurantId)
+      if (cashbackInfo) {
+        cashback_credited = Math.round(billAmount * cashbackInfo.cashback_rate / 100 * 100) / 100
+        if (cashback_credited > 0) {
+          await creditCashback(session.user.id, cashback_credited, restaurantId)
+          console.log('[dining/verify] credited cashback:', cashback_credited, 'for restaurant:', restaurantId)
+        }
+      }
+    } catch (err) {
+      console.error('[dining/verify] cashback credit failed (non-fatal):', err)
+    }
+  }
+
+  return NextResponse.json({ ...verifyData, cashback_credited })
 }

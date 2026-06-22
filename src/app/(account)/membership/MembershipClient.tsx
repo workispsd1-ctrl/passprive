@@ -2,12 +2,7 @@
 
 import { Check, Crown, Sparkles, Zap, ArrowRight } from 'lucide-react'
 import type { SubscriptionPlan, UserMembership } from '@/lib/types/subscription'
-import { TIER_PERKS } from '@/lib/types/subscription'
-
-const PLAN_TIER: Record<string, string> = {
-  BasePlan_1: 'premium',
-  black_tier: 'black',
-}
+import { TIER_PERKS, PLAN_TIER } from '@/lib/types/subscription'
 
 function formatExpiry(iso: string | null) {
   if (!iso) return null

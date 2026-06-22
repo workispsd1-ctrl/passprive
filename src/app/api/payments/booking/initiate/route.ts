@@ -20,7 +20,8 @@ export async function POST(request: Request) {
 
   const host = request.headers.get('host') ?? 'localhost:3000'
   const proto = host.startsWith('localhost') ? 'http' : 'https'
-  const returnUrl = `${proto}://${host}/dining/cover-charge-return`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `${proto}://${host}`
+  const returnUrl = `${appUrl}/dining/cover-charge-return`
 
   const payload = {
     payment_context: 'BOOKING',
@@ -36,14 +37,21 @@ export async function POST(request: Request) {
 
   console.log('[booking/initiate] sending payload:', JSON.stringify(payload))
 
-  const upstream = await fetch(`${PAYMENTS_API}/api/payments/iveri/initiate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify(payload),
-  })
+  let upstream: Response
+  try {
+    upstream = await fetch(`${PAYMENTS_API}/api/payments/iveri/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch (err) {
+    console.error('[booking/initiate] fetch failed:', err)
+    return NextResponse.json({ error: 'Payment service unavailable. Please try again.' }, { status: 503 })
+  }
 
   const data = await upstream.json() as Record<string, unknown>
 
