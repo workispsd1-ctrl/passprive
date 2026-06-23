@@ -18,10 +18,15 @@ export async function getUserMembership(userId: string): Promise<UserMembership 
     .eq('id', userId)
     .single()
   if (!data) return null
+
+  const isExpired =
+    data.membership_expiry != null &&
+    new Date(data.membership_expiry) < new Date()
+
   return {
-    membership_tier: data.membership_tier ?? 'none',
+    membership_tier: isExpired ? 'none' : (data.membership_tier ?? 'none'),
     membership_started: data.membership_started ?? null,
     membership_expiry: data.membership_expiry ?? null,
-    cashback_rate: data.cashback ?? 0.5,
+    cashback_rate: isExpired ? 0.5 : (data.cashback ?? 0.5),
   }
 }

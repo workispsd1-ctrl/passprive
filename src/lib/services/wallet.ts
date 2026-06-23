@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { WalletBalance, WalletTransaction, UserCashbackInfo } from '@/lib/types/wallet'
 import { getUserMembership } from '@/lib/services/subscription'
+import { PREFERRED_PARTNER_RATES, VERIFIED_PAY_RATE } from '@/lib/constants/cashback'
 
 export async function getWalletBalance(userId: string): Promise<WalletBalance | null> {
   const supabase = await createClient()
@@ -53,10 +54,9 @@ export async function getUserCashbackInfo(userId: string, restaurantId?: string)
   let cashback_rate = 0
 
   if (merchantType === 'preferred_partner') {
-    const TIER_RATE: Record<string, number> = { none: 0.5, premium: 2, black: 4 }
-    cashback_rate = TIER_RATE[tier] ?? 0.5
+    cashback_rate = PREFERRED_PARTNER_RATES[tier] ?? VERIFIED_PAY_RATE
   } else if (merchantType === 'verified_pay') {
-    cashback_rate = 0.5
+    cashback_rate = VERIFIED_PAY_RATE
   }
   // null (unclaimed) → 0: no PassPrivé payments accepted, no rewards
 

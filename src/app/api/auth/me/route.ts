@@ -1,10 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-
-const TIER_CASHBACK_RATE: Record<string, number> = {
-  none: 0.5,
-  premium: 2,
-  black: 4,
-}
+import { PREFERRED_PARTNER_RATES, DEFAULT_RATE } from '@/lib/constants/cashback'
 
 export async function GET() {
   const supabase = await createClient()
@@ -20,9 +15,10 @@ export async function GET() {
     .eq('id', user.id)
     .single()
 
-  const tier = profile?.membership_tier ?? 'none'
+  const isExpired = profile?.membership_expiry != null && new Date(profile.membership_expiry) < new Date()
+  const tier = isExpired ? 'none' : (profile?.membership_tier ?? 'none')
   const storedRate = typeof profile?.cashback === 'number' && profile.cashback > 0 ? profile.cashback : null
-  const cashback_rate = storedRate ?? TIER_CASHBACK_RATE[tier] ?? 0.5
+  const cashback_rate = storedRate ?? PREFERRED_PARTNER_RATES[tier] ?? DEFAULT_RATE
 
   return Response.json({
     user: {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, QrCode, CheckCircle2, Loader2, MapPin, Users, CalendarDays, MessageCircle, XCircle, CreditCard } from 'lucide-react'
+import { ChevronDown, QrCode, CheckCircle2, Loader2, MapPin, Users, CalendarDays, MessageCircle, XCircle, CreditCard, Coins, Wallet, ArrowRight } from 'lucide-react'
 
 const COVER_CHARGE_SESSION_KEY = 'pp_cover_charge_session'
 
@@ -133,6 +133,8 @@ interface Props {
   defaultPhone?: string
   coverChargeEnabled?: boolean
   coverChargeAmount?: number | null
+  cashbackRate?: number
+  ppBalance?: number
 }
 
 type Step = 'slots' | 'details' | 'success'
@@ -149,7 +151,7 @@ interface BookingResult {
   coverChargeTotal: number
 }
 
-export function BookingWidget({ restaurantId, restaurantName, restaurantLocation, backHref, defaultName = '', defaultPhone = '', coverChargeEnabled = false, coverChargeAmount = null }: Props) {
+export function BookingWidget({ restaurantId, restaurantName, restaurantLocation, backHref, defaultName = '', defaultPhone = '', coverChargeEnabled = false, coverChargeAmount = null, cashbackRate = 0, ppBalance = 0 }: Props) {
   const router = useRouter()
   const dateOptions = getDateOptions()
 
@@ -187,6 +189,13 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
   const [name, setName] = useState(defaultName)
   const [phone, setPhone] = useState(defaultPhone)
   const [request, setRequest] = useState('')
+
+  // PP Points inline payment on success screen
+  const [livePpBalance, setLivePpBalance] = useState(ppBalance)
+  const [ppAmount, setPpAmount] = useState('')
+  const [ppLoading, setPpLoading] = useState(false)
+  const [ppError, setPpError] = useState<string | null>(null)
+  const [ppPaid, setPpPaid] = useState<number | null>(null)
 
   const allSlots = generateSlots(mealPeriod)
   const visibleSlots = showAllSlots ? allSlots : allSlots.slice(0, 8)
@@ -292,6 +301,29 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
       setCoverChargeError(err instanceof Error ? err.message : 'Payment failed')
     } finally {
       setCoverChargeLoading(false)
+    }
+  }
+
+  async function handlePayWithPoints() {
+    const amount = parseFloat(ppAmount) || 0
+    if (!result || amount <= 0 || amount > livePpBalance) return
+    setPpLoading(true)
+    setPpError(null)
+    try {
+      const res = await fetch('/api/wallet/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, restaurant_id: restaurantId }),
+      })
+      const data = await res.json() as { paid?: number; error?: string }
+      if (!res.ok) throw new Error(data.error ?? 'Payment failed')
+      const paid = data.paid ?? amount
+      setPpPaid(paid)
+      setLivePpBalance(b => b - paid)
+    } catch (err) {
+      setPpError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setPpLoading(false)
     }
   }
 
@@ -472,8 +504,99 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
             </button>
           </div>
 
-          {/* Right: QR panel */}
-          <div className="lg:col-span-1">
+          {/* Right: Pay options + QR panel */}
+          <div className="lg:col-span-1 flex flex-col gap-5">
+
+            {/* Pay Bill & Earn PP Coins */}
+            {!cancelled && cashbackRate > 0 && (
+              <div className="rounded-2xl bg-linear-to-br from-violet-600 to-purple-700 p-5 text-white">
+                <div className="flex items-center gap-2 mb-1">
+                  <Wallet className="w-4 h-4 text-white/80" />
+                  <p className="text-sm font-bold">Pay Bill &amp; Earn PP Coins</p>
+                </div>
+                <p className="text-xs text-white/70 leading-relaxed mb-4">
+                  Pay your bill via card and earn {cashbackRate}% back as PP Coins.
+                </p>
+                <Link
+                  href={`/bookings/${result.bookingId}/pay`}
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-violet-700 text-sm font-bold hover:bg-violet-50 transition-colors"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Pay Bill &amp; Earn Coins
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <p className="text-[10px] text-white/40 text-center mt-2">Secured by iVeri · 3D Secure</p>
+              </div>
+            )}
+
+            {/* Pay with PP Points */}
+            {!cancelled && cashbackRate > 0 && livePpBalance > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-violet-500" />
+                    <p className="text-sm font-bold text-gray-800">Pay with PP Points</p>
+                  </div>
+                  <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full">
+                    Rs {livePpBalance.toFixed(2)} available
+                  </span>
+                </div>
+
+                {ppPaid !== null ? (
+                  <div className="px-5 py-4">
+                    <div className="flex items-center gap-2 text-green-600 mb-2">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <p className="font-bold text-sm">Payment successful</p>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      <span className="font-semibold text-gray-800">Rs {ppPaid.toFixed(2)}</span> deducted from your PP Points.
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Remaining: Rs {livePpBalance.toFixed(2)}</p>
+                  </div>
+                ) : (
+                  <div className="px-5 py-4">
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider block mb-2">
+                      Amount (MUR)
+                    </label>
+                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-violet-400 transition-colors">
+                      <span className="text-sm font-semibold text-gray-400">Rs</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0.00"
+                        value={ppAmount}
+                        onChange={e => {
+                          const v = e.target.value.replace(/[^0-9.]/g, '')
+                          const parts = v.split('.')
+                          if (parts.length > 2) return
+                          if (parts[1] && parts[1].length > 2) return
+                          setPpAmount(v)
+                          setPpError(null)
+                        }}
+                        className="flex-1 text-sm font-bold text-gray-900 bg-transparent focus:outline-none placeholder:text-gray-300"
+                      />
+                    </div>
+                    {(parseFloat(ppAmount) || 0) > livePpBalance && (
+                      <p className="text-xs text-red-500 mt-1.5 font-medium">Insufficient PP Points balance</p>
+                    )}
+                    {ppError && (
+                      <p className="text-xs text-red-500 mt-1.5 font-medium">{ppError}</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handlePayWithPoints}
+                      disabled={ppLoading || (parseFloat(ppAmount) || 0) <= 0 || (parseFloat(ppAmount) || 0) > livePpBalance}
+                      className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold disabled:opacity-40 hover:bg-gray-800 transition-colors"
+                    >
+                      {ppLoading
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
+                        : <><Coins className="w-4 h-4" /> Pay with PP Points</>}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <DownloadAppCard />
           </div>
         </div>

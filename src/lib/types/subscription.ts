@@ -16,6 +16,8 @@ export type UserMembership = {
   cashback_rate: number
 }
 
+import { PREFERRED_PARTNER_RATES, VERIFIED_PAY_RATE } from '@/lib/constants/cashback'
+
 // Maps subscription product_id → canonical tier name used throughout the app
 export const PLAN_TIER: Record<string, string> = {
   BasePlan_1: 'premium',
@@ -26,7 +28,7 @@ export const PLAN_TIER: Record<string, string> = {
 
 export const TIER_PERKS: Record<string, string[]> = {
   none: [
-    '0.5% reward on every eligible PassPrivé payment',
+    `${PREFERRED_PARTNER_RATES.none}% reward on every eligible PassPrivé payment`,
     'Access to the PassPrivé marketplace',
     'Restaurant & lifestyle discovery',
     'PassPrivé payment access',
@@ -34,16 +36,16 @@ export const TIER_PERKS: Record<string, string[]> = {
   ],
   premium: [
     'Everything in Privé Free',
-    '2% reward at Preferred Partners',
-    '0.5% reward at Verified Pay Partners',
+    `${PREFERRED_PARTNER_RATES.premium}% reward at Preferred Partners`,
+    `${VERIFIED_PAY_RATE}% reward at Verified Pay Partners`,
     'Access to Premium offers and campaigns',
     'Greater value when choosing Preferred Partners',
     'Selected member-only benefits',
   ],
   black: [
     'Everything in Privé Premium',
-    '4% reward at Preferred Partners — our highest rate',
-    '0.5% reward at Verified Pay Partners',
+    `${PREFERRED_PARTNER_RATES.black}% reward at Preferred Partners — our highest rate`,
+    `${VERIFIED_PAY_RATE}% reward at Verified Pay Partners`,
     'Access to Black offers, campaigns and experiences',
     'Priority access to premium benefits',
     'Highest standard PassPrivé reward rate',

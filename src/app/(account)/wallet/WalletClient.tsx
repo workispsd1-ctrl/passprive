@@ -137,14 +137,26 @@ export function WalletClient({ balance, transactions, membership }: Props) {
           )}
 
           {/* Membership expiry for paid members */}
-          {isPaid && membership?.membership_expiry && (
-            <div className="rounded-2xl bg-green-50 border border-green-100 p-5">
-              <p className="text-xs font-semibold text-green-700 uppercase tracking-wider">Membership active</p>
-              <p className="text-sm text-green-800 font-medium mt-1">
-                Expires {new Date(membership.membership_expiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-              </p>
-            </div>
-          )}
+          {isPaid && membership?.membership_expiry && (() => {
+            const expiry = new Date(membership.membership_expiry)
+            const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000)
+            const isExpiringSoon = daysLeft <= 30
+            return (
+              <div className={`rounded-2xl p-5 ${isExpiringSoon ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-100'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${isExpiringSoon ? 'text-amber-700' : 'text-green-700'}`}>
+                  {isExpiringSoon ? `Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` : 'Membership active'}
+                </p>
+                <p className={`text-sm font-medium mt-1 ${isExpiringSoon ? 'text-amber-800' : 'text-green-800'}`}>
+                  {expiry.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+                {isExpiringSoon && (
+                  <a href="/membership" className="inline-block mt-2 text-xs font-bold text-amber-700 underline underline-offset-2">
+                    Renew now
+                  </a>
+                )}
+              </div>
+            )
+          })()}
         </div>
       </div>
 

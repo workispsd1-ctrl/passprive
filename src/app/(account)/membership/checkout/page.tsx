@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { SetPageTitle } from '@/components/layout/MinimalHeader/SetPageTitle'
-import { getSubscriptionPlans } from '@/lib/services/subscription'
+import { getSubscriptionPlans, getUserMembership } from '@/lib/services/subscription'
 import { PLAN_TIER } from '@/lib/types/subscription'
 import { CheckoutClient } from './CheckoutClient'
 
@@ -19,9 +19,16 @@ export default async function CheckoutPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/membership')
 
-  const plans = await getSubscriptionPlans()
+  const [plans, membership] = await Promise.all([
+    getSubscriptionPlans(),
+    getUserMembership(user.id),
+  ])
+
   const selectedPlan = plans.find(p => PLAN_TIER[p.product_id] === plan)
   if (!selectedPlan) redirect('/membership')
+
+  // Block repurchasing the same active tier
+  if (membership?.membership_tier === plan) redirect('/membership')
 
   return (
     <main className="min-h-screen">

@@ -2,10 +2,11 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, MapPin } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { getRestaurantBySlugOrId } from '@/lib/services/dining'
 import { createClient } from '@/lib/supabase/server'
 import { BookingWidget } from '@/components/sections/dining/BookingWidget'
+import { getUserCashbackInfo, getWalletBalance } from '@/lib/services/wallet'
 
 export async function generateMetadata({
   params,
@@ -34,14 +35,19 @@ export default async function BookTablePage({
   const { data: { user } } = await supabase.auth.getUser()
   let defaultName = ''
   let defaultPhone = ''
+  let cashbackRate = 0
+  let ppBalance = 0
+
   if (user) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('full_name, phone')
-      .eq('id', user.id)
-      .single()
-    defaultName = profile?.full_name ?? user.user_metadata?.full_name ?? ''
-    defaultPhone = profile?.phone ?? ''
+    const [profile, cashbackInfo, walletBalance] = await Promise.all([
+      supabase.from('users').select('full_name, phone').eq('id', user.id).single(),
+      getUserCashbackInfo(user.id, restaurant.id),
+      getWalletBalance(user.id),
+    ])
+    defaultName = profile.data?.full_name ?? user.user_metadata?.full_name ?? ''
+    defaultPhone = profile.data?.phone ?? ''
+    cashbackRate = cashbackInfo?.cashback_rate ?? 0
+    ppBalance = walletBalance?.balance ?? 0
   }
 
   const location = [restaurant.area, restaurant.city].filter(Boolean).join(', ')
@@ -89,6 +95,8 @@ export default async function BookTablePage({
           backHref={backHref}
           defaultName={defaultName}
           defaultPhone={defaultPhone}
+          cashbackRate={cashbackRate}
+          ppBalance={ppBalance}
         />
       </div>
     </main>
