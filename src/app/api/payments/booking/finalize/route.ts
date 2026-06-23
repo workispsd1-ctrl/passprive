@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { creditCashback, getUserCashbackInfo } from '@/lib/services/wallet'
 
 const PAYMENTS_API = (process.env.PAYMENTS_API_URL ?? 'https://nxxacdlmcc.execute-api.ap-south-1.amazonaws.com').replace(/\/+$/, '')
 
@@ -116,6 +117,21 @@ export async function POST(request: Request) {
   if (insertError) {
     console.error('[booking/finalize] db insert error:', insertError.message)
     return NextResponse.json({ error: 'Failed to create booking. Please contact support.' }, { status: 500 })
+  }
+
+  if (paymentAmount > 0) {
+    try {
+      const cashbackInfo = await getUserCashbackInfo(session.user.id, restaurantId)
+      if (cashbackInfo) {
+        const cashback = Math.round(paymentAmount * cashbackInfo.cashback_rate / 100 * 100) / 100
+        if (cashback > 0) {
+          await creditCashback(session.user.id, cashback, restaurantId)
+          console.log('[booking/finalize] credited cashback:', cashback, 'for restaurant:', restaurantId)
+        }
+      }
+    } catch (err) {
+      console.error('[booking/finalize] cashback credit failed (non-fatal):', err)
+    }
   }
 
   return NextResponse.json({

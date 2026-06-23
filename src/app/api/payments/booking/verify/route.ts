@@ -1,7 +1,23 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { creditCashback, getUserCashbackInfo } from '@/lib/services/wallet'
 
 const PAYMENTS_API = (process.env.PAYMENTS_API_URL ?? 'https://nxxacdlmcc.execute-api.ap-south-1.amazonaws.com').replace(/\/+$/, '')
+
+function isPaymentSuccess(data: Record<string, unknown>): boolean {
+  if (data?.verified === true) return true
+  const status = String(
+    data?.status ?? data?.payment_status ?? data?.transaction_status ??
+    data?.outcome ?? data?.inferred_outcome ?? data?.result ?? ''
+  ).toLowerCase()
+  const SUCCESS_STATUSES = ['success', 'approved', 'completed', 'authorized', 'finalized', 'paid', 'verified_success']
+  if (SUCCESS_STATUSES.includes(status)) return true
+  if (String(data?.gateway_status) === '0') return true
+  if (String(data?.result_description ?? '').toLowerCase() === 'approved') return true
+  const authCode = data?.authorization_code ?? data?.auth_code ?? data?.authCode
+  if (authCode && !['failed', 'declined', 'error', 'cancelled'].includes(status)) return true
+  return false
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -57,6 +73,32 @@ export async function POST(request: Request) {
       .from('restaurant_bookings')
       .update({ payment_status: 'paid' })
       .eq('id', body.booking_id)
+
+    if (isPaymentSuccess(data)) {
+      try {
+        const { data: bookingRow } = await supabaseServer
+          .from('restaurant_bookings')
+          .select('restaurant_id, payment_amount')
+          .eq('id', body.booking_id)
+          .single()
+
+        const paymentAmount = Number(bookingRow?.payment_amount ?? 0)
+        const restaurantId = (bookingRow?.restaurant_id as string | undefined) ?? undefined
+
+        if (paymentAmount > 0) {
+          const cashbackInfo = await getUserCashbackInfo(session.user.id, restaurantId)
+          if (cashbackInfo) {
+            const cashback = Math.round(paymentAmount * cashbackInfo.cashback_rate / 100 * 100) / 100
+            if (cashback > 0) {
+              await creditCashback(session.user.id, cashback, restaurantId)
+              console.log('[booking/verify] credited cashback:', cashback, 'for restaurant:', restaurantId)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[booking/verify] cashback credit failed (non-fatal):', err)
+      }
+    }
   }
 
   return NextResponse.json(data)

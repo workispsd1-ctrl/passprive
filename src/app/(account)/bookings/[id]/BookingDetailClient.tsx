@@ -340,8 +340,8 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
             </div>
           )}
 
-          {/* Pay Bill — links to dedicated checkout page */}
-          {isActive && !billJustPaid && (
+          {/* Pay Bill — only for PassPrivé partner restaurants */}
+          {isActive && !billJustPaid && cashbackRate > 0 && (
             <div className="bg-linear-to-br from-violet-600 to-purple-700 rounded-2xl p-5 text-white">
               <div className="flex items-center gap-2 mb-1">
                 <Wallet className="w-4 h-4 text-white/80" />
@@ -363,7 +363,7 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
           )}
 
           {/* Pay with PP Points */}
-          {isActive && !billJustPaid && (
+          {isActive && !billJustPaid && cashbackRate > 0 && (
             <PPCoinsPayment
               restaurantId={booking.restaurant_id}
               ppBalance={liveBalance}

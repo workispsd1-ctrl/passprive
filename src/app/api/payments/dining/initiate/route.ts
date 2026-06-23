@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getUserCashbackInfo } from '@/lib/services/wallet'
 
 const PAYMENTS_API = (process.env.PAYMENTS_API_URL ?? 'https://nxxacdlmcc.execute-api.ap-south-1.amazonaws.com').replace(/\/+$/, '')
 
@@ -23,6 +24,14 @@ export async function POST(request: Request) {
       payment_instrument_type?: string
       currency_code: string
     }
+  }
+
+  const cashbackInfo = await getUserCashbackInfo(session.user.id, body.dining_payload.restaurant_id)
+  if (cashbackInfo !== null && cashbackInfo.cashback_rate === 0) {
+    return NextResponse.json(
+      { error: 'This restaurant is not a PassPrivé partner and does not accept PassPrivé payments.' },
+      { status: 400 },
+    )
   }
 
   const host = request.headers.get('host') ?? 'localhost:3000'

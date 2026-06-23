@@ -17,5 +17,6 @@ export type DiningBooking = {
     area: string | null
     full_address: string | null
     cost_for_two: number | null
+    merchant_type: 'preferred_partner' | 'verified_pay' | null
   } | null
 }

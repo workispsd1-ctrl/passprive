@@ -25,6 +25,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
+  if (cashbackInfo.cashback_rate === 0) {
+    return NextResponse.json(
+      { error: 'This restaurant is not a PassPrivé partner. No cashback is available.' },
+      { status: 400 },
+    )
+  }
+
   const cashbackAmount = Math.round((body.bill_amount * cashbackInfo.cashback_rate / 100) * 100) / 100
 
   const { error } = await creditCashback(

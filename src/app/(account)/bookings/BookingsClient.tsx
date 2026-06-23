@@ -96,7 +96,7 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          {(booking.status === 'confirmed' || booking.status === 'pending') && (
+          {(booking.status === 'confirmed' || booking.status === 'pending') && booking.restaurants?.merchant_type !== null && (
             <Link
               href={`/bookings/${booking.id}`}
               className="flex items-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-full transition-colors"

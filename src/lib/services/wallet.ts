@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { WalletBalance, WalletTransaction, UserCashbackInfo } from '@/lib/types/wallet'
 import { getUserMembership } from '@/lib/services/subscription'
 
@@ -48,10 +49,18 @@ export async function getUserCashbackInfo(userId: string, restaurantId?: string)
 
   const merchantType = (restaurantResult.data as { merchant_type?: string | null } | null)?.merchant_type ?? null
 
-  // users.cashback is the stored rate — preferred partners use it, others get flat 0.5%
-  const cashback_rate = merchantType === 'preferred_partner' ? membership.cashback_rate : 0.5
+  const tier = membership.membership_tier ?? 'none'
+  let cashback_rate = 0
 
-  return { cashback_rate, membership_tier: membership.membership_tier }
+  if (merchantType === 'preferred_partner') {
+    const TIER_RATE: Record<string, number> = { none: 0.5, premium: 2, black: 4 }
+    cashback_rate = TIER_RATE[tier] ?? 0.5
+  } else if (merchantType === 'verified_pay') {
+    cashback_rate = 0.5
+  }
+  // null (unclaimed) → 0: no PassPrivé payments accepted, no rewards
+
+  return { cashback_rate, membership_tier: tier }
 }
 
 export async function debitWallet(
@@ -59,9 +68,9 @@ export async function debitWallet(
   amount: number,
   restaurantId?: string,
 ): Promise<{ error: string | null }> {
-  const supabase = await createClient()
+  const admin = createAdminClient()
 
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('gift_balances')
     .select('balance')
     .eq('user_id', userId)
@@ -72,7 +81,7 @@ export async function debitWallet(
     return { error: 'Insufficient PP Points balance' }
   }
 
-  const { error: txError } = await supabase
+  const { error: txError } = await admin
     .from('gift_transactions')
     .insert({
       user_id: userId,
@@ -83,7 +92,7 @@ export async function debitWallet(
 
   if (txError) return { error: txError.message }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await admin
     .from('gift_balances')
     .update({ balance: currentBalance - amount, updated_at: new Date().toISOString() })
     .eq('user_id', userId)
@@ -99,9 +108,9 @@ export async function creditCashback(
   restaurantId?: string,
   storeId?: string,
 ): Promise<{ error: string | null }> {
-  const supabase = await createClient()
+  const admin = createAdminClient()
 
-  const { error: txError } = await supabase
+  const { error: txError } = await admin
     .from('gift_transactions')
     .insert({
       user_id: userId,
@@ -113,20 +122,20 @@ export async function creditCashback(
 
   if (txError) return { error: txError.message }
 
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('gift_balances')
     .select('balance')
     .eq('user_id', userId)
     .single()
 
   if (existing) {
-    const { error: updateError } = await supabase
+    const { error: updateError } = await admin
       .from('gift_balances')
       .update({ balance: existing.balance + amount, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
     if (updateError) return { error: updateError.message }
   } else {
-    const { error: insertError } = await supabase
+    const { error: insertError } = await admin
       .from('gift_balances')
       .insert({ user_id: userId, balance: amount })
     if (insertError) return { error: insertError.message }
