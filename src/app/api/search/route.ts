@@ -29,6 +29,14 @@ export async function GET(req: NextRequest) {
     .eq('is_active', true)
     .limit(6);
 
+  const { data: touristData } = await supabase
+    .from('tourist_places')
+    .select('id, place_name, area, city, cover_image, slug, description')
+    .or(
+      `place_name.ilike.%${safe}%,area.ilike.%${safe}%,city.ilike.%${safe}%,description.ilike.%${safe}%`,
+    )
+    .eq('is_active', true)
+    .limit(6);
 
   const combined = [
     ...(storesData ?? []).map((item) => ({ ...item, type: 'store' })),
@@ -38,6 +46,14 @@ export async function GET(req: NextRequest) {
       location_name: area,
       category: description ?? null,
       type: 'restaurant',
+    })),
+    ...(touristData ?? []).map(({ place_name, cover_image, area, description, ...rest }) => ({
+      ...rest,
+      name: place_name,
+      logo_url: cover_image,
+      location_name: area,
+      category: description ?? null,
+      type: 'tourist_place',
     })),
   ];
 
