@@ -5,6 +5,8 @@ import Link from 'next/link'
 import type { WalletBalance, WalletTransaction } from '@/lib/types/wallet'
 import type { UserMembership } from '@/lib/types/subscription'
 import { PLAN_TIER } from '@/lib/types/subscription'
+import { formatMRU, formatISODate } from '@/lib/utils/format'
+import { EmptyStateCard } from '@/components/shared/EmptyStateCard'
 
 const TIER_LABELS: Record<string, string> = {
   none: 'Basic',
@@ -26,14 +28,6 @@ const TX_LABELS: Record<string, string> = {
   refund: 'Refund',
 }
 
-function formatRs(amount: number) {
-  return `Rs ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
 function TransactionRow({ tx }: { tx: WalletTransaction }) {
   const isCredit = tx.type === 'cashback' || tx.type === 'credit' || tx.type === 'refund'
   const label = TX_LABELS[tx.type] ?? tx.type.replace(/_/g, ' ')
@@ -49,11 +43,11 @@ function TransactionRow({ tx }: { tx: WalletTransaction }) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-800 capitalize">{label}</p>
         <p className="text-xs text-gray-400 mt-0.5">
-          {tx.restaurant_name ? `${tx.restaurant_name} · ` : ''}{formatDate(tx.created_at)}
+          {tx.restaurant_name ? `${tx.restaurant_name} · ` : ''}{formatISODate(tx.created_at)}
         </p>
       </div>
       <span className={`text-sm font-bold tabular-nums shrink-0 ${isCredit ? 'text-green-600' : 'text-red-500'}`}>
-        {isCredit ? '+' : '-'}{formatRs(tx.amount)}
+        {isCredit ? '+' : '-'}{formatMRU(tx.amount)}
       </span>
     </div>
   )
@@ -99,9 +93,9 @@ export function WalletClient({ balance, transactions, membership }: Props) {
 
             <p className="text-xs font-semibold uppercase tracking-widest opacity-50 mb-1">Available Balance</p>
             <p className="text-5xl font-black tracking-tight">
-              Rs {currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₨{currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
-            <p className="text-xs opacity-40 mt-3">1 PP Point = Rs 1.00</p>
+            <p className="text-xs opacity-40 mt-3">1 PP Point = ₨1.00</p>
           </div>
         </div>
 
@@ -168,15 +162,11 @@ export function WalletClient({ balance, transactions, membership }: Props) {
           <p className="text-base font-bold text-gray-900 mb-3">Transaction History</p>
 
           {transactions.length === 0 ? (
-            <div className="rounded-2xl border border-gray-100 bg-white py-16 flex flex-col items-center gap-2 text-center">
-              <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-1">
-                <Coins className="w-7 h-7 text-gray-300" />
-              </div>
-              <p className="text-sm font-semibold text-gray-500">No transactions yet</p>
-              <p className="text-xs text-gray-400 max-w-48">
-                Pay your bill at any partner restaurant to start earning PP Points
-              </p>
-            </div>
+            <EmptyStateCard
+              icon={<Coins className="w-7 h-7 text-gray-300" />}
+              heading="No transactions yet"
+              description="Pay your bill at any partner restaurant to start earning PP Points"
+            />
           ) : (
             <div className="rounded-2xl border border-gray-100 bg-white px-4 shadow-sm">
               {transactions.map(tx => <TransactionRow key={tx.id} tx={tx} />)}

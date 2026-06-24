@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useDecimalInput } from '@/lib/hooks/useDecimalInput'
 import { CheckCircle2, Loader2, Wallet, Sparkles } from 'lucide-react'
 
 interface Props {
@@ -13,22 +14,13 @@ interface Props {
 
 export function PayBillClient({ restaurantId, restaurantName, cashbackRate, membershipTier }: Props) {
   const router = useRouter()
-  const [rawValue, setRawValue] = useState('')
+  const amountInput = useDecimalInput()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<{ cashback: number; bill: number } | null>(null)
 
-  const billAmount = parseFloat(rawValue) || 0
+  const billAmount = amountInput.numericValue
   const cashbackPreview = billAmount > 0 ? Math.round((billAmount * cashbackRate / 100) * 100) / 100 : 0
-
-  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const v = e.target.value.replace(/[^0-9.]/g, '')
-    const parts = v.split('.')
-    if (parts.length > 2) return
-    if (parts[1] && parts[1].length > 2) return
-    setRawValue(v)
-    setError(null)
-  }
 
   async function handleSubmit() {
     if (billAmount <= 0) return
@@ -58,7 +50,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
         </div>
         <h2 className="text-3xl font-extrabold text-gray-900">Cashback credited!</h2>
         <p className="text-gray-500 mt-3 max-w-sm leading-relaxed">
-          <span className="font-bold text-gray-800">Rs {success.cashback.toFixed(2)}</span> has been added to your PassPrivé wallet for a bill of Rs {success.bill.toFixed(2)}.
+          <span className="font-bold text-gray-800">₨{success.cashback.toFixed(2)}</span> has been added to your PassPrivé wallet for a bill of ₨{success.bill.toFixed(2)}.
         </p>
         <div className="flex gap-3 mt-8">
           <button
@@ -70,7 +62,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
           </button>
           <button
             type="button"
-            onClick={() => { setSuccess(null); setRawValue('') }}
+            onClick={() => { setSuccess(null) }}
             className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
           >
             Enter another bill
@@ -100,12 +92,12 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Bill Amount (MUR)</p>
 
             <div className="flex items-center gap-4">
-              <span className="text-2xl font-bold text-gray-400 shrink-0">Rs</span>
+              <span className="text-2xl font-bold text-gray-400 shrink-0">₨</span>
               <input
                 type="text"
                 inputMode="decimal"
-                value={rawValue}
-                onChange={handleInput}
+                value={amountInput.value}
+                onChange={e => { amountInput.onChange(e); setError(null) }}
                 placeholder="0.00"
                 className="flex-1 text-5xl font-extrabold text-gray-900 bg-transparent border-b-2 border-gray-200 focus:border-violet-500 focus:outline-none pb-2 placeholder:text-gray-200 transition-colors"
               />
@@ -125,7 +117,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
                 : billAmount > 0
-                ? <><Sparkles className="w-4 h-4" /> Claim Rs {cashbackPreview.toFixed(2)} cashback</>
+                ? <><Sparkles className="w-4 h-4" /> Claim ₨{cashbackPreview.toFixed(2)} cashback</>
                 : 'Enter bill amount to continue'}
             </button>
           </div>
@@ -143,7 +135,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
               <div className="flex items-center justify-between px-5 py-3.5">
                 <span className="text-sm text-gray-500">Bill amount</span>
                 <span className="text-sm font-semibold text-gray-800">
-                  {billAmount > 0 ? `Rs ${billAmount.toFixed(2)}` : '—'}
+                  {billAmount > 0 ? `₨${billAmount.toFixed(2)}` : '—'}
                 </span>
               </div>
               <div className="flex items-center justify-between px-5 py-3.5">
@@ -153,7 +145,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
               <div className="flex items-center justify-between px-5 py-4">
                 <span className="text-sm font-bold text-gray-800">You will earn</span>
                 <span className={`text-base font-extrabold ${cashbackPreview > 0 ? 'text-green-600' : 'text-gray-300'}`}>
-                  {cashbackPreview > 0 ? `+ Rs ${cashbackPreview.toFixed(2)}` : '—'}
+                  {cashbackPreview > 0 ? `+ ₨${cashbackPreview.toFixed(2)}` : '—'}
                 </span>
               </div>
             </div>

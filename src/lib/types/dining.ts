@@ -19,6 +19,7 @@ export type Restaurant = {
   merchant_type: 'preferred_partner' | 'verified_pay' | null;
   cover_charge_enabled: boolean;
   cover_charge_amount: number | null;
+  max_bookings_per_slot: number | null;
 };
 
 export type RestaurantHours = {

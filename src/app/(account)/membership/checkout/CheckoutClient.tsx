@@ -2,49 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ShieldCheck, CreditCard, Loader2, Check } from 'lucide-react'
+import { ShieldCheck, Loader2, Check } from 'lucide-react'
 import type { SubscriptionPlan } from '@/lib/types/subscription'
 import { TIER_PERKS, PLAN_TIER } from '@/lib/types/subscription'
 
-const SESSION_KEY = 'pp_payment_session'
-
-function resolveSessionId(payload: Record<string, unknown>): string {
-  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
-  return String(session?.id ?? session?.session_id ?? payload?.session_id ?? payload?.id ?? '')
-}
-
-function resolveMerchantTrace(payload: Record<string, unknown>): string {
-  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
-  return String(session?.merchant_trace ?? session?.merchantTrace ?? payload?.merchant_trace ?? payload?.merchantTrace ?? '')
-}
-
-function resolveGatewayUrl(payload: Record<string, unknown>): string {
-  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
-  const candidates = [
-    payload?.redirect_url, payload?.redirectUrl, payload?.payment_url, payload?.paymentUrl,
-    payload?.hosted_url, payload?.hostedUrl, payload?.launch_url, payload?.launchUrl,
-    session?.redirect_url, session?.redirectUrl, session?.payment_url, session?.paymentUrl,
-    session?.hosted_url, session?.hostedUrl, session?.launch_url, session?.launchUrl,
-    payload?.gateway_url, payload?.gatewayUrl, session?.gateway_url, session?.gatewayUrl,
-    payload?.url, session?.url,
-  ]
-  return String(candidates.find(v => typeof v === 'string' && (v as string).trim()) ?? '')
-}
-
-function submitGatewayForm(url: string, fields: Record<string, string>) {
-  const form = document.createElement('form')
-  form.method = 'POST'
-  form.action = url
-  Object.entries(fields).forEach(([name, value]) => {
-    const input = document.createElement('input')
-    input.type = 'hidden'
-    input.name = name
-    input.value = value
-    form.appendChild(input)
-  })
-  document.body.appendChild(form)
-  form.submit()
-}
+import { resolveSessionId, resolveMerchantTrace, resolveGatewayUrl, submitGatewayForm } from '@/lib/utils/payment'
+import { SESSION_KEY_MEMBERSHIP as SESSION_KEY } from '@/lib/constants/sessionKeys'
+import { PaymentMethodCard } from '@/components/shared/PaymentMethodCard'
+import { TermsCheckbox } from '@/components/shared/TermsCheckbox'
 
 interface Props {
   plan: SubscriptionPlan
@@ -122,7 +87,7 @@ export function CheckoutClient({ plan }: Props) {
         <p className="text-xs font-bold opacity-60 uppercase tracking-widest mb-1">Subscribing to</p>
         <p className="text-2xl font-extrabold">{plan.plan_name.trim()}</p>
         <div className="flex items-baseline gap-2 mt-3">
-          <span className="text-4xl font-extrabold">Rs {Number(plan.amount).toLocaleString()}</span>
+          <span className="text-4xl font-extrabold">₨{Number(plan.amount).toLocaleString()}</span>
           <span className="text-sm opacity-60">/ year</span>
         </div>
         <p className="text-sm opacity-70 mt-1">{plan.cashback}% cashback on every bill</p>
@@ -141,28 +106,16 @@ export function CheckoutClient({ plan }: Props) {
         </ul>
       </div>
 
-      {/* Payment info */}
-      <div className="mt-4 rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm flex items-center gap-3">
-        <CreditCard className="w-5 h-5 text-gray-400 shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-gray-800">Credit / Debit Card</p>
-          <p className="text-xs text-gray-400 mt-0.5">Visa, Mastercard — secured by iVeri · 3D Secure</p>
-        </div>
+      <div className="mt-4">
+        <PaymentMethodCard />
       </div>
 
-      {/* Consent checkbox */}
-      <label className="mt-5 flex items-start gap-3 cursor-pointer">
-        <div
-          onClick={() => setAgreed(v => !v)}
-          className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${agreed ? (isBlack ? 'bg-gray-900 border-gray-900' : 'bg-violet-600 border-violet-600') : 'border-gray-300 bg-white'}`}
-        >
-          {agreed && <Check className="w-3 h-3 text-white" />}
-        </div>
-        <span className="text-sm text-gray-600 leading-snug">
+      <div className="mt-5">
+        <TermsCheckbox checked={agreed} onChange={setAgreed} accent={isBlack ? 'black' : 'violet'}>
           I agree to the PassPrivé <a href="/terms" className="underline text-gray-800" target="_blank" rel="noopener noreferrer">membership terms</a>, billing policy and cancellation policy.
           I understand my membership will be billed annually.
-        </span>
-      </label>
+        </TermsCheckbox>
+      </div>
 
       {error && (
         <p className="mt-3 text-sm text-red-500 font-medium">{error}</p>
@@ -176,7 +129,7 @@ export function CheckoutClient({ plan }: Props) {
         className={`mt-5 w-full py-4 rounded-2xl text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 ${isBlack ? 'bg-gray-900 hover:bg-black' : 'bg-violet-600 hover:bg-violet-700'}`}
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
-        {loading ? 'Redirecting to payment…' : `Pay Rs ${Number(plan.amount).toLocaleString()}`}
+        {loading ? 'Redirecting to payment…' : `Pay ₨${Number(plan.amount).toLocaleString()}`}
       </button>
 
       <p className="mt-3 text-center text-xs text-gray-400">

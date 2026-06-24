@@ -2,126 +2,84 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { ChevronDown, QrCode, CheckCircle2, Loader2, MapPin, Users, CalendarDays, MessageCircle, XCircle, CreditCard, Coins, Wallet, ArrowRight } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
+import { resolveSessionId, resolveMerchantTrace, resolveGatewayUrl, submitGatewayForm } from '@/lib/utils/payment'
+import type { RestaurantHours } from '@/lib/types/dining'
+import { PPCoinsPayment } from '@/components/shared/PPCoinsPayment'
+import { TermsList } from '@/components/shared/TermsList'
+import { DownloadAppCard } from '@/components/shared/DownloadAppCard'
+import { SESSION_KEY_COVER_CHARGE } from '@/lib/constants/sessionKeys'
+import { BOOKING_TERMS, RESTAURANT_TERMS } from './booking/constants'
+import type { BookingResult, DateOption, SlotOption } from './booking/types'
+import { CoverChargeCard } from './booking/CoverChargeCard'
+import { BookingConfirmedCard } from './booking/BookingConfirmedCard'
+import { PayBillCard } from './booking/PayBillCard'
+import { BookingDetailsCard } from './booking/BookingDetailsCard'
+import { BookingCodeBar } from './booking/BookingCodeBar'
+import { GuestDetailsForm } from './booking/GuestDetailsForm'
+import { SlotSelector } from './booking/SlotSelector'
 
-const COVER_CHARGE_SESSION_KEY = 'pp_cover_charge_session'
+const COVER_CHARGE_SESSION_KEY = SESSION_KEY_COVER_CHARGE
 
-function resolveSessionId(payload: Record<string, unknown>): string {
-  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
-  return String(session?.id ?? session?.session_id ?? payload?.session_id ?? payload?.id ?? '')
-}
-
-function resolveMerchantTrace(payload: Record<string, unknown>): string {
-  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
-  return String(session?.merchant_trace ?? session?.merchantTrace ?? payload?.merchant_trace ?? payload?.merchantTrace ?? '')
-}
-
-function resolveGatewayUrl(payload: Record<string, unknown>): string {
-  const session = (payload?.payment_session ?? payload?.session ?? payload) as Record<string, unknown>
-  const candidates = [
-    payload?.redirect_url, payload?.redirectUrl, payload?.payment_url, payload?.paymentUrl,
-    payload?.hosted_url, payload?.hostedUrl, payload?.launch_url, payload?.launchUrl,
-    session?.redirect_url, session?.redirectUrl, session?.payment_url, session?.paymentUrl,
-    session?.hosted_url, session?.hostedUrl, session?.launch_url, session?.launchUrl,
-    payload?.gateway_url, payload?.gatewayUrl, session?.gateway_url, session?.gatewayUrl,
-    payload?.url, session?.url,
-  ]
-  return String(candidates.find(v => typeof v === 'string' && (v as string).trim()) ?? '')
-}
-
-function submitGatewayForm(url: string, fields: Record<string, string>) {
-  const form = document.createElement('form')
-  form.method = 'POST'
-  form.action = url
-  Object.entries(fields).forEach(([name, value]) => {
-    const input = document.createElement('input')
-    input.type = 'hidden'
-    input.name = name
-    input.value = value
-    form.appendChild(input)
-  })
-  document.body.appendChild(form)
-  form.submit()
-}
-
-const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
-
-const TERMS = [
-  'You should be above the legal drinking age to book slots with complimentary item(s).',
-  'The choice of brand provided as part of this promotion is solely at the discretion of the restaurant.',
-  'If there are more guests than seats booked, you will receive complimentary item(s) equivalent to the number of seats booked.',
-  'Offers can be availed only by paying via PassPrivé.',
-  'Cover charges cannot be refunded if slot is cancelled within 30 minutes of slot start time.',
-  'Other T&Cs may apply.',
-]
-
-function getDateOptions() {
-  const options: { label: string; value: string }[] = []
+function getDateOptions(restaurantHours: RestaurantHours[]): DateOption[] {
+  const options: DateOption[] = []
   const now = new Date()
   for (let i = 0; i < 7; i++) {
     const d = new Date(now)
     d.setDate(now.getDate() + i)
-    const label =
+    const dayOfWeek = d.getDay()
+    const hoursEntry = restaurantHours.find(h => h.day_of_week === dayOfWeek)
+    // Only mark closed if hours are configured — restaurants without any hours get all days open
+    const isClosed = restaurantHours.length > 0 && (hoursEntry?.is_closed ?? false)
+    const baseLabel =
       i === 0
         ? `Today, ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`
         : i === 1
           ? `Tomorrow, ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`
           : `${d.toLocaleString('en', { weekday: 'long' })}, ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`
-    options.push({ label, value: d.toISOString().split('T')[0] })
+    options.push({
+      label: isClosed ? `${baseLabel} — Closed` : baseLabel,
+      value: d.toISOString().split('T')[0],
+      isClosed,
+    })
   }
   return options
 }
 
-type MealPeriod = 'lunch' | 'dinner'
+function generateSlotsFromHours(openTime: string, closeTime: string, date: string): SlotOption[] {
+  const [openH, openM] = openTime.split(':').map(Number)
+  const [closeH, closeM] = closeTime.split(':').map(Number)
+  const openMinutes = openH * 60 + (openM ?? 0)
+  const closeMinutes = closeH * 60 + (closeM ?? 0)
 
-function generateSlots(period: MealPeriod) {
-  const slots: { label: string; value: string }[] = []
-  const [startH, endH] = period === 'lunch' ? [11, 15] : [18, 22]
-  for (let h = startH; h < endH; h++) {
-    for (const m of [0, 15, 30, 45]) {
-      const hh = String(h).padStart(2, '0')
-      const mm = String(m).padStart(2, '0')
-      const displayH = h % 12 === 0 ? 12 : h % 12
-      const period12 = h < 12 ? 'AM' : 'PM'
-      slots.push({ label: `${displayH}:${mm} ${period12}`, value: `${hh}:${mm}` })
-    }
+  const now = new Date()
+  const isToday = date === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const cutoff = isToday ? now.getHours() * 60 + now.getMinutes() + 30 : -1
+
+  const slots: SlotOption[] = []
+  for (let min = openMinutes; min + 30 <= closeMinutes; min += 30) {
+    if (min <= cutoff) continue
+    const h = Math.floor(min / 60)
+    const m = min % 60
+    const displayH = h % 12 === 0 ? 12 : h % 12
+    const period12 = h < 12 ? 'AM' : 'PM'
+    slots.push({
+      label: `${displayH}:${String(m).padStart(2, '0')} ${period12}`,
+      value: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+    })
   }
   return slots
 }
 
-function formatBookingDate(dateStr: string) {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const date = new Date(y, m - 1, d)
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-}
-
-function formatTime(timeStr: string) {
-  const [h, m] = timeStr.split(':').map(Number)
-  const period = h >= 12 ? 'PM' : 'AM'
-  const displayH = h % 12 === 0 ? 12 : h % 12
-  return `${displayH}:${String(m).padStart(2, '0')} ${period}`
-}
-
-function DownloadAppCard() {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 flex items-start gap-3">
-      <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-        <QrCode className="w-9 h-9 text-gray-400" />
-      </div>
-      <div>
-        <p className="text-sm font-bold text-gray-900">Download PassPrivé</p>
-        <ul className="mt-1.5 space-y-1">
-          {['Exclusive offers and deals', 'Pay via District'].map(t => (
-            <li key={t} className="flex items-center gap-1.5 text-xs text-gray-500">
-              <span className="w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-              {t}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  )
+function getSlotsForDate(date: string, restaurantHours: RestaurantHours[]): SlotOption[] {
+  if (restaurantHours.length === 0) {
+    // No hours configured — fall back to a full-day range
+    return generateSlotsFromHours('11:00', '22:00', date)
+  }
+  const dayOfWeek = new Date(`${date}T12:00:00`).getDay()
+  const entry = restaurantHours.find(h => h.day_of_week === dayOfWeek)
+  if (!entry || entry.is_closed || !entry.open_time || !entry.close_time) return []
+  return generateSlotsFromHours(entry.open_time, entry.close_time, date)
 }
 
 interface Props {
@@ -135,28 +93,18 @@ interface Props {
   coverChargeAmount?: number | null
   cashbackRate?: number
   ppBalance?: number
+  restaurantHours?: RestaurantHours[]
+  maxPartySize?: number | null
 }
 
 type Step = 'slots' | 'details' | 'success'
 
-interface BookingResult {
-  bookingCode: string
-  bookingId: string
-  date: string
-  time: string
-  guests: number
-  name: string
-  phone: string
-  coverChargeRequired: boolean
-  coverChargeTotal: number
-}
-
-export function BookingWidget({ restaurantId, restaurantName, restaurantLocation, backHref, defaultName = '', defaultPhone = '', coverChargeEnabled = false, coverChargeAmount = null, cashbackRate = 0, ppBalance = 0 }: Props) {
+export function BookingWidget({ restaurantId, restaurantName, restaurantLocation, backHref, defaultName = '', defaultPhone = '', cashbackRate = 0, ppBalance = 0, restaurantHours = [], maxPartySize }: Props) {
   const router = useRouter()
-  const dateOptions = getDateOptions()
+  const dateOptions = getDateOptions(restaurantHours)
 
-  // If the user returns from iVeri without "Return to PassPrive" working (common on localhost),
-  // detect the pending session and redirect to the return page so cashback is still credited.
+  // If user returns from iVeri without "Return to PassPrive" working, detect the pending session
+  // and redirect to the return page so cashback is still credited.
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(COVER_CHARGE_SESSION_KEY)
@@ -178,26 +126,27 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
   const [coverChargeLoading, setCoverChargeLoading] = useState(false)
   const [coverChargeError, setCoverChargeError] = useState<string | null>(null)
 
-  // Step 1
   const [date, setDate] = useState(dateOptions[0].value)
   const [guests, setGuests] = useState(2)
-  const [mealPeriod, setMealPeriod] = useState<MealPeriod>('dinner')
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [showAllSlots, setShowAllSlots] = useState(false)
 
-  // Step 2
   const [name, setName] = useState(defaultName)
   const [phone, setPhone] = useState(defaultPhone)
   const [request, setRequest] = useState('')
-
-  // PP Points inline payment on success screen
   const [livePpBalance, setLivePpBalance] = useState(ppBalance)
-  const [ppAmount, setPpAmount] = useState('')
-  const [ppLoading, setPpLoading] = useState(false)
-  const [ppError, setPpError] = useState<string | null>(null)
-  const [ppPaid, setPpPaid] = useState<number | null>(null)
 
-  const allSlots = generateSlots(mealPeriod)
+  function handleDateChange(newDate: string) {
+    setDate(newDate)
+    setSelectedTime(null)
+    setShowAllSlots(false)
+  }
+
+  const maxGuests = maxPartySize ?? 10
+  const guestOptions = Array.from({ length: maxGuests }, (_, i) => i + 1)
+
+  const allSlots = getSlotsForDate(date, restaurantHours)
+  const isClosed = restaurantHours.length > 0 && allSlots.length === 0
   const visibleSlots = showAllSlots ? allSlots : allSlots.slice(0, 8)
 
   const now = new Date()
@@ -304,64 +253,20 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
     }
   }
 
-  async function handlePayWithPoints() {
-    const amount = parseFloat(ppAmount) || 0
-    if (!result || amount <= 0 || amount > livePpBalance) return
-    setPpLoading(true)
-    setPpError(null)
-    try {
-      const res = await fetch('/api/wallet/pay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, restaurant_id: restaurantId }),
-      })
-      const data = await res.json() as { paid?: number; error?: string }
-      if (!res.ok) throw new Error(data.error ?? 'Payment failed')
-      const paid = data.paid ?? amount
-      setPpPaid(paid)
-      setLivePpBalance(b => b - paid)
-    } catch (err) {
-      setPpError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
-      setPpLoading(false)
-    }
-  }
-
-  /* ── Success state ────────────────────────────────────────────── */
+  /* ── Success ──────────────────────────────────────────────────── */
   if (step === 'success' && result) {
     return (
       <div className="flex flex-col gap-5">
 
-        {/* Cover charge payment card — shown when restaurant requires upfront cover charge */}
         {result.coverChargeRequired && !cancelled && (
-          <div className="rounded-2xl bg-white border border-violet-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-violet-100 bg-violet-50">
-              <p className="text-sm font-bold text-violet-800">Cover Charge Required</p>
-              <p className="text-xs text-violet-600 mt-0.5">Pay your cover charge to secure this booking</p>
-            </div>
-            <div className="px-5 py-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Amount Due</p>
-                <p className="text-2xl font-extrabold text-gray-900 mt-0.5">Rs {result.coverChargeTotal.toFixed(2)}</p>
-                <p className="text-xs text-gray-400 mt-0.5">Redeemable at the restaurant on your visit</p>
-              </div>
-              <button
-                type="button"
-                onClick={handlePayCoverCharge}
-                disabled={coverChargeLoading}
-                className="shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-colors disabled:opacity-60"
-              >
-                {coverChargeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                {coverChargeLoading ? 'Redirecting…' : 'Pay Now'}
-              </button>
-            </div>
-            {coverChargeError && (
-              <p className="px-5 pb-4 text-sm text-red-500 font-medium">{coverChargeError}</p>
-            )}
-          </div>
+          <CoverChargeCard
+            total={result.coverChargeTotal}
+            loading={coverChargeLoading}
+            error={coverChargeError}
+            onPay={handlePayCoverCharge}
+          />
         )}
 
-        {/* Info banner — only shown when no cover charge required */}
         {!result.coverChargeRequired && (
           <div className="rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
             <p className="text-sm text-violet-700 leading-snug">
@@ -371,130 +276,34 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-          {/* Left: booking detail */}
           <div className="lg:col-span-2 flex flex-col gap-5">
+            <BookingConfirmedCard
+              result={result}
+              restaurantName={restaurantName}
+              restaurantLocation={restaurantLocation}
+              backHref={backHref}
+              cancelled={cancelled}
+              cancelling={cancelling}
+              onCancel={handleCancel}
+            />
 
-            {/* Booking confirmed card */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              {cancelled ? (
-                <div className="p-6 flex flex-col items-center text-center gap-3">
-                  <XCircle className="w-10 h-10 text-red-400" />
-                  <p className="font-bold text-gray-800">Booking Cancelled</p>
-                  <p className="text-sm text-gray-500">Your reservation has been cancelled.</p>
-                  {backHref && (
-                    <Link href={backHref} className="text-sm font-semibold text-violet-600 hover:underline">
-                      Back to restaurant
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="px-5 pt-5 pb-4 border-b border-gray-100">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      <h2 className="text-lg font-extrabold text-gray-900">Booking Confirmed</h2>
-                    </div>
-                    <p className="text-xs text-gray-400 ml-7">Reach restaurant 15 mins before your slot</p>
-                  </div>
-
-                  <div className="divide-y divide-gray-50">
-                    <div className="flex items-center gap-3 px-5 py-4">
-                      <CalendarDays className="w-4 h-4 text-gray-400 shrink-0" />
-                      <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Date &amp; Time</p>
-                        <p className="text-sm font-semibold text-gray-800 mt-0.5">
-                          {formatBookingDate(result.date)} at {formatTime(result.time)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 px-5 py-4">
-                      <Users className="w-4 h-4 text-gray-400 shrink-0" />
-                      <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Number of Guests</p>
-                        <p className="text-sm font-semibold text-gray-800 mt-0.5">{result.guests}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                        <div>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Location</p>
-                          <p className="text-sm font-semibold text-gray-800 mt-0.5">{restaurantName}</p>
-                          {restaurantLocation && (
-                            <p className="text-xs text-gray-400 mt-0.5">{restaurantLocation}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cancel */}
-                  <div className="px-5 py-3 border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      disabled={cancelling}
-                      className="flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 disabled:opacity-50"
-                    >
-                      {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                      Cancel booking
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Restaurant Terms */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
               <p className="text-sm font-bold text-gray-900 mb-3">Restaurant Terms</p>
-              <ul className="flex flex-col gap-2">
-                {['Staff contributions is on the discretion of the restaurant',
-                  'Discounts not applicable on btl, tower, beer bucket, pitchers and platters'].map(t => (
-                  <li key={t} className="flex items-start gap-2 text-xs text-gray-500 leading-relaxed">
-                    <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-                    {t}
-                  </li>
-                ))}
-              </ul>
+              <TermsList items={RESTAURANT_TERMS} />
             </div>
 
-            {/* Your details */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-sm font-bold text-gray-900 mb-3">Your details</p>
-              <div className="flex items-center gap-3 py-2 border border-gray-100 rounded-xl px-3">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                  <span className="text-xs text-gray-500">👤</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{result.name}</p>
-                  <p className="text-xs text-gray-400">{result.phone}</p>
-                </div>
-              </div>
-              {result.bookingId && (
-                <div className="mt-3 flex flex-col gap-0.5">
-                  <p className="text-xs text-gray-400">Transaction ID: {result.bookingId}</p>
-                  <p className="text-xs text-gray-400">Transaction date: {transactionDate}</p>
-                </div>
-              )}
-            </div>
+            <BookingDetailsCard
+              name={result.name}
+              phone={result.phone}
+              bookingId={result.bookingId}
+              transactionDate={transactionDate}
+            />
 
-            {/* T&Cs */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
               <p className="text-sm font-bold text-gray-900 mb-3">Terms &amp; Conditions</p>
-              <ul className="flex flex-col gap-2">
-                {TERMS.map(term => (
-                  <li key={term} className="flex items-start gap-2 text-xs text-gray-500 leading-relaxed">
-                    <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-                    {term}
-                  </li>
-                ))}
-              </ul>
+              <TermsList items={BOOKING_TERMS} />
             </div>
 
-            {/* Chat with support */}
             <button
               type="button"
               className="flex items-center gap-2.5 w-full bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
@@ -504,123 +313,24 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
             </button>
           </div>
 
-          {/* Right: Pay options + QR panel */}
           <div className="lg:col-span-1 flex flex-col gap-5">
-
-            {/* Pay Bill & Earn PP Coins */}
             {!cancelled && cashbackRate > 0 && (
-              <div className="rounded-2xl bg-linear-to-br from-violet-600 to-purple-700 p-5 text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <Wallet className="w-4 h-4 text-white/80" />
-                  <p className="text-sm font-bold">Pay Bill &amp; Earn PP Coins</p>
-                </div>
-                <p className="text-xs text-white/70 leading-relaxed mb-4">
-                  Pay your bill via card and earn {cashbackRate}% back as PP Coins.
-                </p>
-                <Link
-                  href={`/bookings/${result.bookingId}/pay`}
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-violet-700 text-sm font-bold hover:bg-violet-50 transition-colors"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Pay Bill &amp; Earn Coins
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <p className="text-[10px] text-white/40 text-center mt-2">Secured by iVeri · 3D Secure</p>
-              </div>
+              <PayBillCard bookingId={result.bookingId} cashbackRate={cashbackRate} />
             )}
 
-            {/* Pay with PP Points */}
             {!cancelled && cashbackRate > 0 && livePpBalance > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Coins className="w-4 h-4 text-violet-500" />
-                    <p className="text-sm font-bold text-gray-800">Pay with PP Points</p>
-                  </div>
-                  <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full">
-                    Rs {livePpBalance.toFixed(2)} available
-                  </span>
-                </div>
-
-                {ppPaid !== null ? (
-                  <div className="px-5 py-4">
-                    <div className="flex items-center gap-2 text-green-600 mb-2">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <p className="font-bold text-sm">Payment successful</p>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      <span className="font-semibold text-gray-800">Rs {ppPaid.toFixed(2)}</span> deducted from your PP Points.
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">Remaining: Rs {livePpBalance.toFixed(2)}</p>
-                  </div>
-                ) : (
-                  <div className="px-5 py-4">
-                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider block mb-2">
-                      Amount (MUR)
-                    </label>
-                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-violet-400 transition-colors">
-                      <span className="text-sm font-semibold text-gray-400">Rs</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0.00"
-                        value={ppAmount}
-                        onChange={e => {
-                          const v = e.target.value.replace(/[^0-9.]/g, '')
-                          const parts = v.split('.')
-                          if (parts.length > 2) return
-                          if (parts[1] && parts[1].length > 2) return
-                          setPpAmount(v)
-                          setPpError(null)
-                        }}
-                        className="flex-1 text-sm font-bold text-gray-900 bg-transparent focus:outline-none placeholder:text-gray-300"
-                      />
-                    </div>
-                    {(parseFloat(ppAmount) || 0) > livePpBalance && (
-                      <p className="text-xs text-red-500 mt-1.5 font-medium">Insufficient PP Points balance</p>
-                    )}
-                    {ppError && (
-                      <p className="text-xs text-red-500 mt-1.5 font-medium">{ppError}</p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handlePayWithPoints}
-                      disabled={ppLoading || (parseFloat(ppAmount) || 0) <= 0 || (parseFloat(ppAmount) || 0) > livePpBalance}
-                      className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold disabled:opacity-40 hover:bg-gray-800 transition-colors"
-                    >
-                      {ppLoading
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
-                        : <><Coins className="w-4 h-4" /> Pay with PP Points</>}
-                    </button>
-                  </div>
-                )}
-              </div>
+              <PPCoinsPayment
+                restaurantId={restaurantId}
+                ppBalance={livePpBalance}
+                onPaid={(paid: number) => setLivePpBalance(b => b - paid)}
+              />
             )}
 
             <DownloadAppCard />
           </div>
         </div>
 
-        {/* Booking code bar */}
-        <div className="mt-2 rounded-2xl bg-gray-900 text-white px-6 py-4 flex items-center justify-center gap-4">
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div
-                key={i}
-                className={`bg-white h-8 rounded-full ${i % 3 === 0 ? 'w-0.75' : i % 2 === 0 ? 'w-0.5' : 'w-px'}`}
-              />
-            ))}
-          </div>
-          <p className="font-mono text-xl font-extrabold tracking-widest shrink-0">{result.bookingCode}</p>
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div
-                key={i}
-                className={`bg-white h-8 rounded-full ${i % 2 === 0 ? 'w-0.5' : 'w-px'}`}
-              />
-            ))}
-          </div>
-        </div>
+        <BookingCodeBar code={result.bookingCode} />
       </div>
     )
   }
@@ -628,213 +338,44 @@ export function BookingWidget({ restaurantId, restaurantName, restaurantLocation
   /* ── Step 2: Guest details ────────────────────────────────────── */
   if (step === 'details') {
     return (
-      <form onSubmit={handleBook} className="flex flex-col gap-5">
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <button
-              type="button"
-              aria-label="Go back"
-              onClick={() => setStep('slots')}
-              className="text-sm font-medium text-gray-500 hover:text-gray-800 mb-1"
-            >
-              ← Back
-            </button>
-            <p className="text-base font-extrabold text-gray-900">Your details</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {dateOptions.find(d => d.value === date)?.label} ·{' '}
-              {allSlots.find(s => s.value === selectedTime)?.label} ·{' '}
-              {guests} {guests === 1 ? 'guest' : 'guests'}
-            </p>
-          </div>
-
-          <div className="p-6 flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Your name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Full name"
-                  required
-                  className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:border-violet-400"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Phone</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  placeholder="+230 5XXX XXXX"
-                  required
-                  className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:border-violet-400"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                Special request <span className="normal-case font-normal">(optional)</span>
-              </label>
-              <textarea
-                value={request}
-                onChange={e => setRequest(e.target.value)}
-                placeholder="Allergies, celebrations, seating preference…"
-                rows={2}
-                className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 resize-none focus:outline-none focus:border-violet-400"
-              />
-            </div>
-
-            {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-sm transition-colors disabled:opacity-60"
-              >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? 'Booking…' : 'Confirm booking'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </form>
+      <GuestDetailsForm
+        name={name}
+        phone={phone}
+        request={request}
+        date={date}
+        selectedTime={selectedTime}
+        guests={guests}
+        dateOptions={dateOptions}
+        allSlots={allSlots}
+        loading={loading}
+        error={error}
+        onBack={() => setStep('slots')}
+        onNameChange={setName}
+        onPhoneChange={setPhone}
+        onRequestChange={setRequest}
+        onSubmit={handleBook}
+      />
     )
   }
 
   /* ── Step 1: Slot selection ───────────────────────────────────── */
   return (
-    <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-        {/* Main form */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-
-          {/* Form header */}
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-base font-extrabold text-gray-900">Book a table</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{restaurantName}</p>
-          </div>
-
-          <div className="p-6 flex flex-col gap-6">
-
-            {/* Date + Guests */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Date</span>
-                <div className="relative">
-                  <select
-                    title="Select date"
-                    value={date}
-                    onChange={e => setDate(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 bg-white pr-8 cursor-pointer focus:outline-none focus:border-violet-400"
-                  >
-                    {dateOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">No. of guests</span>
-                <div className="relative">
-                  <select
-                    title="Select guests"
-                    value={guests}
-                    onChange={e => setGuests(Number(e.target.value))}
-                    className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 bg-white pr-8 cursor-pointer focus:outline-none focus:border-violet-400"
-                  >
-                    {GUEST_OPTIONS.map(n => <option key={n} value={n}>{n} {n === 1 ? 'Guest' : 'Guests'}</option>)}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* Time slots */}
-            <div>
-              <p className="text-sm font-bold text-gray-900 mb-3">Select time slot</p>
-              <div className="flex items-center gap-2 mb-4">
-                {(['lunch', 'dinner'] as MealPeriod[]).map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => { setMealPeriod(p); setSelectedTime(null) }}
-                    className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors capitalize ${
-                      mealPeriod === p
-                        ? 'bg-gray-900 text-white'
-                        : 'border border-gray-200 text-gray-500 hover:border-gray-400'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-4 gap-2">
-                {visibleSlots.map(slot => (
-                  <button
-                    key={slot.value}
-                    type="button"
-                    onClick={() => setSelectedTime(slot.value)}
-                    className={`flex flex-col items-center py-2.5 px-1 rounded-xl border text-center transition-all ${
-                      selectedTime === slot.value
-                        ? 'border-gray-900 bg-gray-900 text-white'
-                        : 'border-gray-200 text-gray-700 hover:border-gray-400'
-                    }`}
-                  >
-                    <span className="text-[13px] font-bold leading-tight">{slot.label}</span>
-                    <span className={`text-[10px] mt-0.5 ${selectedTime === slot.value ? 'text-white/60' : 'text-violet-500'}`}>
-                      2 offers
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {allSlots.length > 8 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllSlots(v => !v)}
-                  className="mt-3 text-sm font-semibold text-gray-500 hover:text-gray-700 flex items-center gap-1"
-                >
-                  {showAllSlots ? 'View fewer slots ↑' : 'View all slots ↓'}
-                </button>
-              )}
-            </div>
-
-            {/* T&Cs */}
-            <div>
-              <p className="text-sm font-bold text-gray-900 mb-3">Terms &amp; Conditions</p>
-              <ul className="flex flex-col gap-2">
-                {TERMS.map(term => (
-                  <li key={term} className="flex items-start gap-2 text-xs text-gray-500 leading-relaxed">
-                    <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-                    {term}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="button"
-                disabled={!selectedTime}
-                onClick={() => setStep('details')}
-                className="px-8 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Proceed to book
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: QR panel */}
-        <div className="lg:col-span-1">
-          <DownloadAppCard />
-        </div>
-      </div>
-    </div>
+    <SlotSelector
+      restaurantName={restaurantName}
+      date={date}
+      guests={guests}
+      isClosed={isClosed}
+      selectedTime={selectedTime}
+      showAllSlots={showAllSlots}
+      visibleSlots={visibleSlots}
+      allSlots={allSlots}
+      dateOptions={dateOptions}
+      guestOptions={guestOptions}
+      onDateChange={handleDateChange}
+      onGuestsChange={setGuests}
+      onTimeSelect={setSelectedTime}
+      onToggleSlots={() => setShowAllSlots(v => !v)}
+      onProceed={() => setStep('details')}
+    />
   )
 }

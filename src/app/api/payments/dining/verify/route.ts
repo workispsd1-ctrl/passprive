@@ -1,23 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { creditCashback, getUserCashbackInfo } from '@/lib/services/wallet'
+import { isPaymentSuccess } from '@/lib/utils/payment'
 
 const PAYMENTS_API = (process.env.PAYMENTS_API_URL ?? 'https://nxxacdlmcc.execute-api.ap-south-1.amazonaws.com').replace(/\/+$/, '')
-
-function isPaymentSuccess(data: Record<string, unknown>): boolean {
-  if (data?.verified === true) return true
-  const status = String(
-    data?.status ?? data?.payment_status ?? data?.transaction_status ??
-    data?.outcome ?? data?.inferred_outcome ?? data?.result ?? ''
-  ).toLowerCase()
-  const SUCCESS_STATUSES = ['success', 'approved', 'completed', 'authorized', 'finalized', 'paid', 'verified_success']
-  if (SUCCESS_STATUSES.includes(status)) return true
-  if (String(data?.gateway_status) === '0') return true
-  if (String(data?.result_description ?? '').toLowerCase() === 'approved') return true
-  const authCode = data?.authorization_code ?? data?.auth_code ?? data?.authCode
-  if (authCode && !['failed', 'declined', 'error', 'cancelled'].includes(status)) return true
-  return false
-}
 
 export async function POST(request: Request) {
   const supabase = await createClient()

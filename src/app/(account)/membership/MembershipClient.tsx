@@ -80,7 +80,7 @@ function PremiumCard({ plan, isActive, isLoggedIn }: { plan: SubscriptionPlan; i
           <span className="text-xs font-bold uppercase tracking-[0.18em] text-white/60">{plan.plan_name.trim()}</span>
         </div>
         <div className="flex items-end gap-1.5">
-          <span className="text-5xl font-extrabold text-white leading-none">Rs {Number(plan.amount).toLocaleString()}</span>
+          <span className="text-5xl font-extrabold text-white leading-none">₨{Number(plan.amount).toLocaleString()}</span>
           <span className="text-sm text-white/50 mb-1">/yr</span>
         </div>
         <div className="mt-4 inline-flex items-center gap-1.5 bg-white/15 border border-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
@@ -145,7 +145,7 @@ function BlackCard({ plan, isActive, isLoggedIn }: { plan: SubscriptionPlan; isA
           <span className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">{plan.plan_name.trim()}</span>
         </div>
         <div className="flex items-end gap-1.5">
-          <span className="text-5xl font-extrabold text-white leading-none">Rs {Number(plan.amount).toLocaleString()}</span>
+          <span className="text-5xl font-extrabold text-white leading-none">₨{Number(plan.amount).toLocaleString()}</span>
           <span className="text-sm text-zinc-600 mb-1">/yr</span>
         </div>
         <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-semibold px-3 py-1.5 rounded-full">

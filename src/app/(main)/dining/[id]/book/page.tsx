@@ -25,7 +25,7 @@ export default async function BookTablePage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [{ restaurant }, supabase] = await Promise.all([
+  const [{ restaurant, allHours }, supabase] = await Promise.all([
     getRestaurantBySlugOrId(id),
     createClient(),
   ])
@@ -78,7 +78,7 @@ export default async function BookTablePage({
           <div className="min-w-0">
             <h1 className="text-base font-extrabold text-gray-900 leading-tight truncate">{restaurant.name}</h1>
             <p className="text-xs text-gray-500 mt-0.5 truncate">
-              {restaurant.cost_for_two && <span>₹{restaurant.cost_for_two} for two</span>}
+              {restaurant.cost_for_two && <span>₨{restaurant.cost_for_two} for two</span>}
               {restaurant.cost_for_two && address && <span className="mx-1.5 text-gray-300">|</span>}
               {address && <span className="flex-1">{address}</span>}
             </p>
@@ -97,6 +97,8 @@ export default async function BookTablePage({
           defaultPhone={defaultPhone}
           cashbackRate={cashbackRate}
           ppBalance={ppBalance}
+          restaurantHours={allHours}
+          maxPartySize={restaurant.max_bookings_per_slot}
         />
       </div>
     </main>

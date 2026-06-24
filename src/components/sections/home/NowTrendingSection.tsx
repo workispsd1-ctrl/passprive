@@ -81,7 +81,7 @@ export function NowTrendingSection({
                 )}
                 {restaurant.cost_for_two && (
                   <p className='text-white/50 text-[11px] mt-0.5'>
-                    ₹{restaurant.cost_for_two} for two
+                    ₨{restaurant.cost_for_two} for two
                   </p>
                 )}
               </div>

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { SESSION_KEY_COVER_CHARGE, SESSION_KEY_DINING_PAYMENT, SESSION_KEY_MEMBERSHIP } from '@/lib/constants/sessionKeys'
 
 const RETURN_PATHS = [
   '/dining/cover-charge-return',
@@ -18,8 +19,8 @@ export function PaymentRecovery() {
     if (RETURN_PATHS.some(p => pathname.startsWith(p)) || pathname.includes('/payment-return')) return
 
     try {
-      // Cover charge (booking) — redirect to /dining/cover-charge-return
-      const coverRaw = sessionStorage.getItem('pp_cover_charge_session')
+
+      const coverRaw = sessionStorage.getItem(SESSION_KEY_COVER_CHARGE)
       if (coverRaw) {
         const coverStored = JSON.parse(coverRaw) as { sessionId?: string; bookingId?: string }
         if (coverStored?.sessionId) {
@@ -28,8 +29,8 @@ export function PaymentRecovery() {
         }
       }
 
-      // Bill payment — redirect to /bookings/[id]/payment-return
-      const diningRaw = sessionStorage.getItem('pp_dining_payment_session')
+
+      const diningRaw = sessionStorage.getItem(SESSION_KEY_DINING_PAYMENT)
       if (diningRaw) {
         const diningStored = JSON.parse(diningRaw) as { sessionId?: string; bookingId?: string }
         if (diningStored?.sessionId && diningStored?.bookingId) {
@@ -38,8 +39,8 @@ export function PaymentRecovery() {
         }
       }
 
-      // Membership payment — redirect to /membership/payment-return
-      const membershipRaw = sessionStorage.getItem('pp_payment_session')
+
+      const membershipRaw = sessionStorage.getItem(SESSION_KEY_MEMBERSHIP)
       if (membershipRaw) {
         const membershipStored = JSON.parse(membershipRaw) as { sessionId?: string }
         if (membershipStored?.sessionId) {

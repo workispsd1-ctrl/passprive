@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useRouter, useParams } from 'next/navigation'
-import { Loader2, XCircle, RefreshCw } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Suspense } from 'react'
 
-const SESSION_KEY = 'pp_dining_payment_session'
+import { SESSION_KEY_DINING_PAYMENT as SESSION_KEY } from '@/lib/constants/sessionKeys'
+import { PaymentLoadingScreen } from '@/components/shared/PaymentLoadingScreen'
+import { PaymentErrorCard } from '@/components/shared/PaymentErrorCard'
 
 type Phase =
   | { status: 'loading'; message: string }
@@ -112,39 +114,15 @@ function PaymentReturnInner() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-white">
-      {phase.status === 'loading' && (
-        <div className="flex flex-col items-center gap-4 text-center">
-          <Loader2 className="w-12 h-12 text-violet-500 animate-spin" />
-          <p className="text-base font-semibold text-gray-700">{phase.message}</p>
-          <p className="text-sm text-gray-400">Please do not close or refresh this page.</p>
-        </div>
-      )}
+      {phase.status === 'loading' && <PaymentLoadingScreen message={phase.message} />}
 
-{phase.status === 'error' && (
-        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-          <XCircle className="w-16 h-16 text-red-400" />
-          <p className="text-xl font-extrabold text-gray-900">Payment unsuccessful</p>
-          <p className="text-sm text-gray-500">{phase.message}</p>
-          <div className="flex flex-col gap-2 w-full mt-2">
-            {phase.canRetry && (
-              <button
-                type="button"
-                onClick={() => router.replace(`/bookings/${bookingId}`)}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Try again
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => router.replace('/support')}
-              className="w-full py-3 rounded-2xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50"
-            >
-              Contact support
-            </button>
-          </div>
-        </div>
+      {phase.status === 'error' && (
+        <PaymentErrorCard
+          message={phase.message}
+          onRetry={phase.canRetry ? () => router.replace(`/bookings/${bookingId}`) : undefined}
+          onSecondary={() => router.replace('/support')}
+          secondaryLabel="Contact support"
+        />
       )}
     </main>
   )

@@ -15,11 +15,11 @@ const TOPICS = [
 const PLAN_DEFAULTS: Record<string, { topic: string; message: string }> = {
   premium: {
     topic: 'Membership Upgrade',
-    message: "Hi PassPrivé team,\n\nI'd like to subscribe to Privé Premium (Rs 4,000/year).\n\nPlease let me know the next steps to activate my membership.\n\nThank you.",
+    message: "Hi PassPrivé team,\n\nI'd like to subscribe to Privé Premium (MRU4,000/year).\n\nPlease let me know the next steps to activate my membership.\n\nThank you.",
   },
   black: {
     topic: 'Membership Upgrade',
-    message: "Hi PassPrivé team,\n\nI'd like to subscribe to Privé Black (Rs 7,000/year).\n\nPlease let me know the next steps to activate my membership.\n\nThank you.",
+    message: "Hi PassPrivé team,\n\nI'd like to subscribe to Privé Black (MRU7,000/year).\n\nPlease let me know the next steps to activate my membership.\n\nThank you.",
   },
 }
 
@@ -86,7 +86,7 @@ export function SupportForm() {
 
         {plan && (
           <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 font-medium">
-            Requesting: <span className="font-bold">{plan === 'premium' ? 'Privé Premium — Rs 4,000/year' : 'Privé Black — Rs 7,000/year'}</span>
+            Requesting: <span className="font-bold">{plan === 'premium' ? 'Privé Premium — ₨4,000/year' : 'Privé Black — ₨7,000/year'}</span>
           </div>
         )}
 

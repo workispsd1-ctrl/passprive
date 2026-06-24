@@ -11,7 +11,7 @@ import type {
 } from '@/lib/types/dining';
 
 const SELECT_FIELDS =
-  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, merchant_type, cover_charge_enabled, cover_charge_amount';
+  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, merchant_type, cover_charge_enabled, cover_charge_amount, max_bookings_per_slot';
 
 async function fetchNewestRestaurants(
   limit = 8,

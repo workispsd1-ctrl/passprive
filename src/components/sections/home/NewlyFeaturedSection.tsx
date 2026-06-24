@@ -174,7 +174,7 @@ export function NewlyFeaturedSection({
                 )}
                 {restaurant.cost_for_two && (
                   <p className='text-white/45 text-[10px] mt-0.5'>
-                    ₹{restaurant.cost_for_two} for two
+                    ₨{restaurant.cost_for_two} for two
                   </p>
                 )}
               </div>

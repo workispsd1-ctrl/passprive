@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     restaurant.description,
     cuisineStr && `Cuisine: ${cuisineStr}`,
     location && `Located in ${location}`,
-    restaurant.cost_for_two && `₹${restaurant.cost_for_two} for two`,
+    restaurant.cost_for_two && `₨${restaurant.cost_for_two} for two`,
   ].filter(Boolean).join('. ')
 
   return {
@@ -201,7 +201,7 @@ export default async function RestaurantPage({
                     <>
                       <span className='text-gray-300 font-light'>|</span>
                       <span className='text-gray-800 font-medium'>
-                        ₹{restaurant.cost_for_two.toLocaleString()} for two
+                        ₨{restaurant.cost_for_two.toLocaleString()} for two
                       </span>
                     </>
                   )}
@@ -373,7 +373,7 @@ export default async function RestaurantPage({
                             )}
                             {offer.min_spend != null && (
                               <p className='text-[12px] text-gray-500 mt-0.5'>
-                                Min spend ₹{offer.min_spend.toLocaleString()}
+                                Min spend ₨{offer.min_spend.toLocaleString()}
                               </p>
                             )}
                           </div>
@@ -599,7 +599,7 @@ export default async function RestaurantPage({
                         Cost
                       </p>
                       <p className='text-sm font-semibold text-gray-500'>
-                        ₹{restaurant.cost_for_two.toLocaleString()} for two
+                        ₨{restaurant.cost_for_two.toLocaleString()} for two
                       </p>
                     </div>
                   )}

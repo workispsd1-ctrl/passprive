@@ -5,19 +5,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Navigation, Globe, Smartphone, Coins } from 'lucide-react'
 import type { DiningBooking } from '@/lib/types/bookings'
+import { formatBookingDateTime } from '@/lib/utils/format'
 
 type Tab = 'dining' | 'store'
-
-function formatDateTime(date: string, time: string) {
-  const [year, month, day] = date.split('-').map(Number)
-  const [hour, minute] = time.split(':').map(Number)
-  const d = new Date(year, month - 1, day)
-  const monthName = d.toLocaleDateString('en-GB', { month: 'short' })
-  const period = hour >= 12 ? 'PM' : 'AM'
-  const h = hour % 12 === 0 ? 12 : hour % 12
-  const m = minute.toString().padStart(2, '0')
-  return `${day} ${monthName} at ${h}:${m} ${period}`
-}
 
 function getStatusBadge(status: string, bookingDate: string) {
   const today = new Date()
@@ -51,7 +41,7 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
             <div>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Date and Time</p>
               <p className="text-sm font-medium text-gray-800 mt-0.5">
-                {formatDateTime(booking.booking_date, booking.booking_time)}
+                {formatBookingDateTime(booking.booking_date, booking.booking_time)}
               </p>
             </div>
 
