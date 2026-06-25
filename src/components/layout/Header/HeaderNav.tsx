@@ -17,7 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'For you', href: '/', icon: '/foryou.png' },
   { label: 'Dining', href: '/dining', icon: '/dining.png' },
   { label: 'Stores', href: '/stores', icon: '/store.png' },
-  { label: 'Tourist', href: '/tourist', lucideIcon: Compass },
+  { label: 'Tourist', href: '/tourist', icon: '/Tourist.png' },
   { label: 'Rewards', href: '/visit-rewards', lucideIcon: Gift },
   { label: 'Gifts', href: '/gifts', icon: '/store.png' },
 ]
@@ -48,7 +48,17 @@ export function HeaderNav() {
                       style={{ color: isActive ? '#a855f7' : '#9ca3af' }}
                     />
                   ) : icon ? (
-                    <Image src={icon} alt="" width={40} height={40} aria-hidden="true" />
+                    <Image
+                      src={icon}
+                      alt=""
+                      width={40}
+                      height={40}
+                      className={cn(
+                        "object-contain",
+                        icon.includes('Tourist') && "scale-[1.55] -translate-y-[2px]"
+                      )}
+                      aria-hidden="true"
+                    />
                   ) : null}
                   <span className={cn(
                     'text-[11px] font-semibold uppercase tracking-wide',

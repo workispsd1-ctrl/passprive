@@ -104,6 +104,7 @@ export default async function TouristPlaceDetailPage({
         <PhotoGrid
           photos={galleryPhotos}
           restaurantName={place.place_name}
+          backHref='/tourist'
         />
 
         <div className='max-w-7xl mx-auto px-4 md:px-6'>
