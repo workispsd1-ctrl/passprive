@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Tag, SlidersHorizontal, MapPin, Star } from 'lucide-react';
+import { SlidersHorizontal, MapPin, Star, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocation } from '@/lib/context/LocationContext';
 import type { TouristPlace } from '@/lib/types/touristPlaces';
@@ -112,6 +112,7 @@ export function TouristPlacesPageClient({ places }: Props) {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [showDistanceOptions, setShowDistanceOptions] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Extract unique tags from all tourist places
   const allTags = useMemo(() => {
@@ -139,6 +140,16 @@ export function TouristPlacesPageClient({ places }: Props) {
   const filtered = useMemo(() => {
     let result = placesWithDist;
 
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter(p =>
+        p.place_name.toLowerCase().includes(q) ||
+        (p.area ?? '').toLowerCase().includes(q) ||
+        (p.city ?? '').toLowerCase().includes(q) ||
+        p.tags.some(t => t.toLowerCase().includes(q))
+      );
+    }
+
     if (activeTag) {
       result = result.filter(p => p.tags.includes(activeTag));
     }
@@ -152,14 +163,62 @@ export function TouristPlacesPageClient({ places }: Props) {
     }
 
     return result;
-  }, [placesWithDist, activeTag, distanceKm, userCoords]);
+  }, [placesWithDist, searchQuery, activeTag, distanceKm, userCoords]);
 
   const activeDistLabel = DISTANCE_OPTIONS.find(o => o.km === distanceKm)?.label;
-  const isFiltered = activeTag != null || distanceKm != null;
+  const isFiltered = activeTag != null || distanceKm != null || searchQuery.trim().length > 0;
 
   return (
     <section className="px-4 py-5 md:px-6 max-w-7xl mx-auto">
-      <h1 className="text-[20px] md:text-[24px] font-bold text-gray-900 mb-4">Tourist Attractions</h1>
+      <div className="relative overflow-hidden rounded-3xl px-6 py-12 md:px-14 md:py-20 mb-6">
+        <Image
+          src="/tourist-hero.jpg"
+          alt="Tropical beach in Mauritius"
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-linear-to-r from-cyan-950/65 via-cyan-900/30 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-cyan-950/45 via-transparent to-transparent" />
+
+        <div className="relative z-10 max-w-2xl">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm text-white text-[11px] font-semibold uppercase tracking-wide">
+            Your Pass to the Island&rsquo;s Best
+          </span>
+
+          <h1 className="text-[24px] md:text-[36px] font-bold text-white leading-tight drop-shadow-sm mt-3">
+            Explore Mauritius&rsquo;s best attractions
+          </h1>
+          <p className="text-white/85 text-[13px] md:text-[15px] mt-2 drop-shadow-sm">
+            Find beaches, parks &amp; experiences, and book tickets — skip the queue with PassPrivé.
+          </p>
+
+          <div className="flex items-center bg-white rounded-full overflow-hidden h-12 md:h-14 pr-1.5 pl-4 shadow-lg mt-6 ring-2 ring-transparent focus-within:ring-white/60 transition-shadow">
+            <Search className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search attractions, beaches, parks..."
+              aria-label="Search tourist attractions"
+              className="flex-1 px-3 text-sm text-gray-800 bg-transparent outline-none placeholder:text-gray-500 font-medium h-full"
+              autoComplete="off"
+            />
+            <span className="hidden sm:flex w-9 h-9 md:w-11 md:h-11 rounded-full bg-brand items-center justify-center shrink-0">
+              <Search className="w-4 h-4 text-white" aria-hidden="true" />
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 mt-4 text-white/90 text-[12px] md:text-[13px] font-medium">
+            <span>{places.length} attraction{places.length !== 1 ? 's' : ''}</span>
+            <span className="w-1 h-1 rounded-full bg-white/40" />
+            <span>{places.filter(p => Number(p.price) === 0).length} free entry</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 className="text-[20px] md:text-[24px] font-bold text-gray-900 mb-4">Tourist Attractions</h2>
 
       <div className="relative mb-3">
         {/* Single scrollable row — Filters button + category/tag pills */}
@@ -238,44 +297,50 @@ export function TouristPlacesPageClient({ places }: Props) {
             >
               <div className="relative w-full aspect-[4/3] bg-gray-100">
                 <CardImageSlider place={place} />
-                {place.ad_badge_text && (
-                  <div className="absolute top-2.5 left-2.5 bg-brand/90 backdrop-blur-sm px-2 py-1 rounded-lg z-10">
-                    <span className="text-white text-[9px] font-bold">
-                      {place.ad_badge_text}
+                <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10">
+                  {place.ad_badge_text && (
+                    <div className="bg-linear-to-r from-purple-500 to-brand px-2.5 py-1 rounded-full shadow-sm">
+                      <span className="text-white text-[9px] font-bold whitespace-nowrap">
+                        {place.ad_badge_text}
+                      </span>
+                    </div>
+                  )}
+                  <div className="bg-linear-to-r from-purple-500 to-brand px-2.5 py-1 rounded-lg shadow-sm flex items-center justify-center">
+                    <span className="text-white text-[8px] font-bold whitespace-nowrap text-center">
+                      {Number(place.price) === 0 ? 'FreeEntry' : `MUR ${place.price}`}
                     </span>
                   </div>
-                )}
+                </div>
               </div>
 
-              <div className="p-2.5">
-                <p className="text-[12px] font-bold text-gray-900 truncate">{place.place_name}</p>
-                {place.tags && place.tags.length > 0 && (
-                  <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                    {place.tags.join(' · ')}
-                  </p>
-                )}
-                
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-0.5">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
-                    <span className="text-[10px] font-semibold text-gray-700">
+              <div className="p-3">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Star className="w-3 h-3 fill-orange-500 text-orange-500 shrink-0" />
+                    <span className="text-[11px] font-bold text-gray-700">
                       {place.rating?.toFixed(1) || '5.0'}
                     </span>
                   </div>
-                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
-                  <div className="flex items-center gap-0.5 text-gray-400">
-                    <MapPin className="w-2.5 h-2.5 shrink-0" />
-                    <span className="text-[10px] truncate max-w-20">
+                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300 shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-900 truncate">{place.place_name}</p>
+                </div>
+
+                {(place.dist != null || place.full_address || place.area || place.city) && (
+                  <div className="flex items-center gap-0.5 text-gray-400 mt-1 min-w-0">
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    <span className="text-[11px] truncate">
                       {place.dist != null
-                        ? `${place.dist < 1 ? `${Math.round(place.dist * 1000)}m` : `${place.dist.toFixed(1)}km`}`
-                        : (place.area ?? place.city ?? '')}
+                        ? `${place.dist < 1 ? `${Math.round(place.dist * 1000)}m` : `${place.dist.toFixed(1)}km`} • ${place.full_address ?? [place.area, place.city].filter(Boolean).join(', ')}`
+                        : (place.full_address ?? [place.area, place.city].filter(Boolean).join(', '))}
                     </span>
                   </div>
-                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
-                  <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
-                    {Number(place.price) === 0 ? 'Free' : `MUR ${place.price}`}
-                  </span>
-                </div>
+                )}
+
+                {place.tags && place.tags.length > 0 && (
+                  <p className="text-[11px] text-gray-400 mt-1 truncate">
+                    {place.tags.join(' • ')}
+                  </p>
+                )}
               </div>
             </Link>
           ))}

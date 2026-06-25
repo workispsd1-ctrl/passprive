@@ -146,7 +146,7 @@ export default async function TouristPlaceDetailPage({
 
                 <div className='flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[14px]'>
                   {reviewSummary.avg > 0 && (
-                    <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-700 text-white text-[13px] font-bold'>
+                    <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand text-white text-[13px] font-bold'>
                       {reviewSummary.avg}
                       <Star className='w-3 h-3 fill-white' />
                     </span>
@@ -189,20 +189,20 @@ export default async function TouristPlaceDetailPage({
                 <div className='flex flex-wrap gap-3 mt-5'>
                   <button
                     type='button'
-                    className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
+                    className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:border-brand hover:text-brand hover:bg-brand/5 transition-colors'
                   >
                     <Navigation className='w-4 h-4' /> Direction
                   </button>
                   <button
                     type='button'
-                    className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
+                    className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:border-brand hover:text-brand hover:bg-brand/5 transition-colors'
                   >
                     <Share2 className='w-4 h-4' /> Share
                   </button>
                   {place.phone && (
                     <a
                       href={`tel:${place.phone}`}
-                      className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
+                      className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:border-brand hover:text-brand hover:bg-brand/5 transition-colors'
                     >
                       <Phone className='w-4 h-4' /> Call
                     </a>
@@ -227,7 +227,7 @@ export default async function TouristPlaceDetailPage({
                     {activities.map((activity) => (
                       <div
                         key={activity.id}
-                        className='border border-gray-200 rounded-2xl p-4 bg-gray-50 flex flex-col justify-between'
+                        className='border border-gray-200 rounded-2xl p-4 bg-gray-50 flex flex-col justify-between hover:border-brand hover:shadow-sm transition-all'
                       >
                         <div>
                           <p className='text-[15px] font-bold text-gray-900 capitalize'>
@@ -268,10 +268,10 @@ export default async function TouristPlaceDetailPage({
                   <div className='rounded-3xl bg-gray-50 border border-gray-200 p-6 md:p-8'>
                     <div className='text-center'>
                       <div className='flex items-center justify-center gap-2'>
-                        <span className='text-[52px] font-bold text-green-700 leading-none'>
+                        <span className='text-[52px] font-bold text-brand leading-none'>
                           {reviewSummary.avg}
                         </span>
-                        <Star className='w-9 h-9 fill-green-700 text-green-700' />
+                        <Star className='w-9 h-9 fill-brand text-brand' />
                       </div>
                       <p className='text-[16px] font-bold text-gray-900 mt-3'>
                         Based on {reviewSummary.count.toLocaleString()} ratings
@@ -327,7 +327,7 @@ export default async function TouristPlaceDetailPage({
                       {reviews.map((review) => (
                         <div
                           key={review.id}
-                          className='shrink-0 w-72 bg-white border border-gray-100 rounded-2xl p-4'
+                          className='shrink-0 w-72 bg-white border border-gray-100 rounded-2xl p-4 hover:border-brand/30 hover:shadow-sm transition-all'
                         >
                           <div className='flex items-center justify-between gap-2'>
                             <div className='flex items-center gap-2.5'>
@@ -345,7 +345,7 @@ export default async function TouristPlaceDetailPage({
                                 </p>
                               </div>
                             </div>
-                            <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-700 text-white text-[13px] font-bold shrink-0'>
+                            <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand text-white text-[13px] font-bold shrink-0'>
                               {review.rating}
                               <Star className='w-3 h-3 fill-white' />
                             </span>
@@ -383,7 +383,7 @@ export default async function TouristPlaceDetailPage({
                     Location
                   </h2>
 
-                  <div className='border rounded-2xl'>
+                  <div className='border border-gray-200 rounded-2xl hover:border-brand/30 transition-colors'>
                     <div className='w-full h-52 rounded-t-2xl overflow-hidden mb-4 bg-gray-100'>
                       {place.latitude && place.longitude ? (
                         <iframe
@@ -436,7 +436,7 @@ export default async function TouristPlaceDetailPage({
                   </div>
                   <Link
                     href={`/tourist/${place.slug ?? place.id}/book`}
-                    className='block w-full py-3.5 rounded-xl bg-gray-900 text-white font-bold text-[14px] text-center hover:bg-black transition-colors'
+                    className='block w-full py-3.5 rounded-xl bg-gray-900 text-white font-bold text-[14px] text-center hover:bg-black hover:shadow-md transition-all'
                   >
                     Book ticket
                   </Link>

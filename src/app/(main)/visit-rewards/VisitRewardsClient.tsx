@@ -96,11 +96,11 @@ function RewardCard({ entry }: { entry: VisitRewardEntry }) {
   const subtitle = tiers.length > 0 ? buildSubtitle(visits, tiers) : null
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition-shadow duration-200">
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
       {/* ── Cover image — same aspect-ratio & gradient overlay as dining cards ── */}
       <Link
         href={entry.slug ? `/dining/${entry.slug}` : '#'}
-        className="relative block aspect-[4/3] bg-gray-900 overflow-hidden shrink-0"
+        className="group relative block aspect-[4/3] bg-gray-900 overflow-hidden shrink-0"
         tabIndex={entry.slug ? 0 : -1}
       >
         {entry.coverImage ? (
@@ -108,7 +108,7 @@ function RewardCard({ entry }: { entry: VisitRewardEntry }) {
             src={entry.coverImage}
             alt={entry.name}
             fill
-            className="object-cover opacity-85 hover:scale-105 transition-transform duration-500"
+            className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
@@ -118,7 +118,10 @@ function RewardCard({ entry }: { entry: VisitRewardEntry }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
         {/* Reward badge top-left */}
-        <span className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-orange-500/90 text-white text-[9px] font-bold px-2 py-1 rounded-lg leading-none">
+        <span
+          className="absolute top-2.5 left-2.5 flex items-center gap-1 text-white text-[9px] font-bold px-2.5 py-1 rounded-full leading-none shadow-sm"
+          style={{ background: `linear-gradient(90deg, ${ORANGE} 0%, #ff9f43 100%)` }}
+        >
           <Gift className="w-2.5 h-2.5" />
           Repeat Rewards
         </span>
@@ -145,9 +148,6 @@ function RewardCard({ entry }: { entry: VisitRewardEntry }) {
               <span className="flex items-center gap-0.5">
                 <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                 <span className="text-white/80 text-[10px] font-semibold">{entry.rating.toFixed(1)}</span>
-                {entry.ratingCount > 0 && (
-                  <span className="text-white/40 text-[10px]">({entry.ratingCount})</span>
-                )}
               </span>
             )}
             {entry.cuisines.length > 0 && (
@@ -211,10 +211,10 @@ function RewardCard({ entry }: { entry: VisitRewardEntry }) {
         {entry.slug && (
           <Link
             href={`/dining/${entry.slug}`}
-            className="mt-2.5 flex items-center justify-center gap-1.5 w-full text-[11px] font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 py-2 rounded-xl transition-colors"
+            className="group mt-2.5 flex items-center justify-center gap-1.5 w-full text-[11px] font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 py-2.5 rounded-xl transition-colors"
           >
             View restaurant
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
           </Link>
         )}
       </div>
