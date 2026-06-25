@@ -16,7 +16,7 @@ export type Restaurant = {
   longitude: number | null;
   is_advertised: boolean;
   ad_priority: number | null;
-  merchant_type: 'preferred_partner' | 'verified_pay' | null;
+  merchant_type: 'preferred' | 'verified' | null;
   cover_charge_enabled: boolean;
   cover_charge_amount: number | null;
   max_bookings_per_slot: number | null;

@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Stores', href: '/stores', icon: '/store.png' },
   { label: 'Tourist', href: '/tourist', lucideIcon: Compass },
   { label: 'Rewards', href: '/visit-rewards', lucideIcon: Gift },
+  { label: 'Gifts', href: '/gifts', icon: '/store.png' },
 ]
 
 export function HeaderNav() {

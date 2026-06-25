@@ -139,11 +139,11 @@ export function NewlyFeaturedSection({
               )}
               <div className='absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-black/15' />
 
-              {restaurant.merchant_type === 'preferred_partner' ? (
+              {restaurant.merchant_type === 'preferred' ? (
                 <span className='absolute top-2.5 left-2.5 flex items-center gap-1 bg-violet-600/90 text-white text-[9px] font-bold px-2 py-1 rounded-lg leading-none'>
                   <Award className='w-2.5 h-2.5' /> Preferred Partner
                 </span>
-              ) : restaurant.merchant_type === 'verified_pay' ? (
+              ) : restaurant.merchant_type === 'verified' ? (
                 <span className='absolute top-2.5 left-2.5 flex items-center gap-1 bg-emerald-600/90 text-white text-[9px] font-bold px-2 py-1 rounded-lg leading-none'>
                   <CreditCard className='w-2.5 h-2.5' /> Verified Pay
                 </span>

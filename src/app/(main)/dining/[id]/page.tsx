@@ -173,17 +173,17 @@ export default async function RestaurantPage({
                       <BadgeCheck className='w-3 h-3' /> Pure Veg
                     </span>
                   )}
-                  {restaurant.merchant_type === 'preferred_partner' && (
+                  {restaurant.merchant_type === 'preferred' && (
                     <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-50 border border-violet-200 text-[11px] font-semibold text-violet-700 mt-1.5'>
                       <Award className='w-3 h-3' /> Preferred Partner
                     </span>
                   )}
-                  {restaurant.merchant_type === 'verified_pay' && (
+                  {restaurant.merchant_type === 'verified' && (
                     <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700 mt-1.5'>
                       <CreditCard className='w-3 h-3' /> Verified Pay
                     </span>
                   )}
-                  {restaurant.merchant_type === null && (
+                  {!restaurant.merchant_type && (
                     <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-50 border border-gray-200 text-[11px] font-semibold text-gray-500 mt-1.5'>
                       <Lock className='w-3 h-3' /> Unclaimed
                     </span>
@@ -236,7 +236,7 @@ export default async function RestaurantPage({
                   </div>
                 )}
 
-                {restaurant.merchant_type !== null ? (
+                {restaurant.merchant_type ? (
                   cashbackInfo ? (
                     <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
                       <span className='text-violet-600 font-black text-[15px]'>{cashbackInfo.cashback_rate}%</span>

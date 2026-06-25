@@ -142,4 +142,8 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .gifts-hero-grid {
+    background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
 }

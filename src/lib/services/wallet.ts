@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { WalletBalance, WalletTransaction, UserCashbackInfo } from '@/lib/types/wallet'
 import { getUserMembership } from '@/lib/services/subscription'
+import { PLAN_TIER } from '@/lib/types/subscription'
 import { PREFERRED_PARTNER_RATES, VERIFIED_PAY_RATE } from '@/lib/constants/cashback'
 
 export async function getWalletBalance(userId: string): Promise<WalletBalance | null> {
@@ -48,19 +49,38 @@ export async function getUserCashbackInfo(userId: string, restaurantId?: string)
 
   if (!membership) return null
 
-  const merchantType = (restaurantResult.data as { merchant_type?: string | null } | null)?.merchant_type ?? null
+  const rawMerchantType = (restaurantResult.data as { merchant_type?: string | null } | null)?.merchant_type ?? null
 
-  const tier = membership.membership_tier ?? 'none'
+  // DB stores 'preferred' | 'verified' | null (lowercase, trimmed)
+  const mtype = (rawMerchantType?.toLowerCase().trim() ?? '') as 'preferred' | 'verified' | ''
+  const merchantType: 'preferred' | 'verified' | null =
+    mtype === 'preferred' ? 'preferred' : mtype === 'verified' ? 'verified' : null
+
+  // Normalize tier: DB may store product ID ('Privé Black', 'black_tier') or canonical ('black')
+  const rawTier = membership.membership_tier ?? 'none'
+  const normalizedTier = PLAN_TIER[rawTier] ?? rawTier
+  const tier: 'free' | 'premium' | 'black' =
+    normalizedTier === 'black' ? 'black' : normalizedTier === 'premium' ? 'premium' : 'free'
+  const tierLabels: Record<string, string> = {
+    free: 'Free',
+    premium: 'Privé Premium',
+    black: 'Privé Black',
+  }
+
   let cashback_rate = 0
-
-  if (merchantType === 'preferred_partner') {
-    cashback_rate = PREFERRED_PARTNER_RATES[tier] ?? VERIFIED_PAY_RATE
-  } else if (merchantType === 'verified_pay') {
+  if (merchantType === 'preferred') {
+    cashback_rate = PREFERRED_PARTNER_RATES[tier] ?? membership.cashback_rate ?? VERIFIED_PAY_RATE
+  } else if (merchantType === 'verified') {
     cashback_rate = VERIFIED_PAY_RATE
   }
-  // null (unclaimed) → 0: no PassPrivé payments accepted, no rewards
 
-  return { cashback_rate, membership_tier: tier }
+  return {
+    applicable: cashback_rate > 0,
+    cashback_rate,
+    membership_tier: tier,
+    tier_label: tierLabels[tier] ?? 'Free',
+    merchant_type: merchantType,
+  }
 }
 
 export async function debitWallet(
