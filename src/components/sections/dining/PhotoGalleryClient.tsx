@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { X, ChevronLeft, ChevronRight, Grid2x2, Navigation } from 'lucide-react'
 
-// ── Shared gallery context so grid + strip share one dialog ──────────────────
+
 interface GalleryCtx {
   openAt: (index: number) => void
 }
@@ -18,7 +18,7 @@ function useGallery() {
   return ctx
 }
 
-// ── Provider + Dialog ─────────────────────────────────────────────────────────
+
 export function PhotoGalleryProvider({
   photos: rawPhotos,
   children,

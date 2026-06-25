@@ -1,41 +1,49 @@
-import { cache } from 'react'
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { cache } from 'react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { getRestaurantBySlugOrId } from '@/lib/services/dining';
+import { getUserCashbackInfo } from '@/lib/services/wallet';
+import { createClient } from '@/lib/supabase/server';
 import {
-  MapPin,
-  Star,
-  Phone,
-  Share2,
-  Navigation,
-  BadgeCheck,
-  ThumbsUp,
-  Info,
-  CreditCard,
-  Award,
-  Lock,
-} from 'lucide-react'
-import { getRestaurantBySlugOrId } from '@/lib/services/dining'
-import { getUserCashbackInfo } from '@/lib/services/wallet'
-import { createClient } from '@/lib/supabase/server'
-import type { Review } from '@/lib/types/dining'
+  PhotoGalleryProvider,
+  PhotoGrid,
+  PhotoStrip,
+} from '@/components/sections/dining/PhotoGalleryClient';
+import { RestaurantHeader } from '@/components/sections/dining/RestaurantHeader';
+import { RestaurantInfoCards } from '@/components/sections/dining/RestaurantInfoCards';
+import { RestaurantOffersSection } from '@/components/sections/dining/RestaurantOffersSection';
+import { RestaurantMenuSection } from '@/components/sections/dining/RestaurantMenuSection';
+import { RestaurantReviewsSection } from '@/components/sections/dining/RestaurantReviewsSection';
+import { RestaurantAboutSection } from '@/components/sections/dining/RestaurantAboutSection';
+import { RestaurantLocationSection } from '@/components/sections/dining/RestaurantLocationSection';
 
-const fetchRestaurant = cache((id: string) => getRestaurantBySlugOrId(id))
+const fetchRestaurant = cache((id: string) => getRestaurantBySlugOrId(id));
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await params
-  const { restaurant, tags } = await fetchRestaurant(id)
-  if (!restaurant) return {}
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const { restaurant, tags } = await fetchRestaurant(id);
+  if (!restaurant) return {};
 
-  const cuisineTags = tags.filter(t => t.tag_type === 'cuisine').map(t => t.tag_value)
-  const location = [restaurant.area, restaurant.city].filter(Boolean).join(', ')
-  const cuisineStr = cuisineTags.length ? cuisineTags.join(', ') : null
+  const cuisineTags = tags
+    .filter((t) => t.tag_type === 'cuisine')
+    .map((t) => t.tag_value);
+  const location = [restaurant.area, restaurant.city]
+    .filter(Boolean)
+    .join(', ');
+  const cuisineStr = cuisineTags.length ? cuisineTags.join(', ') : null;
   const description = [
     restaurant.description,
     cuisineStr && `Cuisine: ${cuisineStr}`,
     location && `Located in ${location}`,
     restaurant.cost_for_two && `₨${restaurant.cost_for_two} for two`,
-  ].filter(Boolean).join('. ')
+  ]
+    .filter(Boolean)
+    .join('. ');
 
   return {
     title: restaurant.name,
@@ -44,95 +52,62 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       title: `${restaurant.name} | PassPrivé`,
       description: description || `Discover ${restaurant.name} on PassPrivé`,
       url: `/dining/${restaurant.slug ?? id}`,
-      images: restaurant.cover_image ? [{ url: restaurant.cover_image, alt: restaurant.name }] : [],
+      images: restaurant.cover_image
+        ? [{ url: restaurant.cover_image, alt: restaurant.name }]
+        : [],
     },
-    alternates: {
-      canonical: `/dining/${restaurant.slug ?? id}`,
-    },
-  }
+    alternates: { canonical: `/dining/${restaurant.slug ?? id}` },
+  };
 }
-import {
-  PhotoGalleryProvider,
-  PhotoGrid,
-  PhotoStrip,
-} from '@/components/sections/dining/PhotoGalleryClient'
-import {
-  MenuGalleryProvider,
-  MenuImageCard,
-} from '@/components/sections/dining/MenuGalleryClient'
-import { HoursPopover } from '@/components/sections/dining/HoursPopover'
-
-
-
-function getOpenStatus(hours: import('@/lib/types/dining').RestaurantHours | null) {
-  if (!hours) return null
-  if (hours.is_closed || !hours.open_time || !hours.close_time)
-    return { isOpen: false, statusText: 'Closed today', label: null }
-  const now = new Date()
-  const [oh, om] = hours.open_time.split(':').map(Number)
-  const [ch, cm] = hours.close_time.split(':').map(Number)
-  const nowMins = now.getHours() * 60 + now.getMinutes()
-  const openMins = oh * 60 + om
-  const closeMins = ch * 60 + cm
-  const isOpen = closeMins > openMins
-    ? nowMins >= openMins && nowMins < closeMins
-    : nowMins >= openMins || nowMins < closeMins
-  const fmt = (h: number, m: number) =>
-    `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
-  return {
-    isOpen,
-    statusText: isOpen ? `Open until ${fmt(ch, cm)}` : `Opens at ${fmt(oh, om)}`,
-    label: null,
-  }
-}
-
-function ratingAvg(reviews: Review[], key: 'food_rating' | 'service_rating' | 'ambience_rating'): number | null {
-  const vals = reviews.map(r => r[key]).filter((v): v is number => v != null)
-  if (!vals.length) return null
-  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
-}
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const days = Math.floor(diff / 86400000)
-  if (days < 1) return 'Today'
-  if (days < 7) return `${days}d ago`
-  if (days < 30) return `${Math.floor(days / 7)}w ago`
-  if (days < 365) return `${Math.floor(days / 30)}mo ago`
-  return `${Math.floor(days / 365)}y ago`
-}
-
-
 
 export default async function RestaurantPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = await params
-  const [{ restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages, todayHours, allHours }, supabase] =
-    await Promise.all([fetchRestaurant(id), createClient()])
+  const { id } = await params;
+  const [
+    {
+      restaurant,
+      offers,
+      tags,
+      reviews,
+      reviewSummary,
+      galleryPhotos,
+      menuImages,
+      todayHours,
+      allHours,
+    },
+    supabase,
+  ] = await Promise.all([fetchRestaurant(id), createClient()]);
 
-  if (!restaurant) notFound()
+  if (!restaurant) notFound();
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const cashbackInfo = user ? await getUserCashbackInfo(user.id, restaurant.id) : null
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const cashbackInfo = user
+    ? await getUserCashbackInfo(user.id, restaurant.id)
+    : null;
 
-  const cuisineTags = tags.filter(t => t.tag_type === 'cuisine').map(t => t.tag_value)
-  const facilityTags = tags.filter(t => t.tag_type === 'facility').map(t => t.tag_value)
-  const cuisineLabel = cuisineTags.join(', ')
-  const sections = restaurant.menu_json?.sections ?? []
-  const fullMenuImages: string[] = menuImages.length > 0
-    ? menuImages
-    : (restaurant.menu_json?.full_menu_image_urls ?? [])
-  const breadcrumbCity = restaurant.city ?? restaurant.area ?? 'Dining'
-
-  const foodAvg = ratingAvg(reviews, 'food_rating')
-  const serviceAvg = ratingAvg(reviews, 'service_rating')
-  const ambienceAvg = ratingAvg(reviews, 'ambience_rating')
-
-  const mainOffers = offers.filter(o => o.offer_type !== 'bank_card' && o.offer_type !== 'credit_card')
-  const bankOffers = offers.filter(o => o.offer_type === 'bank_card' || o.offer_type === 'credit_card')
+  const cuisineTags = tags
+    .filter((t) => t.tag_type === 'cuisine')
+    .map((t) => t.tag_value);
+  const facilityTags = tags
+    .filter((t) => t.tag_type === 'facility')
+    .map((t) => t.tag_value);
+  const cuisineLabel = cuisineTags.join(', ');
+  const fullMenuImages: string[] =
+    menuImages.length > 0
+      ? menuImages
+      : (restaurant.menu_json?.full_menu_image_urls ?? []);
+  const breadcrumbCity = restaurant.city ?? restaurant.area ?? 'Dining';
+  const mainOffers = offers.filter(
+    (o) => o.offer_type !== 'bank_card' && o.offer_type !== 'credit_card',
+  );
+  const bankOffers = offers.filter(
+    (o) => o.offer_type === 'bank_card' || o.offer_type === 'credit_card',
+  );
 
   return (
     <PhotoGalleryProvider photos={galleryPhotos}>
@@ -163,540 +138,57 @@ export default async function RestaurantPage({
 
           <div className='md:grid md:grid-cols-[1fr_340px] md:gap-10 md:items-start md:pt-2'>
             <div className='min-w-0'>
-              <div className='mt-4 md:mt-0'>
-                <div className='flex items-start gap-2 flex-wrap'>
-                  <h1 className='text-[28px] md:text-[36px] font-bold text-gray-900 leading-tight'>
-                    {restaurant.name}
-                  </h1>
-                  {restaurant.is_pure_veg && (
-                    <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-200 text-[11px] font-semibold text-green-700 mt-1.5'>
-                      <BadgeCheck className='w-3 h-3' /> Pure Veg
-                    </span>
-                  )}
-                  {restaurant.merchant_type === 'preferred' && (
-                    <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-50 border border-violet-200 text-[11px] font-semibold text-violet-700 mt-1.5'>
-                      <Award className='w-3 h-3' /> Preferred Partner
-                    </span>
-                  )}
-                  {restaurant.merchant_type === 'verified' && (
-                    <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700 mt-1.5'>
-                      <CreditCard className='w-3 h-3' /> Verified Pay
-                    </span>
-                  )}
-                  {!restaurant.merchant_type && (
-                    <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-50 border border-gray-200 text-[11px] font-semibold text-gray-500 mt-1.5'>
-                      <Lock className='w-3 h-3' /> Unclaimed
-                    </span>
-                  )}
-                </div>
-
-                <div className='flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[14px]'>
-                  {reviewSummary.avg > 0 && (
-                    <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-700 text-white text-[13px] font-bold'>
-                      {reviewSummary.avg}
-                      <Star className='w-3 h-3 fill-white' />
-                    </span>
-                  )}
-                  {restaurant.cost_for_two != null && (
-                    <>
-                      <span className='text-gray-300 font-light'>|</span>
-                      <span className='text-gray-800 font-medium'>
-                        ₨{restaurant.cost_for_two.toLocaleString()} for two
-                      </span>
-                    </>
-                  )}
-                  {(() => {
-                    const status = getOpenStatus(todayHours)
-                    if (!status) return null
-                    return (
-                      <>
-                        <span className='text-gray-300 font-light'>|</span>
-                        <span className={status.isOpen ? 'text-green-600 font-semibold' : 'text-orange-500 font-semibold'}>
-                          {status.isOpen ? 'Open' : 'Closed'}
-                        </span>
-                        <span className='text-gray-400'>•</span>
-                        <HoursPopover
-                          todayHours={todayHours}
-                          allHours={allHours}
-                          statusText={status.statusText}
-                          isOpen={status.isOpen}
-                        />
-                      </>
-                    )
-                  })()}
-                </div>
-
-                {(restaurant.full_address ?? restaurant.area) && (
-                  <div className='flex items-start gap-1.5 mt-3'>
-                    <MapPin className='w-4 h-4 text-gray-400 mt-0.5 shrink-0' />
-                    <span className='text-[13px] text-gray-500 leading-snug'>
-                      {restaurant.full_address ??
-                        `${restaurant.area}, ${restaurant.city}`}
-                    </span>
-                  </div>
-                )}
-
-                {restaurant.merchant_type ? (
-                  cashbackInfo ? (
-                    <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
-                      <span className='text-violet-600 font-black text-[15px]'>{cashbackInfo.cashback_rate}%</span>
-                      <span className='text-[13px] font-semibold text-violet-700'>PP Coins cashback on your bill</span>
-                    </div>
-                  ) : (
-                    <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
-                      <span className='text-[13px] font-semibold text-violet-700'>Earn PP Coins cashback here</span>
-                    </div>
-                  )
-                ) : (
-                  <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gray-50 border border-gray-200'>
-                    <Info className='w-3.5 h-3.5 text-gray-400 shrink-0' />
-                    <span className='text-[13px] text-gray-500'>PassPrivé payments not available here yet</span>
-                  </div>
-                )}
-
-                <div className='flex flex-wrap gap-3 mt-5'>
-                  <button
-                    type='button'
-                    className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
-                  >
-                    <Navigation className='w-4 h-4' /> Direction
-                  </button>
-                  <button
-                    type='button'
-                    className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
-                  >
-                    <Share2 className='w-4 h-4' /> Share
-                  </button>
-                  {restaurant.phone && (
-                    <a
-                      href={`tel:${restaurant.phone}`}
-                      className='flex items-center gap-2 px-7 py-3 rounded-2xl border border-gray-200 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 transition-colors'
-                    >
-                      <Phone className='w-4 h-4' /> Call
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {(restaurant.description ||
-                cuisineLabel ||
-                facilityTags.length > 0) && (
-                <div className='flex gap-4 mt-7 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
-                  {restaurant.description && (
-                    <div className='shrink-0 w-72 border border-gray-200 rounded-2xl p-5 bg-white'>
-                      <div className='flex items-center gap-2.5 mb-3'>
-                        <span className='text-[22px]'>💎</span>
-                        <span className='text-[14px] font-bold text-gray-900'>
-                          About the place
-                        </span>
-                      </div>
-                      <p className='text-[13px] text-gray-500 leading-relaxed line-clamp-3'>
-                        {restaurant.description}
-                      </p>
-                      <button
-                        type='button'
-                        className='text-[13px] text-gray-500 mt-2 hover:text-gray-700'
-                      >
-                        view more
-                      </button>
-                    </div>
-                  )}
-                  {cuisineLabel && (
-                    <div className='shrink-0 w-72 border border-gray-200 rounded-2xl p-5 bg-white'>
-                      <div className='flex items-center gap-2.5 mb-3'>
-                        <span className='text-[22px]'>🍲</span>
-                        <span className='text-[14px] font-bold text-gray-900'>
-                          Must tries dishes and cuisines
-                        </span>
-                      </div>
-                      <p className='text-[13px] text-gray-500 leading-relaxed line-clamp-3'>
-                        {cuisineLabel}
-                      </p>
-                      <button
-                        type='button'
-                        className='text-[13px] text-gray-500 mt-2 hover:text-gray-700'
-                      >
-                        view more
-                      </button>
-                    </div>
-                  )}
-                  {facilityTags.length > 0 && (
-                    <div className='shrink-0 w-72 border border-gray-200 rounded-2xl p-5 bg-white'>
-                      <div className='flex items-center gap-2.5 mb-3'>
-                        <span className='text-[22px]'>✨</span>
-                        <span className='text-[14px] font-bold text-gray-900'>
-                          Must try experiences
-                        </span>
-                      </div>
-                      <p className='text-[13px] text-gray-500 leading-relaxed line-clamp-3'>
-                        {facilityTags.slice(0, 4).join(', ')}
-                      </p>
-                      <button
-                        type='button'
-                        className='text-[13px] text-gray-500 mt-2 hover:text-gray-700'
-                      >
-                        view more
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {offers.length > 0 && (
-                <section className='mt-8 border-t border-gray-100 pt-6'>
-                  <h2 className='text-[22px] font-bold text-gray-900 mb-4'>
-                    Offers
-                  </h2>
-
-                  <div className='flex gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
-                    {mainOffers.map((offer) => (
-                      <div
-                        key={offer.id}
-                        className='shrink-0 w-80 relative'
-                      >
-                        <div className='flex h-[100px] rounded-2xl overflow-hidden'>
-                          <div className='w-[140px] shrink-0 bg-gradient-to-br from-violet-600 via-purple-500 to-purple-400 flex flex-col justify-center px-4 py-3'>
-                            <p className='text-white font-black text-[18px] leading-tight'>
-                              {offer.title}
-                            </p>
-                            {offer.badge_text && (
-                              <span className='mt-1.5 text-[10px] font-semibold text-white/80 bg-white/20 rounded px-1.5 py-0.5 inline-block w-fit'>
-                                {offer.badge_text}
-                              </span>
-                            )}
-                          </div>
-                          <div className='flex-1 bg-violet-50 flex flex-col justify-center px-4 py-3'>
-                            {offer.description && (
-                              <p className='text-[13px] font-semibold text-gray-900 leading-snug'>
-                                {offer.description}
-                              </p>
-                            )}
-                            {offer.min_spend != null && (
-                              <p className='text-[12px] text-gray-500 mt-0.5'>
-                                Min spend ₨{offer.min_spend.toLocaleString()}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className='absolute top-0 left-[140px] -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white border border-gray-200 z-10' />
-                        <div className='absolute bottom-0 left-[140px] -translate-x-1/2 translate-y-1/2 w-5 h-5 rounded-full bg-white border border-gray-200 z-10' />
-                      </div>
-                    ))}
-                  </div>
-
-                  {bankOffers.length > 0 && (
-                    <div className='mt-5'>
-                      <p className='flex items-center gap-1.5 text-[13px] font-semibold text-gray-500 mb-3'>
-                        <span className='w-1.5 h-1.5 rounded-full bg-gray-400 inline-block' />
-                        Additional offers
-                      </p>
-                      <div className='flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
-                        {bankOffers.map((offer) => (
-                          <div
-                            key={offer.id}
-                            className='shrink-0 w-52 border border-gray-200 rounded-xl p-3 bg-gray-50 flex items-start gap-2.5'
-                          >
-                            <div className='w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0'>
-                              <CreditCard className='w-4 h-4 text-gray-400' />
-                            </div>
-                            <p className='text-[12px] text-gray-700 leading-snug font-medium line-clamp-3'>
-                              {offer.title}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </section>
-              )}
-
-              <section className='mt-8 border-t border-gray-100 pt-6'>
-                <h2 className='text-[22px] font-bold text-gray-900 mb-1'>
-                  Menu
-                </h2>
-
-                <MenuGalleryProvider images={fullMenuImages}>
-                  <div className='flex gap-4 mt-4 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1'>
-                    {sections.length > 0
-                      ? sections.map((section, i) => (
-                          <MenuImageCard
-                            key={section.id}
-                            src={fullMenuImages[i] ?? null}
-                            alt={section.name}
-                            index={i}
-                            label={section.name}
-                            sublabel={`${section.items.length} pages`}
-                          />
-                        ))
-                      : fullMenuImages.length > 0
-                        ? fullMenuImages.map((url, i) => (
-                            <MenuImageCard
-                              key={url}
-                              src={url}
-                              alt={`Menu ${i + 1}`}
-                            index={i}
-                            label=''
-                              sublabel=''
-                            />
-                          ))
-                        : ['Food', 'Beverages', 'Bar'].map((label) => (
-                            <MenuImageCard
-                              key={label}
-                              src={null}
-                              alt={label}
-                              index={0}
-                              label={label}
-                              sublabel='—'
-                            />
-                          ))}
-                  </div>
-                </MenuGalleryProvider>
-              </section>
-
+              <RestaurantHeader
+                restaurant={restaurant}
+                cashbackInfo={cashbackInfo}
+                todayHours={todayHours}
+                allHours={allHours}
+                reviewSummary={reviewSummary}
+              />
+              <RestaurantInfoCards
+                description={restaurant.description}
+                cuisineLabel={cuisineLabel}
+                facilityTags={facilityTags}
+              />
+              <RestaurantOffersSection
+                mainOffers={mainOffers}
+                bankOffers={bankOffers}
+              />
+              <RestaurantMenuSection
+                sections={restaurant.menu_json?.sections ?? []}
+                fullMenuImages={fullMenuImages}
+              />
               <PhotoStrip photos={galleryPhotos} />
-
-              {reviews.length > 0 && (
-                <section className='mt-8 border-t border-gray-100 pt-6'>
-                  <h2 className='text-[22px] font-bold text-gray-900 mb-5'>
-                    Ratings &amp; reviews
-                  </h2>
-
-                  <div className='rounded-3xl bg-gray-50 border border-gray-200 p-6 md:p-8'>
-                    <div className='text-center'>
-                      <div className='flex items-center justify-center gap-2'>
-                        <span className='text-[52px] font-bold text-green-700 leading-none'>
-                          {reviewSummary.avg}
-                        </span>
-                        <Star className='w-9 h-9 fill-green-700 text-green-700' />
-                      </div>
-                      <p className='text-[16px] font-bold text-gray-900 mt-3'>
-                        Based on {reviewSummary.count.toLocaleString()} ratings
-                      </p>
-                      <div className='flex items-center justify-center gap-1 mt-1'>
-                        <span className='text-[13px] text-gray-400'>
-                          how are ratings calculated?
-                        </span>
-                        <Info className='w-4 h-4 text-gray-400' />
-                      </div>
-                    </div>
-
-                    {(foodAvg != null ||
-                      serviceAvg != null ||
-                      ambienceAvg != null) && (
-                      <div className='flex justify-center mt-6'>
-                        <div className='inline-flex rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden divide-x divide-gray-200'>
-                          {foodAvg != null && (
-                            <div className='flex flex-col items-center px-8 py-3.5'>
-                              <span className='text-[17px] font-bold text-gray-900'>
-                                {foodAvg}
-                              </span>
-                              <span className='text-[13px] text-gray-500 mt-0.5'>
-                                Food
-                              </span>
-                            </div>
-                          )}
-                          {serviceAvg != null && (
-                            <div className='flex flex-col items-center px-8 py-3.5'>
-                              <span className='text-[17px] font-bold text-gray-900'>
-                                {serviceAvg}
-                              </span>
-                              <span className='text-[13px] text-gray-500 mt-0.5'>
-                                Service
-                              </span>
-                            </div>
-                          )}
-                          {ambienceAvg != null && (
-                            <div className='flex flex-col items-center px-8 py-3.5'>
-                              <span className='text-[17px] font-bold text-gray-900'>
-                                {ambienceAvg}
-                              </span>
-                              <span className='text-[13px] text-gray-500 mt-0.5'>
-                                Ambience
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <p className='text-center text-[22px] font-bold text-gray-900 mt-7 mb-5'>
-                      {reviewSummary.count.toLocaleString()} reviews
-                    </p>
-
-                    <div className='flex gap-4 overflow-x-auto scrollbar-hide -mx-6 px-6 pb-1'>
-                      {reviews.map((review) => (
-                        <div
-                          key={review.id}
-                          className='shrink-0 w-72 bg-white border border-gray-100 rounded-2xl p-4'
-                        >
-                          <div className='flex items-center justify-between gap-2'>
-                            <div className='flex items-center gap-2.5'>
-                              <div className='w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0'>
-                                <span className='text-[14px] font-bold text-gray-600'>
-                                  {(review.username_snapshot ??
-                                    'A')[0].toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <p className='text-[14px] font-bold text-gray-900 leading-tight'>
-                                  {review.username_snapshot ?? 'Anonymous'}
-                                </p>
-                                <p className='text-[12px] text-gray-400'>
-                                  {timeAgo(review.created_at)}
-                                </p>
-                              </div>
-                            </div>
-                            <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-700 text-white text-[13px] font-bold shrink-0'>
-                              {review.rating}
-                              <Star className='w-3 h-3 fill-white' />
-                            </span>
-                          </div>
-
-                          {review.review_text && (
-                            <p className='mt-3 text-[13px] text-gray-600 leading-relaxed line-clamp-3'>
-                              {review.review_text}
-                            </p>
-                          )}
-                          {review.review_text &&
-                            review.review_text.length > 120 && (
-                              <button
-                                type='button'
-                                className='text-[13px] font-bold text-gray-800 mt-1'
-                              >
-                                Read more
-                              </button>
-                            )}
-
-                          {(review.liked_tags ?? []).length > 0 && (
-                            <div className='flex flex-wrap gap-1.5 mt-2.5'>
-                              <ThumbsUp className='w-3 h-3 text-green-500 shrink-0 mt-0.5' />
-                              {review.liked_tags!.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className='px-1.5 py-0.5 rounded-full bg-green-50 border border-green-100 text-[10px] font-medium text-green-700'
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              <section className='mt-8 border-t border-gray-100 pt-6'>
-                <h2 className='text-[18px] font-bold text-gray-900 mb-5'>
-                  About the restaurant
-                </h2>
-
-                <div className='space-y-4'>
-                  {restaurant.cost_for_two != null && (
-                    <div>
-                      <p className=' font-semibold text-gray-900 mb-0.5'>
-                        Cost
-                      </p>
-                      <p className='text-sm font-semibold text-gray-500'>
-                        ₨{restaurant.cost_for_two.toLocaleString()} for two
-                      </p>
-                    </div>
-                  )}
-                  {cuisineLabel && (
-                    <div>
-                      <p className=' font-semibold text-gray-900 mb-0.5'>
-                        Cuisines
-                      </p>
-                      <p className='text-sm font-semibold text-gray-500'>
-                        {cuisineLabel}
-                      </p>
-                    </div>
-                  )}
-                  {facilityTags.length > 0 && (
-                    <div>
-                      <p className=' font-semibold text-gray-900 mb-2.5'>
-                        Available facilities
-                      </p>
-                      <div className='grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4'>
-                        {facilityTags.map((f) => (
-                          <div
-                            key={f}
-                            className='flex items-center gap-1.5'
-                          >
-                            <span className='w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0' />
-                            <span className='text-sm text-gray-500 font-semibold'>
-                              {f}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {(restaurant.full_address ?? restaurant.area) && (
-                <section className='mt-8 border-t border-gray-200 pt-6 pb-8'>
-                  <h2 className='text-[18px] font-bold text-gray-900 mb-4'>
-                    Location
-                  </h2>
-
-                  <div className='border rounded-2xl'>
-                    <div className='w-full h-52 rounded-t-2xl overflow-hidden mb-4 bg-gray-100'>
-                      {restaurant.latitude && restaurant.longitude ? (
-                        <iframe
-                          title='Restaurant location'
-                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${restaurant.longitude - 0.006},${restaurant.latitude - 0.004},${restaurant.longitude + 0.006},${restaurant.latitude + 0.004}&layer=mapnik&marker=${restaurant.latitude},${restaurant.longitude}`}
-                          className='w-full h-full border-0'
-                        />
-                      ) : (
-                        <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
-                          <p className='text-[13px] text-gray-400'>
-                            Map not available
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className='px-4 pb-4'>
-                      <p className=' font-bold text-gray-900'>
-                        {restaurant.name}
-                      </p>
-                      <p className='text-sm text-gray-500 mt-0.5 leading-relaxed'>
-                        {restaurant.full_address ??
-                          `${restaurant.area}, ${restaurant.city}`}
-                      </p>
-                      <a
-                        href={
-                          restaurant.latitude && restaurant.longitude
-                            ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
-                            : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(restaurant.full_address ?? `${restaurant.area}, ${restaurant.city}`)}`
-                        }
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='inline-flex items-center gap-1 mt-2.5 text-[12px] font-semibold text-brand hover:underline'
-                      >
-                        <Navigation className='w-3.5 h-3.5' /> Get Directions
-                      </a>
-                      {restaurant.phone && (
-                        <p className='text-[12px] text-gray-600 mt-2'>
-                          ☎ {restaurant.phone}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
-              )}
+              <RestaurantReviewsSection
+                reviews={reviews}
+                reviewSummary={reviewSummary}
+              />
+              <RestaurantAboutSection
+                costForTwo={restaurant.cost_for_two}
+                cuisineLabel={cuisineLabel}
+                facilityTags={facilityTags}
+              />
+              <RestaurantLocationSection
+                name={restaurant.name}
+                fullAddress={restaurant.full_address}
+                area={restaurant.area}
+                city={restaurant.city}
+                latitude={restaurant.latitude}
+                longitude={restaurant.longitude}
+                phone={restaurant.phone}
+              />
             </div>
 
-            {/* Desktop sidebar — Book a table CTA */}
             {restaurant.booking_enabled && (
               <div className='hidden md:block sticky top-20 pt-4'>
                 <div className='rounded-2xl border border-gray-200 bg-white shadow-sm p-6 flex flex-col gap-4'>
                   <div>
-                    <h2 className='text-[17px] font-extrabold text-gray-900'>Book a table</h2>
-                    <p className='text-sm text-gray-500 mt-1'>Reserve your spot at {restaurant.name}</p>
+                    <h2 className='text-[17px] font-extrabold text-gray-900'>
+                      Book a table
+                    </h2>
+                    <p className='text-sm text-gray-500 mt-1'>
+                      Reserve your spot at {restaurant.name}
+                    </p>
                   </div>
                   <Link
                     href={`/dining/${restaurant.slug ?? restaurant.id}/book`}
@@ -710,7 +202,6 @@ export default async function RestaurantPage({
           </div>
         </div>
 
-        {/* Mobile sticky bottom CTA */}
         {restaurant.booking_enabled && (
           <div className='md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 z-20 shadow-lg'>
             <Link
