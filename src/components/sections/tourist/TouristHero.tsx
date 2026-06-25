@@ -29,8 +29,11 @@ export function TouristHero({ totalPlaces, freeEntryCount, searchQuery, setSearc
           Your Pass to the Island&rsquo;s Best
         </span>
 
-        <h1 className="text-[24px] md:text-[36px] font-bold text-white leading-tight drop-shadow-sm mt-3">
-          Explore Mauritius&rsquo;s best attractions
+        <h1 className="text-[26px] md:text-[40px] font-bold text-white leading-tight drop-shadow-sm mt-3">
+          Explore Mauritius&rsquo;s{' '}
+          <span className="text-purple-300 drop-shadow-sm">
+            best attractions
+          </span>
         </h1>
         <p className="text-white/85 text-[13px] md:text-[15px] mt-2 drop-shadow-sm">
           Find beaches, parks &amp; experiences, and book tickets — skip the queue with PassPrivé.
