@@ -122,11 +122,7 @@ export async function getRestaurantBySlugOrId(
         .from('restaurant_opening_hours')
         .select('day_of_week, open_time, close_time, is_closed')
         .eq('restaurant_id', restaurant.id)
-        .order('day_of_week')
-        .then(res => {
-          console.log('[restaurant_opening_hours] result:', res.data, 'error:', res.error)
-          return res
-        }),
+        .order('day_of_week'),
     ]);
 
   const offers: DiningOffer[] =

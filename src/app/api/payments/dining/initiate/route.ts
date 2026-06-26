@@ -62,7 +62,6 @@ export async function POST(request: Request) {
     bill_payload: billPayload,
   }
 
-  console.log('[dining/initiate] sending payload:', JSON.stringify(payload))
 
   let upstream: Response
   try {

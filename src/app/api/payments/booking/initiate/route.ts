@@ -35,7 +35,6 @@ export async function POST(request: Request) {
     },
   }
 
-  console.log('[booking/initiate] sending payload:', JSON.stringify(payload))
 
   let upstream: Response
   try {

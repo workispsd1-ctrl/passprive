@@ -126,7 +126,6 @@ export async function POST(request: Request) {
         const cashback = Math.round(paymentAmount * cashbackInfo.cashback_rate / 100 * 100) / 100
         if (cashback > 0) {
           await creditCashback(session.user.id, cashback, restaurantId)
-          console.log('[booking/finalize] credited cashback:', cashback, 'for restaurant:', restaurantId)
         }
       }
     } catch (err) {

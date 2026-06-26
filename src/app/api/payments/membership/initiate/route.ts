@@ -35,7 +35,6 @@ export async function POST(request: Request) {
     membership_payload: body.membership_payload,
   }
 
-  console.log('[membership/initiate] sending payload:', JSON.stringify(payload))
 
   let upstream: Response
   try {

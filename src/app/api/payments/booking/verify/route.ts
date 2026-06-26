@@ -43,7 +43,6 @@ export async function POST(request: Request) {
   }
 
   const data = await upstream.json() as Record<string, unknown>
-  console.log('[booking/verify] upstream response:', upstream.status, JSON.stringify(data))
 
   if (!upstream.ok) {
     console.error('[booking/verify] upstream error:', JSON.stringify(data))
@@ -77,7 +76,6 @@ export async function POST(request: Request) {
             const cashback = Math.round(paymentAmount * cashbackInfo.cashback_rate / 100 * 100) / 100
             if (cashback > 0) {
               await creditCashback(session.user.id, cashback, restaurantId)
-              console.log('[booking/verify] credited cashback:', cashback, 'for restaurant:', restaurantId)
             }
           }
         }

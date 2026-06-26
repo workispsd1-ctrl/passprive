@@ -43,8 +43,6 @@ export async function POST(request: Request) {
   }
 
   const verifyData = await verifyUpstream.json() as Record<string, unknown>
-  console.log('[dining/verify] upstream response:', verifyUpstream.status, JSON.stringify(verifyData))
-
   if (!verifyUpstream.ok) {
     console.error('[dining/verify] upstream error:', JSON.stringify(verifyData))
     return NextResponse.json(
@@ -75,7 +73,6 @@ export async function POST(request: Request) {
       signal: AbortSignal.timeout(15000),
     })
     const finalizeData = await finalizeRes.json() as Record<string, unknown>
-    console.log('[dining/finalize-bill] upstream response:', finalizeRes.status, JSON.stringify(finalizeData))
 
     if (finalizeRes.ok) {
       const bp = finalizeData?.bill_payment as Record<string, unknown> | undefined
@@ -98,7 +95,6 @@ export async function POST(request: Request) {
         if (amount > 0) {
           await creditCashback(session.user.id, amount, restaurantId)
           cashback_credited = amount
-          console.log('[dining/verify] fallback credited cashback:', amount, 'for restaurant:', restaurantId)
         }
       }
     } catch (err) {
