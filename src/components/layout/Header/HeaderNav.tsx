@@ -26,14 +26,17 @@ export function HeaderNav() {
   const pathname = usePathname()
 
   return (
-    <nav aria-label="Main navigation" className="flex-1 flex justify-center self-stretch">
-      <ul className="flex items-stretch w-full md:w-auto">
+    <nav
+      aria-label="Main navigation"
+      className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:overflow-visible md:flex-1 md:flex md:justify-center md:self-stretch"
+    >
+      <ul className="flex items-stretch min-w-max md:min-w-0 md:w-auto">
         {NAV_ITEMS.map(({ label, href, icon, lucideIcon: LucideIcon }) => {
           const isActive =
             href === '/' ? pathname === '/' : pathname.startsWith(href)
 
           return (
-            <li key={href} className="flex flex-1 md:flex-none">
+            <li key={href} className="flex md:flex-none">
               <Link
                 href={href}
                 className="flex items-center justify-center transition-colors w-full md:w-auto"

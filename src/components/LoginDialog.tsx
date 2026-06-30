@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight, Loader2, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Dialog,
@@ -121,16 +121,42 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-sm p-0 overflow-hidden">
-        <div className="px-6 pt-6 pb-6">
-          <DialogHeader className="mb-5 text-center items-center">
-            <DialogTitle className="text-xl font-bold">
-              {mode === 'signin' ? 'Welcome back' : 'Create account'}
+        {/* Gradient welcome panel */}
+        <div className="relative bg-linear-to-br from-indigo-600 via-violet-600 to-purple-600 px-6 pt-8 pb-10 text-center">
+          <button
+            type="button"
+            onClick={() => handleOpenChange(false)}
+            className="absolute top-4 right-4 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
+          >
+            Skip
+          </button>
+
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
+            <KeyRound className="w-7 h-7 text-white" />
+          </div>
+
+          <DialogHeader className="mt-4 text-center items-center">
+            <DialogTitle className="text-xl font-bold text-white">
+              {mode === 'signin' ? 'Welcome back' : 'Join PassPrivé'}
             </DialogTitle>
-            <DialogDescription>
-              {mode === 'signin' ? 'Sign in to Passprive' : 'Get started with Passprive'}
+            <DialogDescription className="text-white/75">
+              {mode === 'signin'
+                ? 'Sign in to unlock exclusive dining, shopping & rewards.'
+                : 'Create an account to unlock exclusive dining, shopping & rewards.'}
             </DialogDescription>
           </DialogHeader>
 
+          <div className="flex items-center justify-center gap-1.5 mt-6">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className={i === 0 ? 'w-5 h-1.5 rounded-full bg-white' : 'w-1.5 h-1.5 rounded-full bg-white/40'}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="px-6 pt-6 pb-6">
           {/* Tabs */}
           <div className="flex rounded-lg bg-muted p-0.5 mb-5">
             {(['signin', 'signup'] as Mode[]).map((m) => (
