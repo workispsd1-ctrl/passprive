@@ -96,6 +96,15 @@ export default async function RestaurantPage({
   const facilityTags = tags
     .filter((t) => t.tag_type === 'facility')
     .map((t) => t.tag_value);
+  const highlightTags = tags
+    .filter((t) => t.tag_type === 'highlight')
+    .map((t) => t.tag_value);
+  const worthVisitTags = tags
+    .filter((t) => t.tag_type === 'worth_visit')
+    .map((t) => t.tag_value);
+  const moodTags = tags
+    .filter((t) => t.tag_type === 'mood')
+    .map((t) => t.tag_value);
   const cuisineLabel = cuisineTags.join(', ');
   const fullMenuImages: string[] =
     menuImages.length > 0
@@ -149,6 +158,8 @@ export default async function RestaurantPage({
                 description={restaurant.description}
                 cuisineLabel={cuisineLabel}
                 facilityTags={facilityTags}
+                highlightTags={highlightTags}
+                worthVisitTags={worthVisitTags}
               />
               <RestaurantOffersSection
                 mainOffers={mainOffers}
@@ -167,6 +178,9 @@ export default async function RestaurantPage({
                 costForTwo={restaurant.cost_for_two}
                 cuisineLabel={cuisineLabel}
                 facilityTags={facilityTags}
+                highlightTags={highlightTags}
+                worthVisitTags={worthVisitTags}
+                moodTags={moodTags}
               />
               <RestaurantLocationSection
                 name={restaurant.name}
