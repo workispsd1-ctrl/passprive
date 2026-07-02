@@ -178,9 +178,6 @@ export default async function RestaurantPage({
                 costForTwo={restaurant.cost_for_two}
                 cuisineLabel={cuisineLabel}
                 facilityTags={facilityTags}
-                highlightTags={highlightTags}
-                worthVisitTags={worthVisitTags}
-                moodTags={moodTags}
               />
               <RestaurantLocationSection
                 name={restaurant.name}
