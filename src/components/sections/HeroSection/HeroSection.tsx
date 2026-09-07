@@ -1,7 +1,11 @@
 import Image from 'next/image';
 import { HeroSearchBar } from './HeroSearchBar';
+import { BannerCarousel } from '@/components/shared/BannerCarousel';
+import { getWebsiteBanners } from '@/lib/services/websiteBanners';
 
-export function HeroSection() {
+export async function HeroSection() {
+  const banners = await getWebsiteBanners('dining');
+
   return (
     <section
       aria-labelledby='hero-heading'
@@ -20,13 +24,17 @@ export function HeroSection() {
       </h1>
 
       <div className='relative mt-4 w-full overflow-hidden rounded-2xl min-h-[30vh] sm:min-h-[55vh] md:min-h-[44vh]'>
-        <Image
-          src='/hero-banner.png'
-          alt='Dining Experience'
-          fill
-          priority
-          className='object-cover object-center'
-        />
+        {banners.length > 0 ? (
+          <BannerCarousel banners={banners} fill />
+        ) : (
+          <Image
+            src='/hero-banner.png'
+            alt='Dining Experience'
+            fill
+            priority
+            className='object-cover object-center'
+          />
+        )}
 
         <div className='absolute left-1/2 bottom-16 -translate-x-1/2 z-10 w-full max-w-xl px-4'>
           <HeroSearchBar />

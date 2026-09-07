@@ -2,11 +2,17 @@ import { NewKickInStores } from '@/components/sections/home/NewKickInStores';
 import { NewlyFeaturedSection } from '@/components/sections/home/NewlyFeaturedSection';
 import { NowTrendingSection } from '@/components/sections/home/NowTrendingSection';
 import { StoresNearYouSection } from '@/components/sections/home/StoresNearYouSection';
-import { NewlyFeaturedTouristSection } from '@/components/sections/home/NewlyFeaturedTouristSection';
-import { TrendingTouristSection } from '@/components/sections/home/TrendingTouristSection';
+import { StampsGiftPromo } from '@/components/sections/home/StampsGiftPromo';
+import { OffersForYouSection } from '@/components/sections/home/OffersForYouSection';
+import { SalonVisitSection } from '@/components/sections/home/SalonVisitSection';
+import { HotOnPassprive } from '@/components/sections/home/HotOnPassprive';
 import { getActiveRestaurants, getNewRestaurants } from '@/lib/services/dining';
-import { getActiveStores, getNewKickInStores } from '@/lib/services/stores';
-import { getActiveTouristPlaces, getNewTouristPlaces } from '@/lib/services/touristPlaces';
+import {
+  getActiveStores,
+  getEditorialCollections,
+  getNewKickInStores,
+} from '@/lib/services/stores';
+import { getOffersForYou } from '@/lib/services/offersForYou';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -25,29 +31,28 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [stores, newStores, featured, restaurants, touristPlaces, newTouristPlaces] = await Promise.all([
-    getActiveStores(),
-    getNewKickInStores({ limit: 6 }),
-    getNewRestaurants(8),
-    getActiveRestaurants(6),
-    getActiveTouristPlaces(6),
-    getNewTouristPlaces(8),
-  ]);
+  const [newStores, featured, restaurants, stores, offers, collections] =
+    await Promise.all([
+      getNewKickInStores({ limit: 8 }),
+      getNewRestaurants(8),
+      getActiveRestaurants(50),
+      getActiveStores(),
+      getOffersForYou(),
+      getEditorialCollections(),
+    ]);
 
   return (
-    <main className='min-h-screen pb-10'>
-      {featured.length > 0 && <NewlyFeaturedSection restaurants={featured} />}
-      {newTouristPlaces.length > 0 && <NewlyFeaturedTouristSection places={newTouristPlaces} />}
-      {/* <PopularChainsSection stores={stores} /> */}
+    <main className='min-h-screen bg-white pb-10'>
+      {featured.length > 0 && (
+        <NewlyFeaturedSection restaurants={featured} stores={stores} />
+      )}
+      <StampsGiftPromo />
+      <OffersForYouSection cards={offers} />
+      {restaurants.length > 0 && <NowTrendingSection restaurants={restaurants} />}
       {newStores.length > 0 && <NewKickInStores stores={newStores} />}
-      {/* <OffersForYouSection /> */}
+      <SalonVisitSection stores={stores} />
       {stores.length > 0 && <StoresNearYouSection stores={stores} />}
-      {restaurants.length > 0 && (
-        <NowTrendingSection restaurants={restaurants} />
-      )}
-      {touristPlaces.length > 0 && (
-        <TrendingTouristSection places={touristPlaces} />
-      )}
+      <HotOnPassprive collections={collections} />
     </main>
   );
 }

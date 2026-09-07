@@ -7,12 +7,15 @@ import { useLocation } from '@/lib/context/LocationContext'
 
 interface Props {
   variant?: 'desktop' | 'mobile'
+  /** 'light' = rendered on a dark/orange background (white text) */
+  theme?: 'default' | 'light'
 }
 
-export function LocationButton({ variant = 'desktop' }: Props) {
+export function LocationButton({ variant = 'desktop', theme = 'default' }: Props) {
   const { location, setLocationByCity, detectFromGPS } = useLocation()
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  const light = theme === 'light'
   const cityLabel = location.city || 'Detecting…'
   const stateLabel = location.state || ''
 
@@ -25,10 +28,13 @@ export function LocationButton({ variant = 'desktop' }: Props) {
           onClick={() => setDialogOpen(true)}
           className="flex items-center gap-1.5"
         >
-          <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" aria-hidden="true" />
+          <MapPin
+            className={`w-3.5 h-3.5 shrink-0 ${light ? 'text-white' : 'text-gray-400'}`}
+            aria-hidden="true"
+          />
           <div className="flex flex-col items-start leading-tight">
-            <span className="text-[13px] font-bold text-gray-900">{cityLabel}</span>
-            {stateLabel && <span className="text-[11px] text-gray-400">{stateLabel}</span>}
+            <span className={`text-[13px] font-bold ${light ? 'text-white' : 'text-gray-900'}`}>{cityLabel}</span>
+            {stateLabel && <span className={`text-[11px] ${light ? 'text-white/80' : 'text-gray-400'}`}>{stateLabel}</span>}
           </div>
         </button>
         <LocationPickerDialog
@@ -48,12 +54,33 @@ export function LocationButton({ variant = 'desktop' }: Props) {
         type="button"
         aria-label="Change location"
         onClick={() => setDialogOpen(true)}
-        className="flex items-center gap-1.5 hover:opacity-80 transition-opacity shrink-0"
+        className={`flex shrink-0 items-center transition-opacity hover:opacity-80 ${light ? 'gap-2 2xl:gap-2.75' : 'gap-1.5'}`}
       >
-        <MapPin className="w-3.5 h-3.5 text-brand shrink-0" aria-hidden="true" />
+        <MapPin
+          className={`shrink-0 ${light ? 'h-7 w-7 text-white 2xl:h-10 2xl:w-10' : 'h-3.5 w-3.5 text-brand'}`}
+          aria-hidden="true"
+        />
         <div className="flex flex-col items-start leading-tight">
-          <span className="text-[13px] font-bold text-gray-900">{cityLabel}{location.city ? ',' : ''}</span>
-          {stateLabel && <span className="text-[11px] text-gray-400">{stateLabel}</span>}
+          <span
+            className={
+              light
+                ? 'font-(family-name:--font-dm-sans) text-[15px] font-black leading-5 text-white 2xl:text-[20px]'
+                : 'text-[13px] font-bold text-gray-900'
+            }
+          >
+            {cityLabel}{!light && location.city ? ',' : ''}
+          </span>
+          {stateLabel && (
+            <span
+              className={
+                light
+                  ? 'font-(family-name:--font-dm-sans) text-[13px] font-normal leading-5 text-white 2xl:text-[16px]'
+                  : 'text-[11px] text-gray-400'
+              }
+            >
+              {stateLabel}
+            </span>
+          )}
         </div>
       </button>
       <LocationPickerDialog

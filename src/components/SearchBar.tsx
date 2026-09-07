@@ -17,7 +17,7 @@ type Result = {
 };
 
 interface Props {
-  variant?: 'mobile' | 'desktop-inline';
+  variant?: 'mobile' | 'desktop-inline' | 'hero';
   onClose?: () => void;
 }
 
@@ -195,6 +195,69 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
         {showEmpty && (
           <div className='fixed left-0 right-0 top-16 z-40 bg-white border-t border-gray-100 shadow-lg px-6 py-6 text-center'>
             <p className='text-[13px] text-gray-400'>
+              No results for &quot;{query}&quot;
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (variant === 'hero') {
+    return (
+      <div ref={containerRef} className='relative w-full'>
+        <div className='flex h-12 items-center gap-3 rounded-full bg-white px-5 shadow-[0px_4px_4px_0px_rgba(223,94,43,1)] 2xl:h-16 2xl:px-6'>
+          <Search className='h-5 w-5 shrink-0 text-[#FF6A19] 2xl:h-7 2xl:w-7' aria-hidden='true' />
+          <span className='h-6 w-px shrink-0 bg-[#E4E4E4] 2xl:h-7' aria-hidden='true' />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder={'Search for “Sneakers” around you'}
+            className='min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) text-[15px] leading-5 tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C] 2xl:text-[20px]'
+            autoComplete='off'
+            aria-label='Search'
+          />
+          {query && (
+            <button
+              type='button'
+              aria-label='Clear search'
+              onClick={clear}
+              className='shrink-0'
+            >
+              <X className='h-4 w-4 text-gray-400' />
+            </button>
+          )}
+        </div>
+
+        {showResults && (
+          <div className='absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-y-auto overscroll-contain rounded-2xl border border-gray-100 bg-white shadow-lg'>
+            {stores.length > 0 && (
+              <>
+                <div className='px-4 pt-2.5 pb-1'>
+                  <span className='text-[10px] font-semibold uppercase tracking-wide text-gray-400'>
+                    Stores
+                  </span>
+                </div>
+                <ul>{stores.map(renderItem)}</ul>
+              </>
+            )}
+            {restaurants.length > 0 && (
+              <>
+                <div className='border-t border-gray-50 px-4 pt-2.5 pb-1'>
+                  <span className='text-[10px] font-semibold uppercase tracking-wide text-gray-400'>
+                    Restaurants
+                  </span>
+                </div>
+                <ul>{restaurants.map(renderItem)}</ul>
+              </>
+            )}
+          </div>
+        )}
+        {showEmpty && (
+          <div className='absolute left-0 right-0 top-full z-50 mt-2 rounded-2xl border border-gray-100 bg-white px-4 py-5 text-center shadow-lg'>
+            <p className='text-[12px] text-gray-400'>
               No results for &quot;{query}&quot;
             </p>
           </div>

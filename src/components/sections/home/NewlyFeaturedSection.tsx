@@ -1,187 +1,134 @@
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { useMemo, useRef, useState, useEffect } from 'react';
-import { Bookmark, ChevronLeft, ChevronRight, Award, CreditCard } from 'lucide-react';
+import { useMemo } from 'react';
 import { useLocation } from '@/lib/context/LocationContext';
+import { formatDistanceKm, haversineKm, sortByMerchant } from '@/lib/utils';
+import { showsCashbackBadge } from '@/lib/cashback';
+import { HScroll } from './HScroll';
+import { CARD_FRAME_COLORS, MerchantCard } from './MerchantCard';
 import type { FeaturedRestaurant } from '@/lib/types/dining';
+import type { StoreRow } from '@/lib/types/stores';
 
-const SCROLL_BY = 300
+const MAX_CARDS = 10;
 
-function compareCity(
-  aCity: string | null,
-  bCity: string | null,
-  userCity: string,
-): number {
-  const aMatches = (aCity ?? '').trim().toLowerCase() === userCity;
-  const bMatches = (bCity ?? '').trim().toLowerCase() === userCity;
-  if (aMatches !== bMatches) return Number(bMatches) - Number(aMatches);
-  return 0;
+type FeedCard = {
+  key: string;
+  href: string;
+  image: string | null;
+  name: string;
+  address: string;
+  tagline?: string;
+  offerLabel?: string;
+  merchant_type: 'preferred' | 'verified' | null;
+  cashback: boolean;
+  city: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+
+function restaurantToCard(r: FeaturedRestaurant): FeedCard {
+  return {
+    key: `r-${r.id}`,
+    href: `/dining/${r.slug ?? r.id}`,
+    image: r.cover_image,
+    name: r.name,
+    address:
+      r.full_address ?? [r.area, r.city].filter(Boolean).join(', '),
+    tagline: r.description ?? undefined,
+    offerLabel: r.restaurant_offers?.[0]?.badge_text ?? undefined,
+    merchant_type: r.merchant_type,
+    cashback: showsCashbackBadge(r),
+    city: r.city,
+    lat: r.latitude,
+    lng: r.longitude,
+  };
 }
 
+function storeToCard(s: StoreRow): FeedCard {
+  return {
+    key: `s-${s.id}`,
+    href: `/stores/${s.slug}`,
+    image: s.cover_image ?? s.logo_url,
+    name: s.name,
+    address: [s.location_name, s.city].filter(Boolean).join(', '),
+    tagline: s.description ?? undefined,
+    offerLabel: s.store_offers?.[0]?.badge_text ?? undefined,
+    merchant_type: s.merchant_type,
+    cashback: showsCashbackBadge(s),
+    city: s.city,
+    lat: s.lat,
+    lng: s.lng,
+  };
+}
+
+/**
+ * "In the limelight" — mirrors the app's `loadLimelight`
+ * (`components/Home/InTheLimelight.jsx`): nearby restaurants and stores are
+ * interleaved, then stably re-sorted by merchant tier (preferred → verified →
+ * rest) and capped. Radius scoping is skipped — SSR has no user GPS — so this
+ * falls back to a same-city bias. Distance is computed on the client from the
+ * LocationContext coords (GPS or the selected city's centroid).
+ */
 export function NewlyFeaturedSection({
   restaurants,
+  stores = [],
 }: {
   restaurants: FeaturedRestaurant[];
+  stores?: StoreRow[];
 }) {
   const { location } = useLocation();
   const userCity = location.city.trim().toLowerCase();
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(true)
+  const { lat: userLat, lng: userLng } = location;
 
-  function updateArrows() {
-    const el = scrollRef.current
-    if (!el) return
-    setCanScrollLeft(el.scrollLeft > 0)
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
-  }
+  const cards = useMemo(() => {
+    const r = restaurants.map(restaurantToCard);
+    const s = stores.map(storeToCard);
 
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    updateArrows()
-    el.addEventListener('scroll', updateArrows, { passive: true })
-    return () => el.removeEventListener('scroll', updateArrows)
-  }, [])
+    // interleave restaurant, store, restaurant, store, …
+    const mixed: FeedCard[] = [];
+    for (let i = 0; i < Math.max(r.length, s.length); i++) {
+      if (i < r.length) mixed.push(r[i]);
+      if (i < s.length) mixed.push(s[i]);
+    }
 
-  function scrollLeft() {
-    scrollRef.current?.scrollBy({ left: -SCROLL_BY, behavior: 'smooth' })
-  }
+    // same-city first (stable), then merchant tier (stable)
+    const cityBias = [...mixed].sort((a, b) => {
+      const am = (a.city ?? '').trim().toLowerCase() === userCity ? 0 : 1;
+      const bm = (b.city ?? '').trim().toLowerCase() === userCity ? 0 : 1;
+      return am - bm;
+    });
 
-  function scrollRight() {
-    scrollRef.current?.scrollBy({ left: SCROLL_BY, behavior: 'smooth' })
-  }
+    return sortByMerchant(cityBias).slice(0, MAX_CARDS);
+  }, [restaurants, stores, userCity]);
 
-  const sortedRestaurants = useMemo(() => {
-    return restaurants
-      .map((restaurant, index) => ({ restaurant, index }))
-      .sort((a, b) => {
-        const cityCompare = compareCity(
-          a.restaurant.city,
-          b.restaurant.city,
-          userCity,
-        );
-        if (cityCompare !== 0) return cityCompare;
-
-        if (a.restaurant.is_advertised !== b.restaurant.is_advertised) {
-          return (
-            Number(b.restaurant.is_advertised) -
-            Number(a.restaurant.is_advertised)
-          );
-        }
-
-        if (
-          (a.restaurant.ad_priority ?? Number.POSITIVE_INFINITY) !==
-          (b.restaurant.ad_priority ?? Number.POSITIVE_INFINITY)
-        ) {
-          return (
-            (a.restaurant.ad_priority ?? Number.POSITIVE_INFINITY) -
-            (b.restaurant.ad_priority ?? Number.POSITIVE_INFINITY)
-          );
-        }
-
-        return a.index - b.index;
-      })
-      .map((item) => item.restaurant);
-  }, [restaurants, userCity]);
-
-  if (!sortedRestaurants.length) return null;
+  if (!cards.length) return null;
 
   return (
-    <section className='bg-white pt-5 pb-2 md:pt-8'>
-      <div className='flex items-center justify-between px-4 md:px-6 mb-4'>
-        <h2 className='text-[17px] md:text-[19px] font-bold text-gray-900'>
-          Newly featured for you
-        </h2>
-        <div className='flex items-center gap-1.5'>
-          <button
-            type='button'
-            onClick={scrollLeft}
-            disabled={!canScrollLeft}
-            aria-label='Scroll left'
-            className='w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
-          >
-            <ChevronLeft className='w-4 h-4' />
-          </button>
-          <button
-            type='button'
-            onClick={scrollRight}
-            disabled={!canScrollRight}
-            aria-label='Scroll right'
-            className='w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
-          >
-            <ChevronRight className='w-4 h-4' />
-          </button>
-        </div>
-      </div>
+    <HScroll title="In the limelight">
+      {cards.map((card, i) => {
+        const dist =
+          userLat != null && userLng != null && card.lat != null && card.lng != null
+            ? haversineKm(userLat, userLng, card.lat, card.lng)
+            : null;
+        const meta = [formatDistanceKm(dist), card.address]
+          .filter(Boolean)
+          .join(' • ');
 
-      <div ref={scrollRef} className='flex gap-3 overflow-x-auto scrollbar-hide px-4 md:px-6 pb-3'>
-        {sortedRestaurants.map((restaurant) => {
-          const offer = restaurant.restaurant_offers?.[0];
-          return (
-            <Link
-              key={restaurant.id}
-              href={`/dining/${restaurant.slug ?? restaurant.id}`}
-              className='relative shrink-0 w-[72vw] max-w-70 aspect-5/4 rounded-2xl overflow-hidden block bg-gray-900'
-            >
-              {restaurant.cover_image ? (
-                <Image
-                  src={restaurant.cover_image}
-                  alt={restaurant.name}
-                  fill
-                  className='object-cover'
-                  sizes='280px'
-                />
-              ) : (
-                <div className='absolute inset-0 bg-linear-to-br from-orange-900 to-gray-900' />
-              )}
-              <div className='absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-black/15' />
-
-              {restaurant.merchant_type === 'preferred' ? (
-                <span className='absolute top-2.5 left-2.5 flex items-center gap-1 bg-violet-600/90 text-white text-[9px] font-bold px-2 py-1 rounded-lg leading-none'>
-                  <Award className='w-2.5 h-2.5' /> Preferred Partner
-                </span>
-              ) : restaurant.merchant_type === 'verified' ? (
-                <span className='absolute top-2.5 left-2.5 flex items-center gap-1 bg-emerald-600/90 text-white text-[9px] font-bold px-2 py-1 rounded-lg leading-none'>
-                  <CreditCard className='w-2.5 h-2.5' /> Verified Pay
-                </span>
-              ) : offer?.badge_text ? (
-                <span className='absolute top-2.5 left-2.5 bg-green-500/90 text-white text-[10px] font-bold px-2 py-1 rounded-lg leading-none'>
-                  {offer.badge_text}
-                </span>
-              ) : null}
-
-              <button
-                type='button'
-                aria-label='Save'
-                className='absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/30 text-white/80 hover:text-white'
-              >
-                <Bookmark className='w-3.5 h-3.5' />
-              </button>
-
-              <div className='absolute bottom-0 left-0 right-0 p-3'>
-                <p className='text-white text-[14px] font-bold leading-tight truncate'>
-                  {restaurant.name}
-                </p>
-                {(restaurant.area || restaurant.city) && (
-                  <p className='text-white/60 text-[11px] mt-0.5 truncate'>
-                    {[restaurant.area, restaurant.city]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                )}
-                {restaurant.cost_for_two && (
-                  <p className='text-white/45 text-[10px] mt-0.5'>
-                    ₨{restaurant.cost_for_two} for two
-                  </p>
-                )}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
+        return (
+          <MerchantCard
+            key={card.key}
+            href={card.href}
+            image={card.image}
+            name={card.name}
+            meta={meta || undefined}
+            tagline={card.tagline}
+            offerLabel={card.offerLabel}
+            frameColor={CARD_FRAME_COLORS[i % CARD_FRAME_COLORS.length]}
+            // App parity: getEntityCashbackBadge — canPayBill && isPaidMerchant
+            cashback={card.cashback}
+          />
+        );
+      })}
+    </HScroll>
   );
 }

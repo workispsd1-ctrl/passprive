@@ -1,5 +1,7 @@
 import { StoresPageClient } from '@/components/sections/stores/StoresPageClient'
+import { BannerCarousel } from '@/components/shared/BannerCarousel'
 import { getActiveStores, getStoreMoodCategories, getHomeSections } from '@/lib/services/stores'
+import { getWebsiteBanners } from '@/lib/services/websiteBanners'
 
 import type { Metadata } from 'next'
 
@@ -18,14 +20,20 @@ export const metadata: Metadata = {
 }
 
 export default async function Stores() {
-  const [stores, moodCategories, homeSections] = await Promise.all([
+  const [stores, moodCategories, homeSections, banners] = await Promise.all([
     getActiveStores(),
     getStoreMoodCategories(),
     getHomeSections(),
+    getWebsiteBanners('store'),
   ])
 
   return (
     <main className="min-h-screen pb-20 md:pb-0">
+      {banners.length > 0 && (
+        <div className="mx-auto max-w-350 px-4 pt-4 md:px-12">
+          <BannerCarousel banners={banners} className="aspect-[16/9] md:aspect-[21/9]" />
+        </div>
+      )}
       <StoresPageClient
         moodCategories={moodCategories}
         stores={stores}

@@ -1,79 +1,55 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Bookmark } from 'lucide-react'
+import { HScroll } from './HScroll'
 import type { StoreRow } from '@/lib/types/stores'
 
 export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
   if (!stores.length) return null
-  const items = stores.slice(0, 6)
+  const items = stores.slice(0, 10)
 
   return (
-    <section className="bg-white py-5 md:py-8">
-      <h2 className="text-[17px] md:text-[19px] font-bold text-gray-900 px-4 md:px-6 mb-4">
-        Stores near you
-      </h2>
-      <div className="mt-5 flex gap-4 overflow-x-auto scrollbar-hide px-4 md:px-8 pb-2 md:grid md:grid-cols-3 md:overflow-visible">
-        {items.map(store => {
-          const offer = store.store_offers?.[0]
-          return (
-            <Link
-              key={store.id}
-              href={`/stores/${store.slug}`}
-              className="relative shrink-0 w-[85vw] max-w-96 md:w-auto aspect-4/3 rounded-2xl overflow-hidden block bg-gray-900"
-            >
-              {store.cover_image ? (
-                <Image
-                  src={store.cover_image}
-                  alt={store.name}
-                  fill
-                  className="object-cover opacity-80"
-                  sizes="(max-width: 768px) 85vw, 50vw"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-linear-to-br from-purple-900 to-gray-900" />
-              )}
-              <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/10 to-transparent" />
+    <HScroll title="Shop this weekend">
+      {items.map((store) => (
+        <Link
+          key={store.id}
+          href={`/stores/${store.slug}`}
+          className="relative block aspect-420/548 w-80 shrink-0 overflow-hidden rounded-[20px] bg-gray-900 2xl:w-105"
+        >
+          {store.cover_image ? (
+            <Image
+              src={store.cover_image}
+              alt={store.name}
+              fill
+              className="object-cover"
+              sizes="(min-width: 1536px) 420px, 320px"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-linear-to-br from-gray-700 to-gray-900" />
+          )}
+          <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
 
-              <div className="absolute top-2.5 left-2.5 flex flex-col gap-1">
-                <span className="bg-brand/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                  For you
-                </span>
-                {offer?.badge_text && (
-                  <span className="bg-amber-500/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                    {offer.badge_text}
-                  </span>
-                )}
-              </div>
+          {store.logo_url && (
+            <span className="absolute right-7 top-7 h-15 w-15 overflow-hidden rounded-xl shadow-md 2xl:right-9 2xl:top-9 2xl:h-20 2xl:w-20">
+              <Image
+                src={store.logo_url}
+                alt={store.name}
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            </span>
+          )}
 
-              <button
-                type="button"
-                aria-label="Save"
-                className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-black/30 text-white/80 hover:text-white"
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-              </button>
+          <p className="absolute left-4 top-4 text-[15px] font-bold text-white drop-shadow">
+            {store.name}
+          </p>
 
-              <div className="absolute bottom-0 left-0 right-0 p-2.5 flex items-end gap-2">
-                <div className="relative w-8 h-8 rounded-lg bg-white shrink-0 overflow-hidden shadow">
-                  {store.logo_url ? (
-                    <Image src={store.logo_url} alt="" fill className="object-contain p-0.5" sizes="32px" />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-[9px] font-bold text-gray-500">{store.name[0]}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-[11px] font-bold leading-tight truncate">{store.name}</p>
-                  <p className="text-white/55 text-[10px] truncate mt-0.5">
-                    {store.location_name ?? store.city ?? ''}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          )
-        })}
-      </div>
-    </section>
+          {/* DM Sans 500 / 19.6 / 28 — #2247FF on white, radius 19.6 */}
+          <span className="absolute bottom-5 left-1/2 flex h-8 w-33 -translate-x-1/2 items-center justify-center rounded-full bg-white font-(family-name:--font-dm-sans) text-[15px] font-medium leading-7 text-[#2247FF] 2xl:h-10 2xl:w-43 2xl:text-[19.6px]">
+            Explore Now
+          </span>
+        </Link>
+      ))}
+    </HScroll>
   )
 }

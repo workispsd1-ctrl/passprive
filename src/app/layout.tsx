@@ -1,11 +1,24 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Sans, Playfair_Display } from "next/font/google";
 import { PaymentRecovery } from "@/components/PaymentRecovery";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-plus-jakarta",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -76,7 +89,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${plusJakarta.variable} h-full antialiased`}>
+    <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable} ${playfair.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <PaymentRecovery />
         {children}

@@ -33,7 +33,7 @@ export async function getActiveStores(): Promise<StoreRow[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, store_offers(id, title, badge_text, discount_value, offer_type)')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, store_offers(id, title, badge_text, discount_value, offer_type)')
     .eq('is_active', true)
     .order('sort_order')
     .order('name')
@@ -101,16 +101,16 @@ export async function getEditorialCollections(
   entityType?: 'STORE' | 'RESTAURANT' | 'BOTH' | ('STORE' | 'RESTAURANT' | 'BOTH')[]
 ): Promise<EditorialCollection[]> {
   const supabase = await createClient()
-  const now = new Date().toISOString()
 
+  // Matches the app's fetchEditorialCollections
+  // (components/Home/WhatsHotOnPassPrive.jsx): active rows, featured first.
   let query = supabase
     .from('editorial_collections')
     .select('id, slug, title, subtitle, description, cover_image_url, badge_text, source_name, entity_type, city, area, sort_order, is_featured, save_count')
     .eq('is_active', true)
-    .lte('starts_at', now)
-    .gte('ends_at', now)
-    .order('sort_order')
-    .order('created_at')
+    .order('is_featured', { ascending: false })
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
 
   if (entityType) {
     const types = Array.isArray(entityType) ? entityType : [entityType]

@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { Heart } from 'lucide-react'
 import LoginDialog from '@/components/LoginDialog'
 import { ProfileDrawer } from '@/components/ProfileDrawer'
 
 interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
-  onSearchOpen?: () => void
-  searchActive?: boolean
+  /** 'light' = rendered on a dark/orange background (white icons) */
+  theme?: 'default' | 'light'
 }
 
 function getInitial(name?: string | null, email?: string) {
@@ -16,38 +18,48 @@ function getInitial(name?: string | null, email?: string) {
   return 'U'
 }
 
-export function HeaderActions({ user, onSearchOpen, searchActive }: Props) {
+// 48px circle: faint orange fill + 0.75px orange→cream gradient border
+const ghostCircle: React.CSSProperties = {
+  border: '0.75px solid transparent',
+  backgroundImage:
+    'linear-gradient(rgba(255,106,25,0.04), rgba(255,106,25,0.04)), linear-gradient(151.63deg, #FF6A19 -48.58%, #F7F0EC 82.47%)',
+  backgroundOrigin: 'border-box',
+  backgroundClip: 'padding-box, border-box',
+  WebkitBackgroundClip: 'padding-box, border-box',
+}
+
+export function HeaderActions({ user, theme = 'default' }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const light = theme === 'light'
 
   return (
     <>
-      <div className="flex items-center gap-1 shrink-0">
-        {!searchActive && (
-          <button
-            type="button"
-            aria-label="Search"
-            onClick={onSearchOpen}
-            className="hidden md:flex p-2 rounded-full hover:bg-gray-50 transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <defs>
-                <linearGradient id="search-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#a855f7" />
-                  <stop offset="100%" stopColor="#ec4899" />
-                </linearGradient>
-              </defs>
-              <circle cx="11" cy="11" r="8" stroke="url(#search-grad)" />
-              <path d="m21 21-4.35-4.35" stroke="url(#search-grad)" />
-            </svg>
-          </button>
-        )}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* TODO(design): point at the real wishlist route once it exists */}
+        <Link
+          href="#"
+          aria-label="Wishlist"
+          className={
+            light
+              ? 'flex h-10 w-10 items-center justify-center rounded-full text-white transition-opacity hover:opacity-90 2xl:h-12 2xl:w-12'
+              : 'flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50'
+          }
+          style={light ? ghostCircle : undefined}
+        >
+          <Heart className={light ? 'h-5.5 w-5.5 2xl:h-7.5 2xl:w-7.5' : 'h-4.5 w-4.5'} />
+        </Link>
 
         {user ? (
           <button
             type="button"
             aria-label="Open profile"
             onClick={() => setDrawerOpen(true)}
-            className="flex items-center justify-center w-8 h-8 rounded-full bg-brand text-white text-[11px] font-bold tracking-wide hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+            className={
+              light
+                ? 'flex h-10 w-10 items-center justify-center rounded-full text-[13px] font-bold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 2xl:h-12 2xl:w-12 2xl:text-[14px]'
+                : 'flex h-9 w-9 items-center justify-center rounded-full bg-brand text-[12px] font-bold tracking-wide text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50'
+            }
+            style={light ? ghostCircle : undefined}
           >
             {getInitial(user.name, user.email)}
           </button>

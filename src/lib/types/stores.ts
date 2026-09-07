@@ -11,6 +11,11 @@ export type StoreRow = {
   description: string | null
   lat: number | null
   lng: number | null
+  merchant_type: 'preferred' | 'verified' | null
+  merchant_plan: string | null
+  pay_bill_enabled: boolean | null
+  service_level: string | null
+  on_boarded: boolean | null
   store_offers?: StoreOffer[]
 }
 
