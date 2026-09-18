@@ -32,7 +32,7 @@ export function HeaderHeroNav({ banners, pad }: Props) {
         <div
           className={`absolute inset-x-0 bottom-0 z-20 translate-y-9.5 ${pad}`}
         >
-          <HeaderNav />
+          <HeaderNav card />
         </div>
       </div>
     )

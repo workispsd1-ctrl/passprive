@@ -11,6 +11,10 @@ interface Props {
   subtitle?: string
   /** extra classes on the <section>, e.g. a peach band background */
   className?: string
+  /** override the content column's max-width (default max-w-7xl) */
+  maxWidthClassName?: string
+  /** override the card row's gap (default gap-4) */
+  gapClassName?: string
   children: React.ReactNode
 }
 
@@ -19,10 +23,17 @@ interface Props {
  * controls are circular white buttons that float over the left/right edges of
  * the card row, vertically centred (matching the app).
  */
-export function HScroll({ title, subtitle, className, children }: Props) {
+export function HScroll({
+  title,
+  subtitle,
+  className,
+  maxWidthClassName = 'max-w-7xl',
+  gapClassName = 'gap-4',
+  children,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canLeft, setCanLeft] = useState(false)
-  const [canRight, setCanRight] = useState(true)
+  const [canRight, setCanRight] = useState(false)
 
   function update() {
     const el = scrollRef.current
@@ -49,18 +60,21 @@ export function HScroll({ title, subtitle, className, children }: Props) {
   }
 
   const arrowBase =
-    'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-gray-600 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] transition-opacity hover:text-gray-900'
+    'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1F1F1F] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] transition-opacity hover:text-gray-900'
+  const arrowIcon = 'h-[27.7px] w-[14.87px]'
 
   return (
     <section className={cn('py-6 md:py-8', className)}>
       {/* Keep the header + rail aligned with the page's max-w-7xl content even
           when a caller makes the <section> full-bleed (e.g. a peach band). */}
-      <div className="mx-auto w-full max-w-7xl">
+      <div className={cn('mx-auto w-full', maxWidthClassName)}>
         <div className="mb-4 px-4 md:px-8">
-          {/* DM Sans 700 / 32 / 100% — #383838 (2xl); scaled down below 2xl */}
-          <h2 className="font-(family-name:--font-dm-sans) text-[26px] font-bold leading-none tracking-normal text-[#383838] 2xl:text-[32px]">
+          {/* DM Sans Bold, scaling from 19px up to 20px on large screens —
+              kept at 700 weight throughout; 900/Black and 32px both read too
+              heavy at full size. */}
+          <h3 className="font-(family-name:--font-dm-sans) text-[19px] font-bold leading-none tracking-normal text-[#0D141C] md:text-[20px]">
             {title}
-          </h2>
+          </h3>
           {subtitle && (
             <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>
           )}
@@ -71,24 +85,27 @@ export function HScroll({ title, subtitle, className, children }: Props) {
           type="button"
           onClick={() => by(-SCROLL_BY)}
           aria-label="Scroll left"
-          className={cn(arrowBase, 'left-2 md:left-3', !canLeft && 'opacity-45')}
+          className={cn(arrowBase, 'left-2 md:left-3', !canLeft && 'invisible')}
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className={arrowIcon} />
         </button>
         <button
           type="button"
           onClick={() => by(SCROLL_BY)}
           aria-label="Scroll right"
-          className={cn(arrowBase, 'right-2 md:right-3', !canRight && 'opacity-45')}
+          className={cn(arrowBase, 'right-2 md:right-3', !canRight && 'invisible')}
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className={arrowIcon} />
         </button>
 
           <div
             ref={scrollRef}
             // pt/pb give the cards' drop shadow room — overflow-x:auto forces
             // overflow-y:auto, which would otherwise clip it top/bottom
-            className="flex gap-4 overflow-x-auto scroll-smooth px-4 pt-3 pb-8 [scrollbar-width:none] md:px-8 [&::-webkit-scrollbar]:hidden"
+            className={cn(
+              'flex overflow-x-auto scroll-smooth px-4 pt-3 pb-8 [scrollbar-width:none] md:px-8 [&::-webkit-scrollbar]:hidden',
+              gapClassName,
+            )}
           >
             {children}
           </div>

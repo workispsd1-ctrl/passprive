@@ -14,9 +14,9 @@ export default async function MinimalLayout({ children }: { children: React.Reac
         <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 h-16 gap-2 max-w-7xl mx-auto">
           <Link href="/" aria-label="PassPrive home">
             <Image
-              src="/passpriveLogo.png"
+              src="/logo-dark.png"
               alt="PassPrive"
-              width={120}
+              width={168}
               height={40}
               className="h-11 w-auto object-contain"
             />

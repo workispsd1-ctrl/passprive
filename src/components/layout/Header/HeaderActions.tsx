@@ -8,8 +8,6 @@ import { ProfileDrawer } from '@/components/ProfileDrawer'
 
 interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
-  /** 'light' = rendered on a dark/orange background (white icons) */
-  theme?: 'default' | 'light'
 }
 
 function getInitial(name?: string | null, email?: string) {
@@ -18,19 +16,20 @@ function getInitial(name?: string | null, email?: string) {
   return 'U'
 }
 
-// 48px circle: faint orange fill + 0.75px orange→cream gradient border
-const ghostCircle: React.CSSProperties = {
-  border: '0.75px solid transparent',
+// 48×48 (2xl) circle, 0.75px gradient border — same fill/border trick as the
+// Privé credits pill. Uniform across the home (orange) and default (white)
+// headers, matching the Figma spec.
+export const actionCircleClass =
+  'flex h-10 w-10 items-center justify-center rounded-[75px] border-[0.75px] border-transparent text-[#FF6A19] transition-colors hover:brightness-95 2xl:h-12 2xl:w-12'
+export const actionCircleStyle = {
   backgroundImage:
-    'linear-gradient(rgba(255,106,25,0.04), rgba(255,106,25,0.04)), linear-gradient(151.63deg, #FF6A19 -48.58%, #F7F0EC 82.47%)',
+    'linear-gradient(#FFF9F6, #FFF9F6), linear-gradient(151.63deg, #FF6A19 -48.58%, #F7F0EC 82.47%)',
   backgroundOrigin: 'border-box',
   backgroundClip: 'padding-box, border-box',
-  WebkitBackgroundClip: 'padding-box, border-box',
-}
+} as const
 
-export function HeaderActions({ user, theme = 'default' }: Props) {
+export function HeaderActions({ user }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const light = theme === 'light'
 
   return (
     <>
@@ -39,14 +38,10 @@ export function HeaderActions({ user, theme = 'default' }: Props) {
         <Link
           href="#"
           aria-label="Wishlist"
-          className={
-            light
-              ? 'flex h-10 w-10 items-center justify-center rounded-full text-white transition-opacity hover:opacity-90 2xl:h-12 2xl:w-12'
-              : 'flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50'
-          }
-          style={light ? ghostCircle : undefined}
+          className={actionCircleClass}
+          style={actionCircleStyle}
         >
-          <Heart className={light ? 'h-5.5 w-5.5 2xl:h-7.5 2xl:w-7.5' : 'h-4.5 w-4.5'} />
+          <Heart className="h-4.5 w-4.5 2xl:h-[18.75px] 2xl:w-[18.75px]" />
         </Link>
 
         {user ? (
@@ -54,17 +49,13 @@ export function HeaderActions({ user, theme = 'default' }: Props) {
             type="button"
             aria-label="Open profile"
             onClick={() => setDrawerOpen(true)}
-            className={
-              light
-                ? 'flex h-10 w-10 items-center justify-center rounded-full text-[13px] font-bold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 2xl:h-12 2xl:w-12 2xl:text-[14px]'
-                : 'flex h-9 w-9 items-center justify-center rounded-full bg-brand text-[12px] font-bold tracking-wide text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50'
-            }
-            style={light ? ghostCircle : undefined}
+            className={`${actionCircleClass} text-[13px] font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A19]/40 2xl:text-[14px]`}
+            style={actionCircleStyle}
           >
             {getInitial(user.name, user.email)}
           </button>
         ) : (
-          <LoginDialog />
+          <LoginDialog triggerClassName="h-10 rounded-full border border-[#FF6A19]/30 bg-[#FFF1EA] px-4 text-[13px] font-semibold text-[#FF6A19] hover:bg-[#FFE4D5] 2xl:h-12 2xl:text-[14px]" />
         )}
       </div>
 

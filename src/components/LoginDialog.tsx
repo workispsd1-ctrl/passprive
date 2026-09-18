@@ -19,9 +19,28 @@ import { Label } from '@/components/ui/label'
 
 type Mode = 'signin' | 'signup'
 
-export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
+export default function LoginDialog({
+  variant,
+  triggerClassName,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+  hideTrigger = false,
+}: {
+  variant?: 'hero'
+  triggerClassName?: string
+  /** controlled open state (when provided, LoginDialog is a controlled dialog) */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  hideTrigger?: boolean
+} = {}) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [openState, setOpenState] = useState(false)
+  const controlled = openProp !== undefined
+  const open = controlled ? openProp : openState
+  const setOpen = (next: boolean) => {
+    if (controlled) onOpenChangeProp?.(next)
+    else setOpenState(next)
+  }
   const [mode, setMode] = useState<Mode>('signin')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -77,6 +96,10 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
     }
 
     setOpen(false)
+    // let listeners (e.g. a pending save) know auth changed
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('pp:auth'))
+    }
     router.refresh()
   }
 
@@ -103,22 +126,36 @@ export default function LoginDialog({ variant }: { variant?: 'hero' } = {}) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button
-            variant={variant === 'hero' ? 'default' : 'outline'}
-            size={variant === 'hero' ? 'lg' : 'default'}
-            className={variant === 'hero' ? 'group mt-10 h-12 px-8 text-base rounded-xl shadow-md hover:shadow-lg transition-shadow' : ''}
-          />
-        }
-      >
-        {variant === 'hero' ? (
-          <>
-            Get started
-            <ArrowRight className="ml-1 size-4 transition-transform group-hover:translate-x-0.5" />
-          </>
-        ) : 'Login'}
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger
+          render={
+            <Button
+              variant={
+                variant === 'hero'
+                  ? 'default'
+                  : triggerClassName
+                    ? 'ghost'
+                    : 'outline'
+              }
+              size={variant === 'hero' ? 'lg' : 'default'}
+              className={
+                variant === 'hero'
+                  ? 'group mt-10 h-12 px-8 text-base rounded-xl shadow-md hover:shadow-lg transition-shadow'
+                  : (triggerClassName ?? '')
+              }
+            />
+          }
+        >
+          {variant === 'hero' ? (
+            <>
+              Get started
+              <ArrowRight className="ml-1 size-4 transition-transform group-hover:translate-x-0.5" />
+            </>
+          ) : (
+            'Login'
+          )}
+        </DialogTrigger>
+      )}
 
       <DialogContent className="sm:max-w-sm p-0 overflow-hidden">
         {/* Gradient welcome panel */}

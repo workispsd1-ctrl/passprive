@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, DM_Sans, Playfair_Display } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Sans, Playfair_Display, Inter, Libre_Baskerville } from "next/font/google";
 import { PaymentRecovery } from "@/components/PaymentRecovery";
 import "./globals.css";
 
@@ -19,6 +19,20 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
   style: ["normal", "italic"],
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const libreBaskerville = Libre_Baskerville({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-libre-baskerville",
   display: "swap",
 });
 
@@ -89,7 +103,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable} ${playfair.variable} h-full antialiased`}>
+    <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable} ${playfair.variable} ${inter.variable} ${libreBaskerville.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <PaymentRecovery />
         {children}

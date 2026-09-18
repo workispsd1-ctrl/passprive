@@ -22,6 +22,8 @@ export function NewKickInStores({ stores }: { stores: NewKickInStore[] }) {
           <MerchantCard
             key={store.store_id}
             href={`/stores/${store.store_id}`}
+            saveId={store.store_id}
+            saveType="STORE"
             image={store.cover_image_url}
             name={store.store_name}
             meta={meta}

@@ -33,14 +33,18 @@ const pillBorder: React.CSSProperties = {
   WebkitBackgroundClip: 'padding-box, border-box',
 }
 
-export function HeaderNav() {
+export function HeaderNav({ card = false }: { card?: boolean }) {
   const pathname = usePathname()
 
   return (
     <div className="relative mx-auto block w-fit max-w-full">
       <nav
         aria-label="Category navigation"
-        className="flex h-20 items-center gap-3.5 rounded-full bg-white px-4 pr-12 shadow-[0_12px_30px_-10px_rgba(0,0,0,0.35)] overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] 2xl:h-33 2xl:gap-7 2xl:px-7 2xl:pr-16"
+        className={cn(
+          'flex h-20 items-center gap-3.5 pr-12 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden 2xl:h-33 2xl:gap-7 2xl:pr-16',
+          card &&
+            'rounded-full bg-white pl-4 shadow-[0_12px_30px_-10px_rgba(0,0,0,0.35)] 2xl:pl-7',
+        )}
       >
         {NAV_ITEMS.map(({ label, href }) => {
           const isActive =
@@ -57,7 +61,7 @@ export function HeaderNav() {
               className={cn(
                 'shrink-0 rounded-full px-7 py-3.5 text-[13px] font-semibold whitespace-nowrap transition-colors 2xl:px-13.75 2xl:py-6 2xl:text-[15px]',
                 isActive
-                  ? 'bg-[#F15A29] text-white'
+                  ? 'bg-[#FF6A19] text-white'
                   : 'text-[#1a1a1a] hover:opacity-80',
               )}
             >

@@ -179,15 +179,16 @@ export function HeroSearchBar() {
   return (
     <div ref={containerRef} className="relative w-full">
       <form onSubmit={handleSubmit}>
-        <div className="flex items-center bg-white rounded-full overflow-hidden md:h-16 h-10 pr-1.5 pl-4 shadow-lg">
+        <div className="flex items-center bg-white rounded-full overflow-hidden md:h-16 h-10 pr-1.5 pl-4 border-[1.5px] border-[#E1E1E1] shadow-[0px_4px_4px_0px_rgba(235,193,170,1)] 2xl:h-20">
           <Search className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
+          <span className="ml-3 h-6 w-px shrink-0 bg-gray-200 md:h-8" aria-hidden="true" />
           <input
             ref={inputRef}
             type="search"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Search for a restaurant or store"
+            placeholder='Search for "restaurant" around you'
             aria-label="Search for a restaurant or store"
             className="flex-1 px-3 text-sm text-gray-800 bg-transparent outline-none placeholder:text-gray-500 sm:placeholder:text-sm placeholder:text-xs font-medium h-full"
             autoComplete="off"
@@ -205,7 +206,7 @@ export function HeroSearchBar() {
           <button
             type="submit"
             aria-label="Submit search"
-            className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-purple-500 hover:bg-purple-600 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+            className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-[#FF6A19] hover:bg-[#E85A0F] flex items-center justify-center transition-colors shrink-0 cursor-pointer"
           >
             {loading
               ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

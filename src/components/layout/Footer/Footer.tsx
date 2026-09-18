@@ -89,10 +89,10 @@ export function Footer() {
         {/* Logo */}
         <Link href='/' aria-label='PassPrive home'>
           <Image
-            src='/passpriveWhiteLogo.png'
+            src='/logo.webp'
             alt='PassPrive'
             width={140}
-            height={60}
+            height={33}
             className='h-14 w-auto object-contain'
           />
         </Link>
@@ -184,10 +184,10 @@ export function Footer() {
             <div className='flex flex-col gap-4 w-fit'>
               <Link href='/' aria-label='PassPrive home'>
                 <Image
-                  src='/passpriveWhiteLogo.png'
+                  src='/logo.webp'
                   alt='PassPrive'
                   width={220}
-                  height={100}
+                  height={53}
                   className='h-22 w-auto object-contain'
                 />
               </Link>

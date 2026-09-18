@@ -54,28 +54,28 @@ export function LocationButton({ variant = 'desktop', theme = 'default' }: Props
         type="button"
         aria-label="Change location"
         onClick={() => setDialogOpen(true)}
-        className={`flex shrink-0 items-center transition-opacity hover:opacity-80 ${light ? 'gap-2 2xl:gap-2.75' : 'gap-1.5'}`}
+        className={`flex shrink-0 items-center gap-2 transition-opacity hover:opacity-80 2xl:gap-2.75`}
       >
         <MapPin
-          className={`shrink-0 ${light ? 'h-7 w-7 text-white 2xl:h-10 2xl:w-10' : 'h-3.5 w-3.5 text-brand'}`}
+          className={`shrink-0 ${light ? 'h-7 w-7 text-white 2xl:h-10 2xl:w-10' : 'h-5 w-5 text-[#FF6A19] 2xl:h-6 2xl:w-6'}`}
           aria-hidden="true"
         />
-        <div className="flex flex-col items-start leading-tight">
+        <div className="flex flex-col items-start gap-0.75 leading-tight">
           <span
             className={
               light
-                ? 'font-(family-name:--font-dm-sans) text-[15px] font-black leading-5 text-white 2xl:text-[20px]'
-                : 'text-[13px] font-bold text-gray-900'
+                ? 'font-(family-name:--font-dm-sans) text-[15px] font-bold leading-5 tracking-normal text-white 2xl:text-[20px]'
+                : 'text-[14px] font-bold text-[#0D141C] 2xl:text-[16px]'
             }
           >
-            {cityLabel}{!light && location.city ? ',' : ''}
+            {cityLabel}
           </span>
           {stateLabel && (
             <span
               className={
                 light
-                  ? 'font-(family-name:--font-dm-sans) text-[13px] font-normal leading-5 text-white 2xl:text-[16px]'
-                  : 'text-[11px] text-gray-400'
+                  ? 'font-(family-name:--font-dm-sans) text-[13px] font-medium leading-5 tracking-normal text-[#606366] 2xl:text-[16px]'
+                  : 'text-[12px] text-gray-400 2xl:text-[13px]'
               }
             >
               {stateLabel}

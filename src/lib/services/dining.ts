@@ -8,30 +8,124 @@ import type {
   RestaurantDetail,
   FeaturedRestaurant,
   RestaurantHours,
+  MoodCategory,
+  OfferForYouCard,
 } from '@/lib/types/dining';
 
 const SELECT_FIELDS =
   'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, cover_charge_enabled, cover_charge_amount, max_bookings_per_slot';
 
-async function fetchNewestRestaurants(
-  limit = 8,
-): Promise<FeaturedRestaurant[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('restaurants')
-    .select(
-      'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, merchant_type, cover_charge_enabled, cover_charge_amount, restaurant_offers(id, badge_text, discount_value)',
-    )
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  return (data ?? []) as unknown as FeaturedRestaurant[];
-}
-
+/**
+ * Newest restaurants via the `restaurant_feed` RPC — app parity:
+ * services/restaurants.ts → fetchRestaurantFeedPage/mapFeedRowToRestaurant.
+ * Used over the plain `restaurants` table select because it's the only
+ * public source for the pre-aggregated rating and mood tags the cards need.
+ */
 export async function getNewRestaurants(
   limit = 8,
 ): Promise<FeaturedRestaurant[]> {
-  return fetchNewestRestaurants(limit);
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('restaurant_feed', {
+    in_lat: null,
+    in_lng: null,
+    in_limit: limit,
+    in_offset: 0,
+    in_sort: 'newest',
+  });
+  return (data ?? []) as FeaturedRestaurant[];
+}
+
+/**
+ * Resolves a stored image value to a public URL — app parity:
+ * IntheMoodFor.jsx → `resolveSupabasePublicImage`. Handles values that are
+ * already absolute URLs, and values that are storage object paths
+ * ("bucket/path/to/file.png", optionally prefixed with
+ * "storage/v1/object/public/" or "public/") needing `getPublicUrl`.
+ */
+function resolveSupabasePublicImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  raw: string | null | undefined,
+): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('data:image/')) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+
+  let normalized = trimmed.replace(/^\/+/, '');
+  normalized = normalized.replace(/^storage\/v1\/object\/public\//, '');
+  normalized = normalized.replace(/^public\//, '');
+
+  const segments = normalized.split('/').filter(Boolean);
+  if (segments.length < 2) return null;
+
+  const bucket = segments[0];
+  const objectPath = segments.slice(1).join('/');
+  const { data } = supabase.storage.from(bucket).getPublicUrl(objectPath);
+  return data?.publicUrl || null;
+}
+
+type MoodCategoryRow = {
+  key: string;
+  slug: string;
+  title: string;
+  sort_order: number | null;
+  image_url: string | null;
+  image_path: string | null;
+  light_theme_image_url: string | null;
+  light_theme_image_path: string | null;
+  dark_theme_image_url: string | null;
+  dark_theme_image_path: string | null;
+};
+
+/**
+ * "What's on your mind?" mood chips — app parity: IntheMoodFor.jsx →
+ * `fetchMoodCategoriesFromSupabase` + `resolveMoodCategoryImageByTheme`
+ * (plain table select, no limit; web has no dark mode so always resolves the
+ * light-theme image, falling back to the generic image, then dark-theme).
+ */
+export async function getMoodCategories(): Promise<MoodCategory[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('restaurant_mood_categories')
+    .select(
+      'key, slug, title, sort_order, image_url, image_path, light_theme_image_url, light_theme_image_path, dark_theme_image_url, dark_theme_image_path',
+    )
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+
+  return ((data ?? []) as MoodCategoryRow[]).map((row) => {
+    const image =
+      resolveSupabasePublicImage(supabase, row.light_theme_image_url) ??
+      resolveSupabasePublicImage(supabase, row.light_theme_image_path) ??
+      resolveSupabasePublicImage(supabase, row.image_url) ??
+      resolveSupabasePublicImage(supabase, row.image_path) ??
+      resolveSupabasePublicImage(supabase, row.dark_theme_image_url) ??
+      resolveSupabasePublicImage(supabase, row.dark_theme_image_path);
+
+    return {
+      key: row.key,
+      slug: row.slug,
+      title: row.title,
+      sort_order: row.sort_order,
+      image_url: image,
+    };
+  });
+}
+
+/**
+ * "Bank offers" cards — app parity: OffersForYou.jsx →
+ * `fetchOffersForYou` (dinein screen passes `title="Bank Offer"`).
+ */
+export async function getOffersForYouCards(): Promise<OfferForYouCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('offers_for_you_cards')
+    .select('id, image_url, title, type, link_url, detail_title, detail_body, hero_url')
+    .eq('enabled', true)
+    .order('sort_order', { ascending: true });
+  return (data ?? []) as OfferForYouCard[];
 }
 
 export async function getActiveRestaurants(limit = 10): Promise<Restaurant[]> {

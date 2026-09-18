@@ -14,12 +14,14 @@ const MAX_CARDS = 10;
 type FeedCard = {
   key: string;
   href: string;
+  saveId: string;
+  saveType: 'STORE' | 'RESTAURANT';
   image: string | null;
   name: string;
   address: string;
   tagline?: string;
   offerLabel?: string;
-  merchant_type: 'preferred' | 'verified' | null;
+  merchant_type: string | null;
   cashback: boolean;
   city: string | null;
   lat: number | null;
@@ -30,12 +32,13 @@ function restaurantToCard(r: FeaturedRestaurant): FeedCard {
   return {
     key: `r-${r.id}`,
     href: `/dining/${r.slug ?? r.id}`,
+    saveId: r.id,
+    saveType: 'RESTAURANT',
     image: r.cover_image,
     name: r.name,
-    address:
-      r.full_address ?? [r.area, r.city].filter(Boolean).join(', '),
-    tagline: r.description ?? undefined,
-    offerLabel: r.restaurant_offers?.[0]?.badge_text ?? undefined,
+    address: [r.area, r.city].filter(Boolean).join(', '),
+    tagline: r.cuisines.length ? r.cuisines.join(', ') : undefined,
+    offerLabel: r.offer_badge ?? undefined,
     merchant_type: r.merchant_type,
     cashback: showsCashbackBadge(r),
     city: r.city,
@@ -48,6 +51,8 @@ function storeToCard(s: StoreRow): FeedCard {
   return {
     key: `s-${s.id}`,
     href: `/stores/${s.slug}`,
+    saveId: s.id,
+    saveType: 'STORE',
     image: s.cover_image ?? s.logo_url,
     name: s.name,
     address: [s.location_name, s.city].filter(Boolean).join(', '),
@@ -118,6 +123,8 @@ export function NewlyFeaturedSection({
           <MerchantCard
             key={card.key}
             href={card.href}
+            saveId={card.saveId}
+            saveType={card.saveType}
             image={card.image}
             name={card.name}
             meta={meta || undefined}

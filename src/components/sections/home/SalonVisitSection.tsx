@@ -69,6 +69,8 @@ export function SalonVisitSection({ stores }: { stores: StoreRow[] }) {
           <MerchantCard
             key={s.id}
             href={`/stores/${s.slug}`}
+            saveId={s.id}
+            saveType="STORE"
             image={s.cover_image ?? s.logo_url}
             name={s.name}
             meta={meta || undefined}

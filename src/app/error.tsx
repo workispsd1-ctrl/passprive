@@ -26,11 +26,11 @@ export default function GlobalError({
         <div className="relative flex flex-col items-center gap-6 max-w-sm">
           <Link href="/">
             <Image
-              src="/passpriveLogo.png"
+              src="/logo.webp"
               alt="PassPrivé"
-              width={140}
+              width={201}
               height={48}
-              className="h-12 w-auto object-contain brightness-0 invert opacity-80"
+              className="h-12 w-auto object-contain opacity-80"
             />
           </Link>
 

@@ -20,10 +20,10 @@ export function AppCTASection() {
           <div className="md:hidden relative z-10 flex flex-col items-center text-center gap-5">
             <div className="flex flex-col items-center gap-1">
               <Image
-                src="/passpriveWhiteLogo.png"
+                src="/logo.webp"
                 alt="PassPrive"
                 width={140}
-                height={60}
+                height={33}
                 className="h-14 w-auto object-contain"
               />
               <p className="text-[11px] text-white/50">Your Pass to the Island&apos;s Best.</p>

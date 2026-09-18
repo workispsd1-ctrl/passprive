@@ -1,6 +1,13 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Heart } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useSaved } from '@/lib/context/SavedContext'
+import { SaveListSheet } from '@/components/SaveListSheet'
+import type { SavedEntityType } from '@/lib/services/savedEntities'
 
 interface Props {
   href: string
@@ -9,6 +16,9 @@ interface Props {
   /** e.g. "5.3km · Louis Pasteur" */
   meta?: string
   tagline?: string
+  /** entity id + type for the favourite (heart) toggle */
+  saveId?: string
+  saveType?: SavedEntityType
   /**
    * Show the "0.5% cashback free" badge. In the app this is
    * `getEntityCashbackBadge` — a pay-bill merchant on the free plan whose
@@ -53,17 +63,40 @@ export function MerchantCard({
   name,
   meta,
   tagline,
+  saveId,
+  saveType,
   cashback = true,
   cashbackArt = '/membership/Lite_theme_free_0.5.webp',
   offerLabel,
   badge,
   frameColor = DEFAULT_FRAME,
 }: Props) {
+  const { isSaved, toggle, setSaved } = useSaved()
+  const saved = saveId ? isSaved(saveId) : false
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  async function handleHeart(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!saveId || !saveType) return
+    // add to the default list first (so the heart fills), then open the sheet
+    if (!isSaved(saveId)) {
+      const res = await toggle(saveId, saveType)
+      if (res === null) return // logged out — login prompt shown
+    }
+    setSheetOpen(true)
+  }
+
   return (
-    <Link
-      href={href}
-      className="block w-75 shrink-0 overflow-hidden rounded-[18px] border border-white bg-white font-(family-name:--font-dm-sans) shadow-[0px_4.8px_20.4px_0px_rgba(0,0,0,0.1)] transition-shadow hover:shadow-[0px_8px_26px_0px_rgba(0,0,0,0.16)] 2xl:w-95"
-    >
+    <div className="group relative w-75 shrink-0 overflow-hidden rounded-[18px] border border-white bg-white font-(family-name:--font-dm-sans) shadow-[0px_4.8px_20.4px_0px_rgba(0,0,0,0.1)] transition-shadow hover:shadow-[0px_8px_26px_0px_rgba(0,0,0,0.16)] 2xl:w-95">
+      {/* full-card click target — kept as a sibling so the heart button isn't
+          nested inside an <a> (invalid + swallows the click) */}
+      <Link
+        href={href}
+        aria-label={name}
+        className="absolute inset-0 z-10 rounded-[18px]"
+      />
+
       {/* coloured frame */}
       <div
         className="relative mx-2 mt-1.75 overflow-hidden rounded-[15px]"
@@ -101,13 +134,17 @@ export function MerchantCard({
             </span>
           )}
 
-          {/* TODO(design): wire the real wishlist action / route */}
           <button
             type="button"
-            aria-label="Save"
-            className="absolute right-2.5 top-2.5 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)] transition-transform hover:scale-110"
+            aria-label={saved ? 'Edit saved lists' : 'Save'}
+            aria-pressed={saved}
+            onClick={handleHeart}
+            className={cn(
+              'absolute right-2.5 top-2.5 z-20 drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)] transition-transform hover:scale-110 active:scale-125',
+              saved ? 'scale-110 text-[#FF4800]' : 'text-white',
+            )}
           >
-            <Heart className="h-6 w-6" />
+            <Heart className={cn('h-6 w-6', saved && 'fill-current')} />
           </button>
         </div>
 
@@ -122,23 +159,31 @@ export function MerchantCard({
       </div>
 
       <div className="px-5.25 pt-2.5 pb-3">
-        {/* DM Sans 700 / 20 / 29 — #383838 (2xl); scaled down below 2xl */}
-        <p className="truncate text-[17px] font-bold leading-6 text-[#383838] 2xl:text-[20px] 2xl:leading-7.25">
+        <p className="truncate text-sm font-bold leading-6 text-[#383838]">
           {name}
         </p>
         {meta && (
-          /* DM Sans 500 / 16 / 24 — #383838 */
-          <p className="line-clamp-2 text-[14px] font-medium leading-5 text-[#383838] 2xl:text-[16px] 2xl:leading-6">
+          <p className="line-clamp-2 text-xs font-medium leading-5 text-[#383838]">
             {meta}
           </p>
         )}
         {tagline && (
-          /* DM Sans 400 / 16 / 24 — #878787 */
-          <p className="line-clamp-1 text-[14px] font-normal leading-5 text-[#878787] 2xl:text-[16px] 2xl:leading-6">
+          <p className="line-clamp-1 text-xs font-normal leading-5 text-[#878787]">
             {tagline}
           </p>
         )}
       </div>
-    </Link>
+
+      {saveId && saveType && (
+        <SaveListSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          entityId={saveId}
+          entityType={saveType}
+          entityName={name}
+          onSavedChange={(anywhere) => setSaved(saveId, anywhere)}
+        />
+      )}
+    </div>
   )
 }

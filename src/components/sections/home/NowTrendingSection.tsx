@@ -6,19 +6,37 @@ import { useMemo } from 'react';
 import { useLocation } from '@/lib/context/LocationContext';
 import { haversineKm, merchantRank } from '@/lib/utils';
 import { HScroll } from './HScroll';
-import type { Restaurant } from '@/lib/types/dining';
 
-// App parity: components/Home/FoodieFrontrow.jsx → loadFoodieFrontrow()
+// App parity: components/Home/NowTrending.jsx (real title "Now trending";
+// renamed to "Foodie front row" for the home page's Figma design — the
+// dining page passes the app's real title back in via the `title` prop).
 const MAX_CARDS = 12;
 
 // orange → blue translucent ring behind each avatar
 const RING =
   'linear-gradient(253.56deg, rgba(255,72,0,0.29) 9.31%, rgba(0,68,255,0.29) 99.66%)';
 
+// Structural rather than `Restaurant` — shared by the home page's plain
+// `getActiveRestaurants()` rows and the dining page's `restaurant_feed` RPC
+// rows, which only overlap on these fields.
+type TrendingCardItem = {
+  id: string;
+  name: string;
+  slug: string | null;
+  cover_image: string | null;
+  area: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  merchant_type?: string | null;
+};
+
 export function NowTrendingSection({
   restaurants,
+  title = 'Foodie front row',
 }: {
-  restaurants: Restaurant[];
+  restaurants: TrendingCardItem[];
+  title?: string;
 }) {
   const { location } = useLocation();
   const userCity = location.city.trim().toLowerCase();
@@ -60,7 +78,7 @@ export function NowTrendingSection({
   if (!items.length) return null;
 
   return (
-    <HScroll title="Foodie front row">
+    <HScroll title={title}>
       {items.map(({ r }) => (
         <Link
           key={r.id}
@@ -86,12 +104,12 @@ export function NowTrendingSection({
               )}
             </div>
           </div>
-          {/* DM Sans 700 / 24 / 100% — #0D141C */}
-          <p className="mt-4 w-full truncate text-[20px] font-bold leading-none text-[#0D141C] 2xl:mt-6 2xl:text-[24px]">
+          {/* DM Sans 700 / 18 / 100% — #0D141C */}
+          <p className="mt-4 w-full truncate text-sm font-bold leading-none text-[#0D141C] 2xl:mt-6">
             {r.name}
           </p>
-          {/* DM Sans 500 / 18 / 100% — #717171 */}
-          <p className="mt-1.5 w-full truncate text-[15px] font-medium leading-none text-[#717171] 2xl:text-[18px]">
+          {/* DM Sans 500 — #717171 */}
+          <p className="mt-1.5 w-full truncate text-xs font-medium leading-none text-[#717171]">
             {r.area ?? r.city}
           </p>
         </Link>
