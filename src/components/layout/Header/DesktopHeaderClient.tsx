@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search } from 'lucide-react'
-import { HeaderActions, actionCircleClass, actionCircleStyle } from './HeaderActions'
+import { HeaderActions } from './HeaderActions'
 import { HeaderHeroNav } from './HeaderHeroNav'
 import { SearchBar } from '@/components/SearchBar'
 import { LocationButton } from './LocationButton'
@@ -16,6 +15,13 @@ import type { WebsiteBanner } from '@/lib/types/websiteBanners'
 interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
   banners: WebsiteBanner[]
+  /** 'black' | 'premium' | 'none' — app parity: PackageBadge.jsx */
+  membershipTier: string
+}
+
+const MEMBERSHIP_BADGE: Record<string, string> = {
+  black: '/membership/BlackBadge.webp',
+  premium: '/membership/PlusBadge.webp',
 }
 
 // The Figma spec is drawn for a 16" MacBook (~1728pt wide). The full-size values
@@ -23,10 +29,11 @@ interface Props {
 //
 // Home gets the orange "light" theme (full inline search bar, coin ticket art).
 // Every other page gets the white "default" theme (small logo, colored logo,
-// peach-tinted action circles, search collapses to an icon toggle) — see the
-// dining-page Figma.
-export function DesktopHeaderClient({ user, banners }: Props) {
+// peach-tinted action circles) — the search bar is always inline on every
+// page now, just restyled to a light-grey pill off the orange home theme.
+export function DesktopHeaderClient({ user, banners, membershipTier }: Props) {
   const isHome = usePathname() === '/'
+  const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/membership/FreeBadge.webp'
 
   // Privé credits = cashback balance, fetched the same way as the app.
   const [credits, setCredits] = useState<number | null>(null)
@@ -34,15 +41,13 @@ export function DesktopHeaderClient({ user, banners }: Props) {
     fetchCashbackBalance().then(setCredits)
   }, [])
 
-  const [showSearch, setShowSearch] = useState(false)
-
   return (
-    <div className={cn('hidden md:block', isHome ? 'bg-[#FF4800]' : 'bg-white')}>
+    <div className="hidden bg-white md:block">
       <div
         className={cn(
           'flex h-18 items-center gap-3 px-6 2xl:h-24 2xl:gap-[14.51px] 2xl:px-12',
           isHome
-            ? 'border-b-2 border-[rgba(206,68,14,0.14)]'
+            ? 'bg-[#FF4800] border-b-2 border-[rgba(206,68,14,0.14)]'
             : 'border-b border-gray-100',
         )}
       >
@@ -57,7 +62,13 @@ export function DesktopHeaderClient({ user, banners }: Props) {
             width={218}
             height={52}
             priority
-            className="h-9 w-auto object-contain 2xl:h-13"
+            className={cn(
+              'w-auto object-contain',
+              // logo.webp and logo-orange.png have different intrinsic aspect
+              // ratios (4.19 vs 2.96) — different heights keep the rendered
+              // width (and wordmark size) the same on every page.
+              isHome ? 'h-6.25 2xl:h-9.25' : 'h-9 2xl:h-13',
+            )}
           />
         </Link>
 
@@ -75,15 +86,10 @@ export function DesktopHeaderClient({ user, banners }: Props) {
           <div className="mx-auto w-full max-w-160 flex-1 2xl:max-w-196">
             <SearchBar variant="hero" />
           </div>
-        ) : showSearch ? (
-          <div className="flex w-72 shrink-0 2xl:w-88">
-            <SearchBar
-              variant="desktop-inline"
-              onClose={() => setShowSearch(false)}
-            />
-          </div>
         ) : (
-          <div className="flex-1" />
+          <div className="mx-auto w-full max-w-160 flex-1 2xl:max-w-196">
+            <SearchBar variant="desktop-full" />
+          </div>
         )}
 
         <div className="flex shrink-0 items-center gap-2">
@@ -110,7 +116,7 @@ export function DesktopHeaderClient({ user, banners }: Props) {
               className="absolute -left-3 top-1/2 h-10 w-10 -translate-y-1/2 2xl:h-12 2xl:w-12"
             />
             <span className="leading-tight">
-              <span className="block font-(family-name:--font-inter) text-[28px] leading-none font-bold tracking-[-0.89px] text-[#606366]">
+              <span className="block font-(family-name:--font-dm-sans) text-[28px] leading-none font-bold tracking-[-0.89px] text-[#606366]">
                 {credits == null ? '—' : Math.round(credits).toLocaleString()}
               </span>
               <span className="block font-(family-name:--font-dm-sans) text-[10.24px] leading-[8px] font-normal tracking-normal text-[#FF6A19]">
@@ -119,32 +125,22 @@ export function DesktopHeaderClient({ user, banners }: Props) {
             </span>
           </div>
 
-          {/* App membership badge (assets/FreeBadge.webp), 308×132 */}
-          <Image
-            src="/membership/FreeBadge.webp"
-            alt="Privé Free"
-            width={308}
-            height={132}
-            className="h-10 w-auto 2xl:h-12"
-          />
-
-          {!isHome && !showSearch && (
-            <button
-              type="button"
-              aria-label="Search"
-              onClick={() => setShowSearch(true)}
-              className={actionCircleClass}
-              style={actionCircleStyle}
-            >
-              <Search className="h-4.5 w-4.5 2xl:h-[18.75px] 2xl:w-[18.75px]" />
-            </button>
-          )}
+          {/* App membership badge (Free/Plus/Black), 308×132 — app parity: PackageBadge.jsx */}
+          <Link href="/membership" aria-label="Membership">
+            <Image
+              src={badgeSrc}
+              alt="Privé membership"
+              width={308}
+              height={132}
+              className="h-10 w-auto 2xl:h-12"
+            />
+          </Link>
 
           <HeaderActions user={user} />
         </div>
       </div>
 
-      <HeaderHeroNav banners={banners} pad="px-6 2xl:px-12" />
+      <HeaderHeroNav banners={banners} pad="px-4 md:px-12" />
     </div>
   )
 }

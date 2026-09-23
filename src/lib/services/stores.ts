@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { sortByMerchant } from '@/lib/utils'
 import type {
   StoreRow,
   StoreMoodCategory,
@@ -15,6 +16,7 @@ import type {
   EditorialCollection,
   NewKickInStore,
 } from '@/lib/types/stores'
+import type { FeaturedRestaurant } from '@/lib/types/dining'
 
 export async function getNewKickInStores(
   params: { userLat?: number; userLng?: number; city?: string; limit?: number } = {}
@@ -38,6 +40,65 @@ export async function getActiveStores(): Promise<StoreRow[]> {
     .order('sort_order')
     .order('name')
   return (data ?? []) as StoreRow[]
+}
+
+/**
+ * "Discover top brands" — app parity: components/StoresHome/TrendingNow.jsx.
+ * `is_top_brand` exists but is rarely curated, so (matching the app's own
+ * "Trending now" rail) this just pulls active product stores and ranks them
+ * by merchant tier instead of depending on that flag being set.
+ */
+export async function getTopBrandStores(limit = 12): Promise<StoreRow[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('stores')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded')
+    .eq('is_active', true)
+    .eq('store_type', 'PRODUCT')
+    .order('sort_order')
+    .order('name')
+    .limit(limit)
+  return sortByMerchant((data ?? []) as StoreRow[])
+}
+
+export type StorePromotionalCollection = {
+  id: string
+  title: string
+  subtitle: string | null
+  hasBanner: boolean
+}
+
+/**
+ * "Shop the ___ Merch" promo banners — app parity:
+ * components/StoresHome/StorePromotionalCards.jsx. Unlike the dining
+ * version, the app doesn't curate a per-collection store list — every active
+ * collection just anchors the same top-of-list stores rail.
+ */
+export async function getShoppingPromotionalCollections(): Promise<StorePromotionalCollection[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('promotional_collections')
+    .select('id, title, subtitle, starts_at, ends_at, banner_image_url')
+    .eq('is_active', true)
+    .contains('screens', ['shopping'])
+    .order('sort_order', { ascending: true })
+
+  const now = Date.now()
+  return (data ?? [])
+    // Only the "end of season sale" campaign should show here — other
+    // shopping-screen collections (e.g. the football/fifa one) are excluded.
+    .filter((c) => !/fifa|football/i.test(c.title ?? ''))
+    .filter((c) => {
+      const start = c.starts_at ? Date.parse(c.starts_at) : NaN
+      const end = c.ends_at ? Date.parse(c.ends_at) : NaN
+      return (Number.isNaN(start) || start <= now) && (Number.isNaN(end) || end >= now)
+    })
+    .map((c) => ({
+      id: c.id,
+      title: c.title,
+      subtitle: c.subtitle,
+      hasBanner: !!c.banner_image_url,
+    }))
 }
 
 export async function getStoreMoodCategories(): Promise<StoreMoodCategory[]> {
@@ -121,6 +182,80 @@ export async function getEditorialCollections(
   return (data ?? []) as EditorialCollection[]
 }
 
+/**
+ * One editorial collection with its ranked restaurants/stores — app parity:
+ * OfferRestaurantsScreen (`editorial_collection`): the collection row by slug,
+ * then `editorial_collection_items` (active, by sort_order), then the entities
+ * fetched by id and kept in that rank order. (The app's
+ * `get_editorial_collection_items` RPC isn't deployed; this is its fallback.)
+ */
+export async function getEditorialCollectionBySlug(slug: string): Promise<{
+  collection: EditorialCollection
+  restaurants: FeaturedRestaurant[]
+  stores: StoreRow[]
+} | null> {
+  const supabase = await createClient()
+  const { data: collection } = await supabase
+    .from('editorial_collections')
+    .select('id, slug, title, subtitle, description, cover_image_url, badge_text, source_name, entity_type, city, area, sort_order, is_featured, save_count')
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (!collection) return null
+
+  const { data: items } = await supabase
+    .from('editorial_collection_items')
+    .select('restaurant_id, store_id, sort_order')
+    .eq('collection_id', collection.id)
+    .eq('is_active', true)
+    .order('sort_order')
+
+  const restaurantIds = (items ?? []).map((i) => i.restaurant_id).filter(Boolean) as string[]
+  const storeIds = (items ?? []).map((i) => i.store_id).filter(Boolean) as string[]
+
+  const [restaurantRes, storeRes] = await Promise.all([
+    restaurantIds.length
+      ? supabase
+          .from('restaurants')
+          .select('id, name, slug, area, city, cover_image, cost_for_two, is_pure_veg, is_advertised, ad_priority, ad_badge_text, merchant_type, merchant_plan, pay_bill_enabled, latitude, longitude, booking_enabled')
+          .in('id', restaurantIds)
+          .eq('is_active', true)
+      : Promise.resolve({ data: [] }),
+    storeIds.length
+      ? supabase
+          .from('stores')
+          .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, store_offers(id, title, badge_text, discount_value, offer_type)')
+          .in('id', storeIds)
+          .eq('is_active', true)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const rank = (ids: string[]) => new Map(ids.map((id, i) => [id, i]))
+  const rr = rank(restaurantIds)
+  const sr = rank(storeIds)
+
+  // Table rows lack the feed's rating/mood/offer aggregates — default them so
+  // the shared card renders (rating badge is hidden at 0).
+  const restaurants = ((restaurantRes.data ?? []) as Record<string, unknown>[])
+    .map((r) => ({
+      cuisines: [],
+      rating: 0,
+      rating_count: 0,
+      mood: [],
+      offer_badge: null,
+      has_offer: false,
+      repeat_rewards_enabled: false,
+      booking_service_type: null,
+      ...r,
+    }) as unknown as FeaturedRestaurant)
+    .sort((a, b) => (rr.get(a.id) ?? 0) - (rr.get(b.id) ?? 0))
+  const stores = ((storeRes.data ?? []) as unknown as StoreRow[]).sort(
+    (a, b) => (sr.get(a.id) ?? 0) - (sr.get(b.id) ?? 0),
+  )
+
+  return { collection: collection as EditorialCollection, restaurants, stores }
+}
+
 export async function getHomeSections(): Promise<HomeSection[]> {
   const supabase = await createClient()
 
@@ -134,7 +269,7 @@ export async function getHomeSections(): Promise<HomeSection[]> {
 
   const { data: items } = await supabase
     .from('stores_home_section_items')
-    .select('section_id, store_id, sort_order, stores(name, slug, logo_url, location_name, city, lat, lng)')
+    .select('section_id, store_id, sort_order, stores(name, slug, logo_url, cover_image, location_name, city, lat, lng, store_offers(discount_value, badge_text, offer_type))')
     .in('section_id', sections.map(s => s.id))
     .eq('is_active', true)
     .order('sort_order')

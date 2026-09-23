@@ -17,7 +17,7 @@ export function PopularChainsSection({ stores }: { stores: StoreRow[] }) {
           return (
             <Link
               key={store.id}
-              href={`/stores/${store.slug}`}
+              href={`/stores/${store.slug ?? store.id}`}
               className="shrink-0 flex flex-col items-center gap-1.5 w-[72px]"
             >
               <div className="relative w-[60px] h-[60px] rounded-full bg-white border border-gray-100 shadow-sm overflow-hidden">

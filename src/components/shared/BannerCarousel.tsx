@@ -12,6 +12,8 @@ type Props = {
   intervalMs?: number
   /** Absolutely fill the nearest positioned ancestor instead of sizing itself via `className` (e.g. layering behind a search bar). */
   fill?: boolean
+  /** 'cover' (default) crops to fill the frame; 'contain' shows the whole image, letterboxed. */
+  fit?: 'cover' | 'contain'
 }
 
 function resolveHref(banner: WebsiteBanner): string | null {
@@ -21,7 +23,7 @@ function resolveHref(banner: WebsiteBanner): string | null {
   return null
 }
 
-export function BannerCarousel({ banners, className = '', intervalMs = 5000, fill = false }: Props) {
+export function BannerCarousel({ banners, className = '', intervalMs = 5000, fill = false, fit = 'cover' }: Props) {
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -56,7 +58,7 @@ export function BannerCarousel({ banners, className = '', intervalMs = 5000, fil
         key={banner.id}
         src={banner.media_url}
         poster={banner.thumbnail_url ?? undefined}
-        className="absolute inset-0 h-full w-full object-cover"
+        className={`absolute inset-0 h-full w-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
         autoPlay
         muted
         loop
@@ -70,13 +72,13 @@ export function BannerCarousel({ banners, className = '', intervalMs = 5000, fil
         fill
         sizes="100vw"
         priority={active === 0}
-        className="object-cover object-center"
+        className={fit === 'contain' ? 'object-contain object-center' : 'object-cover object-center'}
       />
     )
 
   return (
     <div
-      className={`${fill ? 'absolute inset-0' : 'relative w-full'} overflow-hidden rounded-2xl bg-slate-100 ${className}`}
+      className={`${fill ? 'absolute inset-0' : 'relative w-full'} overflow-hidden rounded-2xl ${className}`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

@@ -4,10 +4,28 @@
  *
  * The app shows the cashback badge only for a merchant that `canPayBill` and
  * `isPaidMerchant`, then picks the art by membership plan (free → 0.5%,
- * premiere → 1.5%, black → 3%). The web has no membership context, so it is
- * always the free-plan 0.5% case — `showsCashbackBadge` returns whether to show
- * `/0.5Cashback.png`.
+ * premiere → verified 0.5% / preferred 1.5%, black → verified 0.5% / preferred
+ * 3%) — see `getCashbackBadgeArt`. `showsCashbackBadge` is the plain
+ * eligibility check kept for callers that only need a boolean.
  */
+
+export type CashbackPlan = 'free' | 'premiere' | 'black';
+
+// App parity: utils/cashbackBadge.js PLAN_BADGES
+const PLAN_BADGES: Record<CashbackPlan, { verified: string; preferred: string }> = {
+  free: {
+    verified: '/membership/Lite_theme_free_0.5.webp',
+    preferred: '/membership/Lite_theme_free_0.5.webp',
+  },
+  premiere: {
+    verified: '/membership/Lite_Theme_Plus_0.5.webp',
+    preferred: '/membership/Lite_Theme_Plus_1.5.webp',
+  },
+  black: {
+    verified: '/membership/Lite_Theme_Black_0.5.webp',
+    preferred: '/membership/Lite_Theme_Black_3.webp',
+  },
+};
 
 export type MerchantCapabilityFields = {
   merchant_type?: string | null;
@@ -62,9 +80,22 @@ export function canPayBill(e: MerchantCapabilityFields): boolean {
   return level >= SERVICE_LEVELS.payments && !notOnboarded(e);
 }
 
-/** Free-plan web: show the 0.5% cashback badge when the merchant qualifies. */
-export function showsCashbackBadge(e: MerchantCapabilityFields): boolean {
-  if (!canPayBill(e) || !isPaidMerchant(e)) return false;
+function merchantTierOf(e: MerchantCapabilityFields): 'preferred' | 'verified' | null {
+  if (!canPayBill(e) || !isPaidMerchant(e)) return null;
   const type = String(e.merchant_type ?? '').trim().toLowerCase();
-  return type === 'preferred' || type === 'verified';
+  return type === 'preferred' || type === 'verified' ? type : null;
+}
+
+/** Whether the cashback badge should show at all, regardless of which art. */
+export function showsCashbackBadge(e: MerchantCapabilityFields): boolean {
+  return merchantTierOf(e) !== null;
+}
+
+/** App parity: getEntityCashbackBadge — the actual badge art for this merchant + the viewer's plan. */
+export function getCashbackBadgeArt(
+  e: MerchantCapabilityFields,
+  plan: CashbackPlan,
+): string | null {
+  const tier = merchantTierOf(e);
+  return tier ? PLAN_BADGES[plan][tier] : null;
 }

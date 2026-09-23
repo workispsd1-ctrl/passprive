@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { SubscriptionPlan, UserMembership } from '@/lib/types/subscription'
+import type { CashbackPlan } from '@/lib/cashback'
 
 export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
   const supabase = await createClient()
@@ -29,4 +30,17 @@ export async function getUserMembership(userId: string): Promise<UserMembership 
     membership_expiry: data.membership_expiry ?? null,
     cashback_rate: isExpired ? 0.5 : (data.cashback ?? 0.5),
   }
+}
+
+/**
+ * The viewer's cashback plan bucket — app parity: cashbackBadge.js
+ * normalizePlan (tier free-text like "Privé Black" → free/premiere/black).
+ * Logged-out visitors and anyone without an active paid tier get 'free'.
+ */
+export async function getUserPlan(userId: string | undefined | null): Promise<CashbackPlan> {
+  if (!userId) return 'free'
+  const membership = await getUserMembership(userId)
+  const tier = (membership?.membership_tier ?? 'none').toLowerCase()
+  if (!tier || tier === 'none') return 'free'
+  return tier.includes('black') ? 'black' : 'premiere'
 }

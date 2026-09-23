@@ -17,7 +17,7 @@ type Result = {
 };
 
 interface Props {
-  variant?: 'mobile' | 'desktop-inline' | 'hero';
+  variant?: 'mobile' | 'desktop-inline' | 'hero' | 'desktop-full';
   onClose?: () => void;
 }
 
@@ -78,6 +78,11 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
     if (e.key === 'Escape') {
       setIsOpen(false);
       onClose?.();
+    } else if (e.key === 'Enter' && trimmed.length >= 2) {
+      // App parity: submitting opens the full GlobalSearch screen
+      setIsOpen(false);
+      onClose?.();
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     }
   }
 
@@ -216,6 +221,69 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
             onKeyDown={handleKey}
             placeholder={'Search for “Sneakers” around you'}
             className='min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) text-[15px] leading-5 tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C] 2xl:text-[20px]'
+            autoComplete='off'
+            aria-label='Search'
+          />
+          {query && (
+            <button
+              type='button'
+              aria-label='Clear search'
+              onClick={clear}
+              className='shrink-0'
+            >
+              <X className='h-4 w-4 text-gray-400' />
+            </button>
+          )}
+        </div>
+
+        {showResults && (
+          <div className='absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-y-auto overscroll-contain rounded-2xl border border-gray-100 bg-white shadow-lg'>
+            {stores.length > 0 && (
+              <>
+                <div className='px-4 pt-2.5 pb-1'>
+                  <span className='text-[10px] font-semibold uppercase tracking-wide text-gray-400'>
+                    Stores
+                  </span>
+                </div>
+                <ul>{stores.map(renderItem)}</ul>
+              </>
+            )}
+            {restaurants.length > 0 && (
+              <>
+                <div className='border-t border-gray-50 px-4 pt-2.5 pb-1'>
+                  <span className='text-[10px] font-semibold uppercase tracking-wide text-gray-400'>
+                    Restaurants
+                  </span>
+                </div>
+                <ul>{restaurants.map(renderItem)}</ul>
+              </>
+            )}
+          </div>
+        )}
+        {showEmpty && (
+          <div className='absolute left-0 right-0 top-full z-50 mt-2 rounded-2xl border border-gray-100 bg-white px-4 py-5 text-center shadow-lg'>
+            <p className='text-[12px] text-gray-400'>
+              No results for &quot;{query}&quot;
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (variant === 'desktop-full') {
+    return (
+      <div ref={containerRef} className='relative w-full'>
+        <div className='flex h-10 items-center gap-2 rounded-full bg-[#F6F4F4] px-4 2xl:h-12 2xl:px-5'>
+          <Search className='h-4.5 w-4.5 shrink-0 text-[#FF6A19] 2xl:h-5 2xl:w-5' aria-hidden='true' />
+          <span className='h-5 w-px shrink-0 bg-[#E4E4E4] 2xl:h-6' aria-hidden='true' />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder={'Search for “Sneakers” around you'}
+            className='min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) text-[13px] leading-5 font-normal not-italic tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C] 2xl:text-[15px]'
             autoComplete='off'
             aria-label='Search'
           />

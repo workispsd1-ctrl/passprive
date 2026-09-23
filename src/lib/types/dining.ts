@@ -137,6 +137,8 @@ export type FeaturedRestaurant = {
   booking_enabled: boolean;
   repeat_rewards_enabled: boolean;
   booking_service_type: string | null;
+  /** set by the feed RPC when it was called with the user's coordinates */
+  distance_km?: number | null;
 };
 
 /** A row of `restaurant_mood_categories` — app parity: IntheMoodFor.jsx */
@@ -148,14 +150,3 @@ export type MoodCategory = {
   sort_order: number | null;
 };
 
-/** A row of `offers_for_you_cards` — app parity: components/Home/OffersForYou.jsx */
-export type OfferForYouCard = {
-  id: string;
-  image_url: string;
-  title: string | null;
-  type: string | null;
-  link_url: string | null;
-  detail_title: string | null;
-  detail_body: string | null;
-  hero_url: string | null;
-};

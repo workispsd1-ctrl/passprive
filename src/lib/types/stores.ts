@@ -109,10 +109,12 @@ export type SectionStore = {
     name: string
     slug: string
     logo_url: string | null
+    cover_image: string | null
     location_name: string | null
     city: string | null
     lat: number | null
     lng: number | null
+    store_offers?: StoreOffer[]
   }
 }
 

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? '';
+  const limit = Math.min(40, Math.max(1, Number(req.nextUrl.searchParams.get('limit')) || 6));
   if (q.length < 2) return NextResponse.json([]);
 
 
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
       `name.ilike.%${safe}%,category.ilike.%${safe}%,subcategory.ilike.%${safe}%,location_name.ilike.%${safe}%,city.ilike.%${safe}%`,
     )
     .eq('is_active', true)
-    .limit(6);
+    .limit(limit);
 
   const { data: restaurantsData } = await supabase
     .from('restaurants')
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
       `name.ilike.%${safe}%,area.ilike.%${safe}%,city.ilike.%${safe}%,description.ilike.%${safe}%`,
     )
     .eq('is_active', true)
-    .limit(6);
+    .limit(limit);
 
   const { data: touristData } = await supabase
     .from('tourist_places')
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
       `place_name.ilike.%${safe}%,area.ilike.%${safe}%,city.ilike.%${safe}%,description.ilike.%${safe}%`,
     )
     .eq('is_active', true)
-    .limit(6);
+    .limit(limit);
 
   const combined = [
     ...(storesData ?? []).map((item) => ({ ...item, type: 'store' })),

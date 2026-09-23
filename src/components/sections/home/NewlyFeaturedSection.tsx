@@ -2,10 +2,11 @@
 
 import { useMemo } from 'react';
 import { useLocation } from '@/lib/context/LocationContext';
+import { useUserPlan } from '@/lib/context/PlanContext';
 import { formatDistanceKm, haversineKm, sortByMerchant } from '@/lib/utils';
-import { showsCashbackBadge } from '@/lib/cashback';
+import { getCashbackBadgeArt, type CashbackPlan } from '@/lib/cashback';
 import { HScroll } from './HScroll';
-import { CARD_FRAME_COLORS, MerchantCard } from './MerchantCard';
+import { MerchantCard } from './MerchantCard';
 import type { FeaturedRestaurant } from '@/lib/types/dining';
 import type { StoreRow } from '@/lib/types/stores';
 
@@ -22,13 +23,13 @@ type FeedCard = {
   tagline?: string;
   offerLabel?: string;
   merchant_type: string | null;
-  cashback: boolean;
+  cashbackArt: string | null;
   city: string | null;
   lat: number | null;
   lng: number | null;
 };
 
-function restaurantToCard(r: FeaturedRestaurant): FeedCard {
+function restaurantToCard(r: FeaturedRestaurant, plan: CashbackPlan): FeedCard {
   return {
     key: `r-${r.id}`,
     href: `/dining/${r.slug ?? r.id}`,
@@ -40,17 +41,17 @@ function restaurantToCard(r: FeaturedRestaurant): FeedCard {
     tagline: r.cuisines.length ? r.cuisines.join(', ') : undefined,
     offerLabel: r.offer_badge ?? undefined,
     merchant_type: r.merchant_type,
-    cashback: showsCashbackBadge(r),
+    cashbackArt: getCashbackBadgeArt(r, plan),
     city: r.city,
     lat: r.latitude,
     lng: r.longitude,
   };
 }
 
-function storeToCard(s: StoreRow): FeedCard {
+function storeToCard(s: StoreRow, plan: CashbackPlan): FeedCard {
   return {
     key: `s-${s.id}`,
-    href: `/stores/${s.slug}`,
+    href: `/stores/${s.slug ?? s.id}`,
     saveId: s.id,
     saveType: 'STORE',
     image: s.cover_image ?? s.logo_url,
@@ -59,7 +60,7 @@ function storeToCard(s: StoreRow): FeedCard {
     tagline: s.description ?? undefined,
     offerLabel: s.store_offers?.[0]?.badge_text ?? undefined,
     merchant_type: s.merchant_type,
-    cashback: showsCashbackBadge(s),
+    cashbackArt: getCashbackBadgeArt(s, plan),
     city: s.city,
     lat: s.lat,
     lng: s.lng,
@@ -82,12 +83,13 @@ export function NewlyFeaturedSection({
   stores?: StoreRow[];
 }) {
   const { location } = useLocation();
+  const plan = useUserPlan();
   const userCity = location.city.trim().toLowerCase();
   const { lat: userLat, lng: userLng } = location;
 
   const cards = useMemo(() => {
-    const r = restaurants.map(restaurantToCard);
-    const s = stores.map(storeToCard);
+    const r = restaurants.map((item) => restaurantToCard(item, plan));
+    const s = stores.map((item) => storeToCard(item, plan));
 
     // interleave restaurant, store, restaurant, store, …
     const mixed: FeedCard[] = [];
@@ -104,13 +106,13 @@ export function NewlyFeaturedSection({
     });
 
     return sortByMerchant(cityBias).slice(0, MAX_CARDS);
-  }, [restaurants, stores, userCity]);
+  }, [restaurants, stores, userCity, plan]);
 
   if (!cards.length) return null;
 
   return (
     <HScroll title="In the limelight">
-      {cards.map((card, i) => {
+      {cards.map((card) => {
         const dist =
           userLat != null && userLng != null && card.lat != null && card.lng != null
             ? haversineKm(userLat, userLng, card.lat, card.lng)
@@ -130,9 +132,7 @@ export function NewlyFeaturedSection({
             meta={meta || undefined}
             tagline={card.tagline}
             offerLabel={card.offerLabel}
-            frameColor={CARD_FRAME_COLORS[i % CARD_FRAME_COLORS.length]}
-            // App parity: getEntityCashbackBadge — canPayBill && isPaidMerchant
-            cashback={card.cashback}
+            cashbackArt={card.cashbackArt}
           />
         );
       })}

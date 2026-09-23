@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Header, Footer } from '@/components/layout'
+import { Header } from '@/components/layout'
 
 export default function NotFound() {
   return (
@@ -37,7 +37,6 @@ export default function NotFound() {
         </div>
 
       </main>
-      <Footer />
     </>
   )
 }

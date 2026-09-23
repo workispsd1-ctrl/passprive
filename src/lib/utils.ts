@@ -51,3 +51,19 @@ export function formatDistanceKm(
   const n = typeof km === 'number' ? km : Number(km)
   return Number.isFinite(n) ? `${n.toFixed(1)}${suffix}` : null
 }
+
+/**
+ * Location-scopes a store list: nearest first when the user's coordinates are
+ * known (stores without coordinates go last), otherwise unchanged.
+ */
+export function sortByDistanceFrom<T extends { lat: number | null; lng: number | null }>(
+  items: T[],
+  coords: { lat: number; lng: number } | null,
+): T[] {
+  if (!coords) return items
+  const d = (i: T) =>
+    i.lat != null && i.lng != null
+      ? haversineKm(coords.lat, coords.lng, i.lat, i.lng)
+      : Number.POSITIVE_INFINITY
+  return [...items].sort((a, b) => d(a) - d(b))
+}

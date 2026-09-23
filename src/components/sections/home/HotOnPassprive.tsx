@@ -20,8 +20,7 @@ export function HotOnPassprive({
       {collections.map((c) => (
         <Link
           key={c.id}
-          // TODO(design): no collection detail route on web yet
-          href="#"
+          href={`/collections/${c.slug}`}
           className="w-81.5 shrink-0"
         >
           <div className="relative aspect-326/218 overflow-hidden rounded-[16px] bg-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">

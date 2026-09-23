@@ -2,16 +2,14 @@
 
 import { useMemo } from 'react'
 import { useLocation } from '@/lib/context/LocationContext'
+import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm } from '@/lib/utils'
-import { showsCashbackBadge } from '@/lib/cashback'
+import { getCashbackBadgeArt } from '@/lib/cashback'
 import { HScroll } from './HScroll'
 import { MerchantCard } from './MerchantCard'
 import type { StoreRow } from '@/lib/types/stores'
 
 const MAX_CARDS = 12
-
-// Salon visit uses its own frame/offer-strip palette.
-const FRAME_COLORS = ['#363847', '#006E83', '#503629', '#916E72']
 
 // App parity: components/Home/PlanYourSalonVisit.jsx → isSalonStore()
 function isSalonStore(s: StoreRow): boolean {
@@ -33,6 +31,7 @@ function isSalonStore(s: StoreRow): boolean {
  */
 export function SalonVisitSection({ stores }: { stores: StoreRow[] }) {
   const { location } = useLocation()
+  const plan = useUserPlan()
   const userCity = location.city.trim().toLowerCase()
   const { lat: userLat, lng: userLng } = location
 
@@ -56,7 +55,7 @@ export function SalonVisitSection({ stores }: { stores: StoreRow[] }) {
       title="Plan your salon visit"
       className="relative left-1/2 w-screen -translate-x-1/2 bg-[#FFF7F2]"
     >
-      {list.map((s, i) => {
+      {list.map((s) => {
         const dist =
           userLat != null && userLng != null && s.lat != null && s.lng != null
             ? haversineKm(userLat, userLng, s.lat, s.lng)
@@ -68,7 +67,7 @@ export function SalonVisitSection({ stores }: { stores: StoreRow[] }) {
         return (
           <MerchantCard
             key={s.id}
-            href={`/stores/${s.slug}`}
+            href={`/stores/${s.slug ?? s.id}`}
             saveId={s.id}
             saveType="STORE"
             image={s.cover_image ?? s.logo_url}
@@ -76,8 +75,7 @@ export function SalonVisitSection({ stores }: { stores: StoreRow[] }) {
             meta={meta || undefined}
             tagline={s.description ?? undefined}
             offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
-            cashback={showsCashbackBadge(s)}
-            frameColor={FRAME_COLORS[i % FRAME_COLORS.length]}
+            cashbackArt={getCashbackBadgeArt(s, plan)}
           />
         )
       })}

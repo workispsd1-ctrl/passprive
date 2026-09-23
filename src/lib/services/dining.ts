@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { FEED_PAGE_SIZE, NEARBY_RADIUS_KM, toRpcArgs, type Coords, type FeedFilters } from '@/lib/restaurantFilters';
 import type {
   Restaurant,
   DiningOffer,
@@ -9,7 +10,6 @@ import type {
   FeaturedRestaurant,
   RestaurantHours,
   MoodCategory,
-  OfferForYouCard,
 } from '@/lib/types/dining';
 
 const SELECT_FIELDS =
@@ -23,16 +23,124 @@ const SELECT_FIELDS =
  */
 export async function getNewRestaurants(
   limit = 8,
+  coords?: Coords | null,
 ): Promise<FeaturedRestaurant[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc('restaurant_feed', {
-    in_lat: null,
-    in_lng: null,
-    in_limit: limit,
+    in_lat: coords?.lat ?? null,
+    in_lng: coords?.lng ?? null,
+    in_limit: coords ? Math.max(limit, 30) : limit,
     in_offset: 0,
-    in_sort: 'newest',
+    in_sort: coords ? 'distance' : 'newest',
   });
-  return (data ?? []) as FeaturedRestaurant[];
+  const rows = (data ?? []) as FeaturedRestaurant[];
+  return coords ? nearbyOrAll(rows).slice(0, limit) : rows;
+}
+
+/**
+ * App parity: nearby-radius scoping (NEARBY_RADIUS_KM) for curated rails. If
+ * nothing is within the radius (e.g. a visitor outside Mauritius) the nearest
+ * ones are kept rather than leaving the rail empty.
+ */
+export function nearbyOrAll(rows: FeaturedRestaurant[]): FeaturedRestaurant[] {
+  const near = rows.filter(
+    (r) => r.distance_km != null && r.distance_km <= NEARBY_RADIUS_KM,
+  );
+  return near.length ? near : rows;
+}
+
+/**
+ * One page of the filtered "All restaurants" feed — app parity:
+ * fetchRestaurantFeedPage. `instant` has no RPC param, so (like the app) it
+ * fetches bookable restaurants and trims client-side.
+ */
+export async function getRestaurantFeed(
+  filters: FeedFilters,
+  offset = 0,
+  limit = FEED_PAGE_SIZE,
+  coords?: Coords | null,
+): Promise<FeaturedRestaurant[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('restaurant_feed', toRpcArgs(filters, limit, offset, coords));
+  const rows = (data ?? []) as FeaturedRestaurant[];
+  return filters.badge === 'instant'
+    ? rows.filter((r) => r.booking_service_type === 'instant')
+    : rows;
+}
+
+
+export type PromotionalCollection = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  hasBanner: boolean;
+  restaurants: FeaturedRestaurant[];
+};
+
+/**
+ * CMS promo banners + their mood-matched restaurant rail — app parity:
+ * components/Home/PromotionalCards.jsx → loadPromotionalCards(screen):
+ * active `promotional_collections` rows for the screen inside their
+ * starts_at/ends_at window, each paired with up to 12 restaurants tagged with
+ * the collection's linked mood category (via the feed's `in_experience`).
+ * The banner itself is served by /api/promo-banner/[id] (rows store it as an
+ * inline base64 image, far too large to ship in the page payload).
+ */
+export async function getPromotionalCollections(
+  screen: string,
+  coords?: Coords | null,
+): Promise<PromotionalCollection[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('promotional_collections')
+    .select('id, title, subtitle, starts_at, ends_at, restaurant_mood_categories(title)')
+    .eq('is_active', true)
+    .contains('screens', [screen])
+    .order('sort_order', { ascending: true });
+
+  const now = Date.now();
+  const active = (data ?? []).filter((c) => {
+    const start = c.starts_at ? Date.parse(c.starts_at) : NaN;
+    const end = c.ends_at ? Date.parse(c.ends_at) : NaN;
+    return (Number.isNaN(start) || start <= now) && (Number.isNaN(end) || end >= now);
+  });
+  if (!active.length) return [];
+
+  const { data: withBanner } = await supabase
+    .from('promotional_collections')
+    .select('id')
+    .in('id', active.map((c) => c.id))
+    .not('banner_image_url', 'is', null);
+  const bannerIds = new Set((withBanner ?? []).map((r) => r.id));
+
+  return Promise.all(
+    active.map(async (c) => {
+      const rel = c.restaurant_mood_categories as
+        | { title: string }
+        | { title: string }[]
+        | null;
+      const moodTitle = Array.isArray(rel) ? rel[0]?.title : rel?.title;
+      const restaurants = moodTitle
+        ? await getRestaurantFeed({ moodTitle }, 0, 12, coords)
+        : [];
+      return {
+        id: c.id as string,
+        title: c.title as string,
+        subtitle: (c.subtitle as string | null) ?? null,
+        hasBanner: bannerIds.has(c.id),
+        restaurants,
+      };
+    }),
+  );
+}
+
+/** Cuisine options for the filter dialog — app parity: restaurant_cuisine_facets. */
+export async function getCuisineFacets(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('restaurant_cuisine_facets');
+  return ((data ?? []) as { cuisine: string }[])
+    .map((r) => r.cuisine)
+    .filter(Boolean);
 }
 
 /**
@@ -112,20 +220,6 @@ export async function getMoodCategories(): Promise<MoodCategory[]> {
       image_url: image,
     };
   });
-}
-
-/**
- * "Bank offers" cards — app parity: OffersForYou.jsx →
- * `fetchOffersForYou` (dinein screen passes `title="Bank Offer"`).
- */
-export async function getOffersForYouCards(): Promise<OfferForYouCard[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('offers_for_you_cards')
-    .select('id, image_url, title, type, link_url, detail_title, detail_body, hero_url')
-    .eq('enabled', true)
-    .order('sort_order', { ascending: true });
-  return (data ?? []) as OfferForYouCard[];
 }
 
 export async function getActiveRestaurants(limit = 10): Promise<Restaurant[]> {

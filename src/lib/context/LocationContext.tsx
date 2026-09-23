@@ -1,6 +1,8 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { COORDS_COOKIE } from '@/lib/locationCookie'
 
 interface LocationState {
   city: string
@@ -58,6 +60,7 @@ async function forwardGeocode(city: string): Promise<{ lat: number; lng: number 
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useState<LocationState>(DEFAULT)
+  const router = useRouter()
 
   const detectFromGPS = useCallback(() => {
     if (!navigator.geolocation) return
@@ -86,6 +89,18 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => { detectFromGPS() }, [detectFromGPS])
+
+  // Mirror the coordinates into a cookie so server-rendered feeds can be
+  // location-scoped (distance sort / nearby radius), then re-render once when
+  // they first arrive or change (e.g. a different city is picked).
+  const { lat, lng } = location
+  useEffect(() => {
+    if (lat == null || lng == null) return
+    const value = `${lat.toFixed(3)},${lng.toFixed(3)}`
+    if (document.cookie.split('; ').includes(`${COORDS_COOKIE}=${value}`)) return
+    document.cookie = `${COORDS_COOKIE}=${value}; path=/; max-age=${30 * 86400}; samesite=lax`
+    router.refresh()
+  }, [lat, lng, router])
 
   return (
     <LocationContext.Provider value={{ location, setLocationByCity, detectFromGPS }}>

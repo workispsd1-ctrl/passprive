@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { HScroll } from '@/components/sections/home/HScroll'
 import { cn } from '@/lib/utils'
 import type { StoreMoodCategory } from '@/lib/types/stores'
 
@@ -10,38 +11,52 @@ interface Props {
   onSelect: (slug: string) => void
 }
 
+/**
+ * "What's on your mind?" — same rail as the dining page's MoodCategoriesSection
+ * (image-only tiles, no label), reused here as filter buttons for the store
+ * grid below instead of static links.
+ */
 export function CategoryBar({ moodCategories, active, onSelect }: Props) {
+  if (!moodCategories.length) return null
+
   return (
-    <section className="relative bg-white pt-5 pb-4 overflow-hidden">
-      <div className="px-4 md:px-6">
-        <h2 className="text-[15px] font-bold text-gray-900 mb-3">Shop by Category</h2>
-        <div className="flex gap-6 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1 md:mx-0 md:px-0 md:overflow-visible md:grid md:grid-cols-[repeat(auto-fit,minmax(90px,1fr))]">
-          {moodCategories.map(cat => {
-            const imgUrl = cat.light_theme_image_url ?? cat.image_url
-            return (
-              <button
-                key={cat.slug}
-                type="button"
-                onClick={() => onSelect(cat.slug)}
-                className={cn(
-                  'relative shrink-0 rounded-xl overflow-hidden w-24 aspect-square md:w-full transition-all',
-                  active === cat.slug ? 'ring-2 ring-inset ring-brand' : 'ring-2 ring-inset ring-transparent',
-                )}
-              >
-                {imgUrl && (
-                  <Image
-                    src={imgUrl}
-                    alt={cat.title}
-                    fill
-                    className="object-fill"
-                    sizes="(max-width: 768px) 96px, 20vw"
-                  />
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </section>
+    <HScroll
+      title="What&rsquo;s on your mind?"
+      maxWidthClassName="max-w-7xl 2xl:max-w-394"
+      gapClassName="gap-2 2xl:gap-4"
+    >
+      {moodCategories.map((cat) => {
+        const imgUrl = cat.light_theme_image_url ?? cat.image_url
+        const isActive = active === cat.slug
+
+        return (
+          <button
+            key={cat.slug}
+            type="button"
+            aria-label={cat.title}
+            aria-pressed={isActive}
+            onClick={() => onSelect(cat.slug)}
+            className="w-32.75 shrink-0 2xl:w-45.75"
+          >
+            <div
+              className={cn(
+                'relative h-34.5 w-full overflow-hidden rounded-[17px] ring-2 ring-inset transition-colors 2xl:h-47.5 2xl:rounded-[24px]',
+                isActive ? 'ring-brand' : 'ring-transparent',
+              )}
+            >
+              {imgUrl && (
+                <Image
+                  src={imgUrl}
+                  alt={cat.title}
+                  fill
+                  className="object-cover"
+                  sizes="183px"
+                />
+              )}
+            </div>
+          </button>
+        )
+      })}
+    </HScroll>
   )
 }

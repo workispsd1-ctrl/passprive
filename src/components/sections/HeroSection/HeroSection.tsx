@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import { HeroSearchBar } from './HeroSearchBar';
 import { BannerCarousel } from '@/components/shared/BannerCarousel';
 import { getWebsiteBanners } from '@/lib/services/websiteBanners';
 
@@ -81,7 +80,6 @@ export async function HeroSection() {
               </em>
             </p>
           )}
-          <HeroSearchBar />
         </div>
       </div>
     </section>

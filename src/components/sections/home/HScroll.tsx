@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils'
 const SCROLL_BY = 320
 
 interface Props {
-  title: string
+  /** omit for a headerless rail (e.g. a promo banner's restaurant strip) */
+  title?: string
   subtitle?: string
   /** extra classes on the <section>, e.g. a peach band background */
   className?: string
@@ -60,7 +61,7 @@ export function HScroll({
   }
 
   const arrowBase =
-    'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1F1F1F] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] transition-opacity hover:text-gray-900'
+    'absolute top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1F1F1F] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] transition-opacity hover:text-gray-900'
   const arrowIcon = 'h-[27.7px] w-[14.87px]'
 
   return (
@@ -68,17 +69,19 @@ export function HScroll({
       {/* Keep the header + rail aligned with the page's max-w-7xl content even
           when a caller makes the <section> full-bleed (e.g. a peach band). */}
       <div className={cn('mx-auto w-full', maxWidthClassName)}>
-        <div className="mb-4 px-4 md:px-8">
-          {/* DM Sans Bold, scaling from 19px up to 20px on large screens —
-              kept at 700 weight throughout; 900/Black and 32px both read too
-              heavy at full size. */}
-          <h3 className="font-(family-name:--font-dm-sans) text-[19px] font-bold leading-none tracking-normal text-[#0D141C] md:text-[20px]">
-            {title}
-          </h3>
-          {subtitle && (
-            <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>
-          )}
-        </div>
+        {title && (
+          <div className="mb-4 px-4 md:px-8">
+            {/* DM Sans Bold, scaling from 19px up to 20px on large screens —
+                kept at 700 weight throughout; 900/Black and 32px both read too
+                heavy at full size. */}
+            <h3 className="font-(family-name:--font-dm-sans) text-[19px] font-bold leading-none tracking-normal text-[#0D141C] md:text-[20px]">
+              {title}
+            </h3>
+            {subtitle && (
+              <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>
+            )}
+          </div>
+        )}
 
         <div className="relative">
         <button

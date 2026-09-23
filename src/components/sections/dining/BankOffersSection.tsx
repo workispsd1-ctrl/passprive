@@ -9,7 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { OfferForYouCard } from '@/lib/types/dining'
+import { useRouter } from 'next/navigation'
+import type { OfferForYouCard } from '@/lib/types/offersForYou'
 
 function toPoints(body: string | null): string[] {
   if (!body) return []
@@ -20,35 +21,51 @@ function toPoints(body: string | null): string[] {
 }
 
 /**
- * "Bank offers" — app parity: components/Home/OffersForYou.jsx, rendered
- * on the dining screen with `title="Bank Offer"`. Same table
- * (`offers_for_you_cards`), same tap behaviour: `type: "link"` opens
- * `link_url`, otherwise a detail sheet with `detail_title`/`detail_body`.
+ * `offers_for_you_cards` rail — app parity: components/Home/OffersForYou.jsx.
+ * "Offers for you" on home, "Bank offers" on dining. Tap behaviour: link →
+ * opens `link_url`, screen → navigates, otherwise a detail sheet with
+ * `hero_url`/`detail_title`/`detail_body`.
  */
-export function BankOffersSection({ cards }: { cards: OfferForYouCard[] }) {
+export function BankOffersSection({
+  cards,
+  title = 'Bank offers',
+  className,
+}: {
+  cards: OfferForYouCard[]
+  title?: string
+  className?: string
+}) {
+  const router = useRouter()
   const [active, setActive] = useState<OfferForYouCard | null>(null)
+
+  /** App parity: OffersForYou.jsx handlePress — link → URL, screen → route, else detail sheet. */
+  function open(card: OfferForYouCard) {
+    if (card.type === 'link' && card.link_url) {
+      window.open(card.link_url, '_blank', 'noopener,noreferrer')
+    } else if (card.type === 'screen') {
+      if (card.target_kind === 'restaurant' && card.target_id) router.push(`/dining/${card.target_id}`)
+      else if (card.target_kind === 'store' && card.target_id) router.push(`/stores/${card.target_id}`)
+      else if (card.target_route) router.push(card.target_route)
+    } else {
+      setActive(card)
+    }
+  }
 
   if (!cards.length) return null
 
   return (
     <>
-      <HScroll title="Bank offers">
+      <HScroll title={title} className={className}>
         {cards.map((card) => (
           <button
-            key={card.id}
+            key={String(card.id)}
             type="button"
-            onClick={() => {
-              if (card.type === 'link' && card.link_url) {
-                window.open(card.link_url, '_blank', 'noopener,noreferrer')
-                return
-              }
-              setActive(card)
-            }}
+            onClick={() => open(card)}
             className="relative aspect-256/196 w-64 shrink-0 overflow-hidden rounded-2xl bg-gray-100"
           >
             <Image
               src={card.image_url}
-              alt={card.title ?? 'Bank offer'}
+              alt={card.detail_title ?? title}
               fill
               className="object-cover"
               sizes="256px"
@@ -63,7 +80,7 @@ export function BankOffersSection({ cards }: { cards: OfferForYouCard[] }) {
             <div className="relative aspect-video w-full bg-gray-100">
               <Image
                 src={active.hero_url}
-                alt={active.detail_title ?? active.title ?? 'Offer'}
+                alt={active.detail_title ?? 'Offer'}
                 fill
                 className="object-cover"
               />
@@ -71,7 +88,7 @@ export function BankOffersSection({ cards }: { cards: OfferForYouCard[] }) {
           )}
           <DialogHeader className="px-5 pt-4">
             <DialogTitle className="text-[15px] font-bold text-[#0D141C]">
-              {active?.detail_title ?? active?.title}
+              {active?.detail_title}
             </DialogTitle>
           </DialogHeader>
           <ul className="flex flex-col gap-2 px-5 pb-5 text-[13px] text-gray-600">

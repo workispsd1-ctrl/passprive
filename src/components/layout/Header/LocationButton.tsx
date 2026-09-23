@@ -57,27 +57,15 @@ export function LocationButton({ variant = 'desktop', theme = 'default' }: Props
         className={`flex shrink-0 items-center gap-2 transition-opacity hover:opacity-80 2xl:gap-2.75`}
       >
         <MapPin
-          className={`shrink-0 ${light ? 'h-7 w-7 text-white 2xl:h-10 2xl:w-10' : 'h-5 w-5 text-[#FF6A19] 2xl:h-6 2xl:w-6'}`}
+          className={`h-5 w-5 shrink-0 2xl:h-6 2xl:w-6 ${light ? 'text-white' : 'text-[#FF6A19]'}`}
           aria-hidden="true"
         />
         <div className="flex flex-col items-start gap-0.75 leading-tight">
-          <span
-            className={
-              light
-                ? 'font-(family-name:--font-dm-sans) text-[15px] font-bold leading-5 tracking-normal text-white 2xl:text-[20px]'
-                : 'text-[14px] font-bold text-[#0D141C] 2xl:text-[16px]'
-            }
-          >
+          <span className={`text-[14px] font-bold 2xl:text-[16px] ${light ? 'text-white' : 'text-[#0D141C]'}`}>
             {cityLabel}
           </span>
           {stateLabel && (
-            <span
-              className={
-                light
-                  ? 'font-(family-name:--font-dm-sans) text-[13px] font-medium leading-5 tracking-normal text-[#606366] 2xl:text-[16px]'
-                  : 'text-[12px] text-gray-400 2xl:text-[13px]'
-              }
-            >
+            <span className={`text-[12px] 2xl:text-[13px] ${light ? 'text-white/80' : 'text-gray-400'}`}>
               {stateLabel}
             </span>
           )}

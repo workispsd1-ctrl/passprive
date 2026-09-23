@@ -12,7 +12,7 @@ export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
       {items.map((store) => (
         <Link
           key={store.id}
-          href={`/stores/${store.slug}`}
+          href={`/stores/${store.slug ?? store.id}`}
           className="relative block aspect-420/548 w-80 shrink-0 overflow-hidden rounded-[20px] bg-gray-900 2xl:w-105"
         >
           {store.cover_image ? (

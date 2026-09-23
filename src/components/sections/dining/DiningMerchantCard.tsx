@@ -7,14 +7,14 @@ import { Heart, Flame, Grid2x2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSaved } from '@/lib/context/SavedContext'
 import { SaveListSheet } from '@/components/SaveListSheet'
-import { CARD_FRAME_COLORS } from '@/components/sections/home/MerchantCard'
 
 interface Props {
   id: string
   slug: string | null
   name: string
   image: string | null
-  cashback: boolean
+  /** app parity: getEntityCashbackBadge / getCashbackBadgeArt — null hides the badge */
+  cashbackArt: string | null
   offerLabel?: string
   trending: boolean
   /** repeat-rewards / "stamp" mood tag — app parity: RestaurantCard.jsx getTags() */
@@ -23,8 +23,10 @@ interface Props {
   ratingCount?: number
   meta?: string
   tagline?: string
-  frameColor?: string
 }
+
+/** Frame + offer-strip colour — fixed across every card, no per-card variation. */
+const FRAME_COLOR = 'rgba(255, 106, 48, 1)'
 
 /** Splits "Flat 15% OFF + bank benefits" into a bold head and a regular tail. */
 function OfferText({ text }: { text: string }) {
@@ -54,7 +56,7 @@ export function DiningMerchantCard({
   slug,
   name,
   image,
-  cashback,
+  cashbackArt,
   offerLabel,
   trending,
   stampSheet,
@@ -62,7 +64,6 @@ export function DiningMerchantCard({
   ratingCount,
   meta,
   tagline,
-  frameColor = CARD_FRAME_COLORS[0],
 }: Props) {
   const { isSaved, toggle, setSaved } = useSaved()
   const saved = isSaved(id)
@@ -89,7 +90,7 @@ export function DiningMerchantCard({
 
       <div
         className="relative mx-2 mt-1.75 overflow-hidden rounded-[15px]"
-        style={{ backgroundColor: frameColor }}
+        style={{ backgroundColor: FRAME_COLOR }}
       >
         <div className="relative aspect-87/100 overflow-hidden rounded-[15px]">
           {image ? (
@@ -104,15 +105,29 @@ export function DiningMerchantCard({
             <div className="absolute inset-0 bg-linear-to-br from-gray-200 to-gray-300" />
           )}
 
-          {cashback && (
-            <Image
-              src="/membership/Lite_theme_free_0.5.webp"
-              alt="Cashback"
-              width={492}
-              height={172}
-              className="pointer-events-none absolute left-1.5 top-1.5 w-30 2xl:w-36.25"
-              style={{ height: 'auto' }}
-            />
+          {cashbackArt && (
+            <>
+              {/* White curved backdrop the badge sits on — app parity:
+                  CashbackBadge.jsx's CardBg.webp (736×224), rounded to match
+                  the card's own top-left corner. */}
+              <div className="pointer-events-none absolute top-0 left-0 aspect-736/224 w-60 overflow-hidden rounded-tl-[15px] 2xl:w-73">
+                <Image
+                  src="/cashback-badge-backdrop.webp"
+                  alt=""
+                  fill
+                  className="object-cover object-top-left"
+                  sizes="240px"
+                />
+              </div>
+              <Image
+                src={cashbackArt}
+                alt="Cashback"
+                width={492}
+                height={172}
+                className="pointer-events-none absolute left-1.5 top-1.5 w-30 2xl:w-36.25"
+                style={{ height: 'auto' }}
+              />
+            </>
           )}
 
           <button
