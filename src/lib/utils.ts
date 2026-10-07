@@ -67,3 +67,24 @@ export function sortByDistanceFrom<T extends { lat: number | null; lng: number |
       : Number.POSITIVE_INFINITY
   return [...items].sort((a, b) => d(a) - d(b))
 }
+
+/**
+ * Location-scopes a store list: keeps only stores within `radiusKm` of the
+ * user (falling back to a same-city match when either side has no
+ * coordinates), same as the app's `matchesUserLocation`/`hasResolvedUserLocation`
+ * (`utils/locationScope.js`). Returns the list unchanged when the user's
+ * location hasn't resolved at all (no coords, no city).
+ */
+export function scopeByLocation<
+  T extends { lat?: number | null; lng?: number | null; city?: string | null },
+>(items: T[], coords: { lat: number; lng: number } | null, city: string, radiusKm: number): T[] {
+  const userCity = city.trim().toLowerCase()
+  if (!coords && !userCity) return items
+
+  return items.filter((i) => {
+    if (coords && i.lat != null && i.lng != null) {
+      return haversineKm(coords.lat, coords.lng, i.lat, i.lng) <= radiusKm
+    }
+    return userCity.length > 0 && (i.city ?? '').trim().toLowerCase() === userCity
+  })
+}

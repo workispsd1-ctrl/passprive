@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { DiningBooking } from '@/lib/types/bookings'
+import type { DiningBooking, StoreBooking } from '@/lib/types/bookings'
 
 const BOOKING_SELECT = 'id, restaurant_id, booking_date, booking_time, party_size, status, booking_code, source, customer_name, special_request, restaurants(id, name, slug, cover_image, area, full_address, cost_for_two, merchant_type)'
 
@@ -12,6 +12,30 @@ export async function getUserDiningBookings(userId: string): Promise<DiningBooki
     .order('booking_date', { ascending: false })
     .order('booking_time', { ascending: false })
   return (data ?? []) as unknown as DiningBooking[]
+}
+
+/**
+ * Store orders and service appointments — app parity: YourBookingsScreen.jsx,
+ * which lists `store_orders` alongside restaurant bookings (latest 50).
+ */
+export async function getUserStoreBookings(userId: string): Promise<StoreBooking[]> {
+  const supabase = await createClient()
+  const { data: orders } = await supabase
+    .from('store_orders')
+    .select('id, store_id, status, service_type, total_amount, slot_start_at, created_at')
+    .eq('customer_user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+  if (!orders?.length) return []
+
+  const storeIds = [...new Set(orders.map(o => o.store_id).filter(Boolean))]
+  const { data: stores } = await supabase
+    .from('stores')
+    .select('id, name, slug, cover_image, category, location_name, city')
+    .in('id', storeIds)
+  const byId = new Map((stores ?? []).map(s => [s.id, s]))
+
+  return orders.map(o => ({ ...o, store: byId.get(o.store_id) ?? null })) as StoreBooking[]
 }
 
 export async function getBookingById(bookingId: string, userId: string): Promise<DiningBooking | null> {

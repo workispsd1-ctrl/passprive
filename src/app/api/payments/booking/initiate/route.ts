@@ -11,11 +11,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please log in to continue.' }, { status: 401 })
   }
 
+  // app parity: CardPaymentScreen.jsx BOOKING context — the booking is sent
+  // inside the payment session and created by finalize-booking afterwards.
   const body = await request.json() as {
-    booking_id: string
-    restaurant_id: string
-    amount: number
-    currency_code: string
+    restaurant_id?: string
+    store_id?: string
+    booking_payload?: Record<string, unknown>
+  }
+
+  if ((!body.restaurant_id && !body.store_id) || !body.booking_payload) {
+    return NextResponse.json({ error: 'Missing booking details.' }, { status: 400 })
   }
 
   const host = request.headers.get('host') ?? 'localhost:3000'
@@ -27,14 +32,9 @@ export async function POST(request: Request) {
     payment_context: 'BOOKING',
     platform: 'web',
     return_url: returnUrl,
-    booking_payload: {
-      booking_id: body.booking_id,
-      restaurant_id: body.restaurant_id,
-      amount: Number(body.amount),
-      currency_code: body.currency_code,
-    },
+    ...(body.store_id ? { store_id: body.store_id } : { restaurant_id: body.restaurant_id }),
+    booking_payload: body.booking_payload,
   }
-
 
   let upstream: Response
   try {

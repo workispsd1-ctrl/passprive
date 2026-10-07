@@ -15,6 +15,7 @@ import type { WebsiteBanner } from '@/lib/types/websiteBanners'
 interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
   banners: WebsiteBanner[]
+  wellnessBanners: WebsiteBanner[]
   /** 'black' | 'premium' | 'none' — app parity: PackageBadge.jsx */
   membershipTier: string
 }
@@ -31,7 +32,7 @@ const MEMBERSHIP_BADGE: Record<string, string> = {
 // Every other page gets the white "default" theme (small logo, colored logo,
 // peach-tinted action circles) — the search bar is always inline on every
 // page now, just restyled to a light-grey pill off the orange home theme.
-export function DesktopHeaderClient({ user, banners, membershipTier }: Props) {
+export function DesktopHeaderClient({ user, banners, wellnessBanners, membershipTier }: Props) {
   const isHome = usePathname() === '/'
   const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/membership/FreeBadge.webp'
 
@@ -140,7 +141,7 @@ export function DesktopHeaderClient({ user, banners, membershipTier }: Props) {
         </div>
       </div>
 
-      <HeaderHeroNav banners={banners} pad="px-4 md:px-12" />
+      <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} pad="px-4 md:px-12" />
     </div>
   )
 }

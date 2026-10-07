@@ -99,3 +99,24 @@ export function getCashbackBadgeArt(
   const tier = merchantTierOf(e);
   return tier ? PLAN_BADGES[plan][tier] : null;
 }
+
+/** App parity: merchantCapabilities.js `canBook` (booking needs service level ≥ booking). */
+export function canBook(e: MerchantCapabilityFields & { booking_enabled?: boolean | null }): boolean {
+  if (isFreeMerchant(e)) return false
+
+  if (typeof e.booking_enabled === 'boolean') {
+    return e.booking_enabled && !notOnboarded(e)
+  }
+
+  const level = levelOf(e)
+  if (level === null) return false
+  return level >= SERVICE_LEVELS.booking && !notOnboarded(e)
+}
+
+/** App parity: cashbackBadge.js `getEntityCashbackPct` — the % rate itself, 0 when not eligible. */
+export function getCashbackPct(e: MerchantCapabilityFields, plan: CashbackPlan): number {
+  const tier = merchantTierOf(e)
+  if (tier === 'preferred') return plan === 'black' ? 3 : plan === 'premiere' ? 1.5 : 0.5
+  if (tier === 'verified') return 0.5
+  return 0
+}

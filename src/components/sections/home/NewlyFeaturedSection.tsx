@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useLocation } from '@/lib/context/LocationContext';
 import { useUserPlan } from '@/lib/context/PlanContext';
-import { formatDistanceKm, haversineKm, sortByMerchant } from '@/lib/utils';
+import { formatDistanceKm, haversineKm, scopeByLocation, sortByMerchant } from '@/lib/utils';
 import { getCashbackBadgeArt, type CashbackPlan } from '@/lib/cashback';
 import { HScroll } from './HScroll';
 import { MerchantCard } from './MerchantCard';
@@ -71,9 +71,9 @@ function storeToCard(s: StoreRow, plan: CashbackPlan): FeedCard {
  * "In the limelight" — mirrors the app's `loadLimelight`
  * (`components/Home/InTheLimelight.jsx`): nearby restaurants and stores are
  * interleaved, then stably re-sorted by merchant tier (preferred → verified →
- * rest) and capped. Radius scoping is skipped — SSR has no user GPS — so this
- * falls back to a same-city bias. Distance is computed on the client from the
- * LocationContext coords (GPS or the selected city's centroid).
+ * rest) and capped. Restaurants arrive already scoped by `getNewRestaurants`'
+ * `nearbyOrAll`; stores are scoped here to LIMELIGHT_RADIUS_KM (15km, falling
+ * back to a same-city match) using the client's resolved LocationContext.
  */
 export function NewlyFeaturedSection({
   restaurants,
@@ -86,10 +86,15 @@ export function NewlyFeaturedSection({
   const plan = useUserPlan();
   const userCity = location.city.trim().toLowerCase();
   const { lat: userLat, lng: userLng } = location;
+  const userCoords = useMemo(
+    () => (userLat != null && userLng != null ? { lat: userLat, lng: userLng } : null),
+    [userLat, userLng],
+  );
 
   const cards = useMemo(() => {
+    const scopedStores = scopeByLocation(stores, userCoords, location.city, 15);
     const r = restaurants.map((item) => restaurantToCard(item, plan));
-    const s = stores.map((item) => storeToCard(item, plan));
+    const s = scopedStores.map((item) => storeToCard(item, plan));
 
     // interleave restaurant, store, restaurant, store, …
     const mixed: FeedCard[] = [];
@@ -106,7 +111,7 @@ export function NewlyFeaturedSection({
     });
 
     return sortByMerchant(cityBias).slice(0, MAX_CARDS);
-  }, [restaurants, stores, userCity, plan]);
+  }, [restaurants, stores, userCity, userCoords, location.city, plan]);
 
   if (!cards.length) return null;
 

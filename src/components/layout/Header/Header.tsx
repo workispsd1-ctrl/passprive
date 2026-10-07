@@ -5,11 +5,13 @@ import { getWebsiteBanners } from '@/lib/services/websiteBanners'
 import { getUserMembership } from '@/lib/services/subscription'
 
 export async function Header() {
-  // Home hero banners live in the header so the category-nav pill can overlap
-  // them; HomeHero renders null on every route except '/'.
-  const [user, homeBanners] = await Promise.all([
+  // Home/wellness hero banners live in the header so the category-nav pill
+  // can be positioned relative to them per-route (overlap on home, below on
+  // wellness); HeaderHeroNav picks the right one based on the pathname.
+  const [user, homeBanners, wellnessBanners] = await Promise.all([
     getCurrentUser(),
     getWebsiteBanners('home'),
+    getWebsiteBanners('wellness'),
   ])
 
   // App parity: components/PackageBadge.jsx — logged-out or free-tier users
@@ -30,10 +32,11 @@ export async function Header() {
       <DesktopHeaderClient
         user={user}
         banners={homeBanners}
+        wellnessBanners={wellnessBanners}
         membershipTier={membershipTier}
       />
       <div className="md:hidden">
-        <MobileHeaderClient user={user} banners={homeBanners} />
+        <MobileHeaderClient user={user} banners={homeBanners} wellnessBanners={wellnessBanners} />
       </div>
     </header>
   )

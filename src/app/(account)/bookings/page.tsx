@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BookingsClient } from './BookingsClient'
-import { getUserDiningBookings } from '@/lib/services/bookings'
+import { getUserDiningBookings, getUserStoreBookings } from '@/lib/services/bookings'
 import { SetPageTitle } from '@/components/layout/MinimalHeader/SetPageTitle'
 
 export const metadata: Metadata = {
@@ -15,12 +15,15 @@ export default async function BookingsPage() {
 
   if (!user) redirect('/')
 
-  const diningBookings = await getUserDiningBookings(user.id)
+  const [diningBookings, storeBookings] = await Promise.all([
+    getUserDiningBookings(user.id),
+    getUserStoreBookings(user.id),
+  ])
 
   return (
     <main className="min-h-screen">
       <SetPageTitle title="Review your bookings" />
-      <BookingsClient diningBookings={diningBookings} />
+      <BookingsClient diningBookings={diningBookings} storeBookings={storeBookings} />
     </main>
   )
 }

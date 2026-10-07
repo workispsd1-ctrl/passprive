@@ -1,27 +1,27 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
+import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
-import { Suspense } from 'react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
 
 import { isPaymentSuccess } from '@/lib/utils/payment'
 import { SESSION_KEY_COVER_CHARGE as SESSION_KEY } from '@/lib/constants/sessionKeys'
+import { extractBooking } from '@/lib/booking/payload'
+import type { StoredBookingPayment } from '@/lib/booking/client'
 import { PaymentLoadingScreen } from '@/components/shared/PaymentLoadingScreen'
 import { PaymentErrorCard } from '@/components/shared/PaymentErrorCard'
 
 type Phase =
   | { status: 'loading'; message: string }
-  | { status: 'error'; message: string; canRetry: boolean; bookingId: string }
+  | { status: 'error'; message: string }
+  | { status: 'store-done'; storeName?: string; storeHref?: string }
 
-interface StoredSession {
-  sessionId: string
-  merchantTrace: string
-  bookingId: string
-  restaurantId: string
-  amount: number
-}
-
+/**
+ * Return page for booking cover-charge payments (restaurants and service
+ * stores) — app parity: PaymentReturnScreen.jsx's BOOKING branch: verify the
+ * iVeri payment, then `finalize-booking`, which creates the booking.
+ */
 function CoverChargeReturnInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -38,52 +38,53 @@ function CoverChargeReturnInner() {
       const urlMerchantTrace = searchParams.get('merchant_trace') ?? searchParams.get('merchantTrace') ?? ''
       const urlStatus = searchParams.get('outcome') ?? searchParams.get('status') ?? searchParams.get('payment_status') ?? ''
 
-      let stored: StoredSession | null = null
+      let stored: StoredBookingPayment | null = null
       try {
         const raw = sessionStorage.getItem(SESSION_KEY)
-        if (raw) stored = JSON.parse(raw) as StoredSession
+        if (raw) stored = JSON.parse(raw) as StoredBookingPayment
       } catch { /* ignore */ }
+      const clear = () => { try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ } }
 
       const sessionId = urlSessionId || stored?.sessionId || ''
       const merchantTrace = urlMerchantTrace || stored?.merchantTrace || ''
-      const bookingId = stored?.bookingId ?? ''
 
       if (!sessionId) {
-        setPhase({ status: 'error', message: 'Payment session not found. Please try again.', canRetry: false, bookingId })
+        setPhase({ status: 'error', message: 'Payment session not found. Please try again.' })
         return
       }
 
-      setPhase({ status: 'loading', message: 'Verifying your cover charge payment…' })
-      let verifyData: Record<string, unknown>
       try {
         const vRes = await fetch('/api/payments/booking/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId, merchant_trace: merchantTrace, status: urlStatus, booking_id: bookingId }),
+          body: JSON.stringify({ session_id: sessionId, merchant_trace: merchantTrace, status: urlStatus }),
         })
-        verifyData = await vRes.json() as Record<string, unknown>
+        const verifyData = await vRes.json() as Record<string, unknown>
         if (!vRes.ok) throw new Error((verifyData?.error as string) ?? 'Verification failed')
-      } catch (err) {
-        try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
-        setPhase({
-          status: 'error',
-          message: err instanceof Error ? err.message : 'Could not verify payment. Please contact support.',
-          canRetry: false,
-          bookingId,
+        if (!isPaymentSuccess(verifyData)) {
+          throw new Error(String(verifyData?.message ?? verifyData?.error ?? 'Payment was not successful.'))
+        }
+
+        setPhase({ status: 'loading', message: 'Finalizing your booking…' })
+        const fRes = await fetch('/api/payments/booking/finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, merchant_trace: merchantTrace || undefined }),
         })
-        return
+        const finalData = await fRes.json() as Record<string, unknown>
+        if (!fRes.ok) throw new Error((finalData?.error as string) ?? 'Could not confirm your booking. Please contact support.')
+
+        clear()
+        if (stored?.kind === 'store') {
+          setPhase({ status: 'store-done', storeName: stored.storeName, storeHref: stored.storeHref })
+          return
+        }
+        const bookingId = extractBooking(finalData)?.id
+        router.replace(bookingId ? `/bookings/${bookingId}?cover_paid=1` : '/bookings')
+      } catch (err) {
+        clear()
+        setPhase({ status: 'error', message: err instanceof Error ? err.message : 'Could not verify payment. Please contact support.' })
       }
-
-      if (!isPaymentSuccess(verifyData)) {
-        try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
-        const msg = String(verifyData?.message ?? verifyData?.error ?? 'Payment was not successful.')
-        setPhase({ status: 'error', message: msg, canRetry: true, bookingId })
-        return
-      }
-
-      try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
-
-      router.replace(bookingId ? `/bookings/${bookingId}?cover_paid=1` : '/bookings')
     }
 
     run()
@@ -96,10 +97,25 @@ function CoverChargeReturnInner() {
       {phase.status === 'error' && (
         <PaymentErrorCard
           message={phase.message}
-          onRetry={phase.canRetry ? () => router.replace(phase.bookingId ? `/bookings/${phase.bookingId}` : '/bookings') : undefined}
-          onSecondary={() => router.replace(phase.bookingId ? `/bookings/${phase.bookingId}` : '/bookings')}
-          secondaryLabel="Go to booking"
+          onSecondary={() => router.replace('/bookings')}
+          secondaryLabel="Go to my bookings"
         />
+      )}
+
+      {phase.status === 'store-done' && (
+        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+          <CheckCircle2 className="h-14 w-14 text-green-600" />
+          <p className="text-xl font-extrabold text-gray-900">Appointment booked</p>
+          <p className="text-sm text-gray-500">
+            Your cover charge is paid and your appointment{phase.storeName ? ` at ${phase.storeName}` : ''} is confirmed.
+          </p>
+          <Link
+            href={phase.storeHref ?? '/wellness'}
+            className="mt-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-black"
+          >
+            Done
+          </Link>
+        </div>
       )}
     </main>
   )

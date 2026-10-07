@@ -11,10 +11,11 @@ import type { WebsiteBanner } from '@/lib/types/websiteBanners'
 interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
   banners: WebsiteBanner[]
+  wellnessBanners: WebsiteBanner[]
 }
 
 /** Mobile counterpart of DesktopHeaderClient — same home vs. other-page theme split. */
-export function MobileHeaderClient({ user, banners }: Props) {
+export function MobileHeaderClient({ user, banners, wellnessBanners }: Props) {
   const isHome = usePathname() === '/'
 
   return (
@@ -28,7 +29,7 @@ export function MobileHeaderClient({ user, banners }: Props) {
         <SearchBar variant="hero" />
       </div>
 
-      <HeaderHeroNav banners={banners} pad="px-4" />
+      <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} pad="px-4" />
     </div>
   )
 }

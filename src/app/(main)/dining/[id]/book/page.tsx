@@ -5,8 +5,8 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { getRestaurantBySlugOrId } from '@/lib/services/dining'
 import { createClient } from '@/lib/supabase/server'
-import { BookingWidget } from '@/components/sections/dining/BookingWidget'
-import { getUserCashbackInfo, getWalletBalance } from '@/lib/services/wallet'
+import { DiningBookingFlow } from '@/components/sections/dining/booking/DiningBookingFlow'
+import { ClientOnly } from '@/components/sections/booking/BookingPickers'
 
 export async function generateMetadata({
   params,
@@ -19,13 +19,14 @@ export async function generateMetadata({
   return { title: `Book a Table · ${restaurant.name} | PassPrivé` }
 }
 
+/** Table booking — app parity: BookTableModal.jsx → ReviewRestaurantBooking.jsx. */
 export default async function BookTablePage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [{ restaurant, allHours }, supabase] = await Promise.all([
+  const [{ restaurant, allHours, offers }, supabase] = await Promise.all([
     getRestaurantBySlugOrId(id),
     createClient(),
   ])
@@ -33,34 +34,18 @@ export default async function BookTablePage({
   if (!restaurant.booking_enabled) notFound()
 
   const { data: { user } } = await supabase.auth.getUser()
-  let defaultName = ''
-  let defaultPhone = ''
-  let cashbackRate = 0
-  let ppBalance = 0
-
-  if (user) {
-    const [profile, cashbackInfo, walletBalance] = await Promise.all([
-      supabase.from('users').select('full_name, phone').eq('id', user.id).single(),
-      getUserCashbackInfo(user.id, restaurant.id),
-      getWalletBalance(user.id),
-    ])
-    defaultName = profile.data?.full_name ?? user.user_metadata?.full_name ?? ''
-    defaultPhone = profile.data?.phone ?? ''
-    cashbackRate = cashbackInfo?.cashback_rate ?? 0
-    ppBalance = walletBalance?.balance ?? 0
-  }
 
   const location = [restaurant.area, restaurant.city].filter(Boolean).join(', ')
   const backHref = `/dining/${restaurant.slug ?? restaurant.id}`
   const address = restaurant.full_address ?? location
+  // bank-card offers are add-ons on the bill, not booking options
+  const bookingOffers = offers.filter(o => o.offer_type !== 'bank_card' && o.offer_type !== 'credit_card')
 
   return (
     <main className="min-h-screen bg-gray-50">
-
-      {/* Restaurant header — full width */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
-          <Link href={backHref} className="text-gray-400 hover:text-gray-700 transition-colors shrink-0">
+          <Link href={backHref} aria-label="Back" className="text-gray-400 hover:text-gray-700 transition-colors shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 shrink-0">
@@ -86,20 +71,26 @@ export default async function BookTablePage({
         </div>
       </div>
 
-      {/* Booking widget */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
-        <BookingWidget
-          restaurantId={restaurant.id}
-          restaurantName={restaurant.name}
-          restaurantLocation={address}
-          backHref={backHref}
-          defaultName={defaultName}
-          defaultPhone={defaultPhone}
-          cashbackRate={cashbackRate}
-          ppBalance={ppBalance}
-          restaurantHours={allHours}
-          maxPartySize={restaurant.max_bookings_per_slot}
-        />
+        <ClientOnly>
+          <DiningBookingFlow
+            restaurant={{
+              id: restaurant.id,
+              name: restaurant.name,
+              cover_charge_enabled: restaurant.cover_charge_enabled,
+              cover_charge_amount: restaurant.cover_charge_amount,
+              merchant_type: restaurant.merchant_type,
+              merchant_plan: restaurant.merchant_plan,
+              pay_bill_enabled: restaurant.pay_bill_enabled,
+              service_level: restaurant.service_level,
+              on_boarded: restaurant.on_boarded,
+            }}
+            hours={allHours}
+            offers={bookingOffers}
+            isLoggedIn={!!user}
+            backHref={backHref}
+          />
+        </ClientOnly>
       </div>
     </main>
   )

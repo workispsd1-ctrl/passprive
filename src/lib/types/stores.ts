@@ -151,3 +151,64 @@ export type StoreDetail = {
   offers: StoreOffer[]
   socials: SocialLink[]
 }
+
+/** A service (salon / spa) store as the wellness detail page needs it. */
+export type ServiceStore = Store & {
+  lat: number | null
+  lng: number | null
+  merchant_type: 'preferred' | 'verified' | null
+  merchant_plan: string | null
+  pay_bill_enabled: boolean | null
+  service_level: string | null
+  on_boarded: boolean | null
+  top_items: string[]
+}
+
+export type ServiceItem = {
+  id: string
+  title: string
+  description: string | null
+  price: number | null
+  duration_minutes: number | null
+  service_for: string | null
+}
+
+/** app parity: ServiceStoreDetails.jsx `loadServiceCatalogue` category shape */
+export type ServiceCategory = {
+  id: string
+  title: string
+  subtitle: string | null
+  image: string | null
+  starting_from: number | null
+  items: ServiceItem[]
+}
+
+/** app parity: ServiceStoreDetails.jsx `mapStoreOfferToCardOffer` / `mapUnifiedOfferToCardOffer` */
+export type ServiceOffer = {
+  id: string
+  title: string
+  description: string | null
+  discount_type: 'PERCENT' | 'FLAT'
+  discount_value: number | null
+  sponsor_name?: string | null
+  logo_url?: string | null
+}
+
+export type ServiceReview = {
+  id: string
+  rating: number
+  review_text: string | null
+  username_snapshot: string | null
+  service_rating: number | null
+  created_at: string
+}
+
+export type ServiceStoreDetail = {
+  store: ServiceStore
+  gallery: string[]
+  hours: OpeningHour[]
+  categories: ServiceCategory[]
+  inStoreOffers: ServiceOffer[]
+  bankOffers: ServiceOffer[]
+  reviews: ServiceReview[]
+}

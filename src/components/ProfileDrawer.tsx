@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, BookText, MessageSquareText, HelpCircle, FileText, LogOut, Wallet, Crown, Gift } from 'lucide-react'
+import { ArrowLeft, BookText, MessageSquareText, HelpCircle, FileText, LogOut, Wallet, Crown, Gift, Heart } from 'lucide-react'
 import Link from 'next/link'
 
 interface Props {
@@ -81,6 +81,15 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
             >
               <BookText className="w-5 h-5 text-gray-500 shrink-0" />
               <span className="flex-1 text-sm font-medium text-gray-800">View all bookings</span>
+              <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
+            </Link>
+            <Link
+              href="/saved"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors"
+            >
+              <Heart className="w-5 h-5 text-gray-500 shrink-0" />
+              <span className="flex-1 text-sm font-medium text-gray-800">Favourites</span>
               <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
             </Link>
             <Link
