@@ -78,7 +78,7 @@ export function LocationPickerDialog({
               placeholder="Search city, area or locality"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF4800]/30 focus:border-[#FF4800]/50"
             />
           </div>
 
@@ -86,7 +86,7 @@ export function LocationPickerDialog({
           <button
             type="button"
             onClick={() => { onUseCurrentLocation(); onClose() }}
-            className="flex items-center gap-2.5 text-purple-600 hover:text-purple-700 font-semibold text-sm transition-colors"
+            className="flex items-center gap-2.5 text-[#FF4800] hover:text-[#E84A00] font-semibold text-sm transition-colors"
           >
             <LocateFixed className="w-5 h-5" />
             Use Current Location
@@ -103,9 +103,9 @@ export function LocationPickerDialog({
                     type="button"
                     key={city.name}
                     onClick={() => { onSelect(city.name, city.region); onClose() }}
-                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-purple-50 flex items-center gap-3 transition-colors"
+                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#FFF1EB] flex items-center gap-3 transition-colors"
                   >
-                    <Landmark className="w-4 h-4 text-purple-400 shrink-0" strokeWidth={1.5} />
+                    <Landmark className="w-4 h-4 text-[#FF6A19] shrink-0" strokeWidth={1.5} />
                     <div>
                       <p className="text-sm font-medium text-gray-800">{city.name}</p>
                       <p className="text-xs text-gray-400">{city.region}</p>
@@ -126,9 +126,9 @@ export function LocationPickerDialog({
                       <button
                         key={city}
                         onClick={() => { onSelect(city, found?.region ?? ''); onClose() }}
-                        className="flex flex-col items-center gap-2 py-3 px-2 rounded-2xl bg-purple-50 hover:bg-purple-100 transition-colors group"
+                        className="flex flex-col items-center gap-2 py-3 px-2 rounded-2xl bg-[#FFF1EB] hover:bg-[#FFE3D6] transition-colors group"
                       >
-                        <div className="w-12 h-12 flex items-center justify-center text-purple-500 group-hover:text-purple-600 transition-colors">
+                        <div className="w-12 h-12 flex items-center justify-center text-[#FF4800] group-hover:text-[#E84A00] transition-colors">
                           <Landmark className="w-8 h-8" strokeWidth={1.2} />
                         </div>
                         <span className="text-xs text-gray-700 font-medium text-center leading-tight">
@@ -156,9 +156,9 @@ export function LocationPickerDialog({
                         onClick={() => available && setActiveLetter(letter)}
                         className={`w-7 h-7 text-xs font-medium rounded flex items-center justify-center transition-colors ${
                           active
-                            ? 'text-purple-600 font-bold'
+                            ? 'text-[#FF4800] font-bold'
                             : available
-                            ? 'text-gray-600 hover:text-purple-500'
+                            ? 'text-gray-600 hover:text-[#FF4800]'
                             : 'text-gray-200 cursor-default'
                         }`}
                       >
@@ -174,7 +174,7 @@ export function LocationPickerDialog({
                     <button
                       key={city.name}
                       onClick={() => { onSelect(city.name, city.region); onClose() }}
-                      className="text-left text-sm text-gray-700 hover:text-purple-600 font-medium py-0.5 transition-colors"
+                      className="text-left text-sm text-gray-700 hover:text-[#FF4800] font-medium py-0.5 transition-colors"
                     >
                       {city.name}
                     </button>

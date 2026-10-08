@@ -6,9 +6,6 @@
 
 export const FEED_PAGE_SIZE = 12
 
-/** App parity: utils/locationScope.js NEARBY_RADIUS_KM */
-export const NEARBY_RADIUS_KM = 15
-
 export type Coords = { lat: number; lng: number }
 
 export const SORT_OPTIONS = [

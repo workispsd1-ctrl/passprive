@@ -31,13 +31,16 @@ function isSalonStore(s: StoreRow): boolean {
  *
  * `radiusKm` defaults to Home/PlanYourSalonVisit.jsx's 15km; the wellness page
  * (reusing this component) passes 50 to match WellnessHome/PlanSalonVisit.jsx.
+ * `plain` drops the peach full-bleed band (the wellness page shows it on white).
  */
 export function SalonVisitSection({
   stores,
   radiusKm = 15,
+  plain = false,
 }: {
   stores: StoreRow[]
   radiusKm?: number
+  plain?: boolean
 }) {
   const { location } = useLocation()
   const plan = useUserPlan()
@@ -67,7 +70,7 @@ export function SalonVisitSection({
   return (
     <HScroll
       title="Plan your salon visit"
-      className="relative left-1/2 w-screen -translate-x-1/2 bg-[#FFF7F2]"
+      className={plain ? undefined : 'relative left-1/2 w-screen -translate-x-1/2 bg-[#FFF7F2]'}
     >
       {list.map((s) => {
         const dist =

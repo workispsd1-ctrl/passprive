@@ -57,7 +57,7 @@ export default async function Dining({
     const moodTitle = moodSlug
       ? moodCategories.find((m) => m.slug === moodSlug)?.title
       : undefined
-    const rows = await getRestaurantFeed({ ...parsed, moodTitle }, 0, FEED_PAGE_SIZE, coords)
+    const rows = await getRestaurantFeed({ ...parsed, moodTitle }, 0, FEED_PAGE_SIZE, coords, { nearbyOnly: true })
     const queryString = new URLSearchParams(
       Object.entries(params).flatMap(([k, v]) =>
         typeof v === 'string' ? [[k, v] as [string, string]] : [],

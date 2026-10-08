@@ -7,6 +7,12 @@ import type {
   ReviewSummary,
   TouristPlaceDetail,
 } from '@/lib/types/touristPlaces';
+import {
+  DEFAULT_TOURIST_CATEGORIES,
+  categoriesFromRows,
+  type TouristCategory,
+  type TouristMoodCategoryRow,
+} from '@/lib/touristCatalog';
 
 const SELECT_FIELDS =
   'id, place_name, phone, area, city, full_address, location_name, slug, cover_image, picture_id, latitude, longitude, description, is_active, owner_user_id, booking_enabled, advance_booking_days, modification_available, modification_cutoff_minutes, cancellation_available, cancellation_cutoff_minutes, payment_option, price, rating, reviews_count, created_at, updated_at, is_advertised, ad_priority, ad_starts_at, ad_ends_at, ad_badge_text, booking_terms, google_place_id, place_types, tags, price_child, price_local_adult, price_local_child, child_age_min, child_age_max';
@@ -30,6 +36,32 @@ export async function getActiveTouristPlaces(limit = 50): Promise<TouristPlace[]
     .eq('is_active', true)
     .limit(limit);
   return (data ?? []) as TouristPlace[];
+}
+
+/**
+ * Every active place, for the tourist home — app parity: TouristHome.jsx
+ * fetchPlaces. The rails pick from this one list client-side by distance.
+ */
+export async function getAllTouristPlaces(): Promise<TouristPlace[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('tourist_places')
+    .select(SELECT_FIELDS)
+    .eq('is_active', true)
+    .order('place_name', { ascending: true });
+  return (data ?? []) as TouristPlace[];
+}
+
+/** "Browse by Category" — app parity: src/hooks/useTouristCategories.js. */
+export async function getTouristCategories(): Promise<TouristCategory[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('tourist_mood_categories')
+    .select('key, slug, title, light_theme_image_url, dark_theme_image_url, sort_order')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+  if (error) return DEFAULT_TOURIST_CATEGORIES;
+  return categoriesFromRows(data as TouristMoodCategoryRow[]);
 }
 
 export async function getTouristPlaceBySlugOrId(

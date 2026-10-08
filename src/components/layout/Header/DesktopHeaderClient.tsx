@@ -16,6 +16,7 @@ interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
   banners: WebsiteBanner[]
   wellnessBanners: WebsiteBanner[]
+  touristBanners: WebsiteBanner[]
   /** 'black' | 'premium' | 'none' — app parity: PackageBadge.jsx */
   membershipTier: string
 }
@@ -32,7 +33,7 @@ const MEMBERSHIP_BADGE: Record<string, string> = {
 // Every other page gets the white "default" theme (small logo, colored logo,
 // peach-tinted action circles) — the search bar is always inline on every
 // page now, just restyled to a light-grey pill off the orange home theme.
-export function DesktopHeaderClient({ user, banners, wellnessBanners, membershipTier }: Props) {
+export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBanners, membershipTier }: Props) {
   const isHome = usePathname() === '/'
   const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/membership/FreeBadge.webp'
 
@@ -126,22 +127,25 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, membership
             </span>
           </div>
 
-          {/* App membership badge (Free/Plus/Black), 308×132 — app parity: PackageBadge.jsx */}
-          <Link href="/membership" aria-label="Membership">
-            <Image
-              src={badgeSrc}
-              alt="Privé membership"
-              width={308}
-              height={132}
-              className="h-10 w-auto 2xl:h-12"
-            />
-          </Link>
+          {/* App membership badge (Free/Plus/Black), 308×132 — app parity: PackageBadge.jsx.
+              Signed-in users only: a logged-out visitor has no membership to show. */}
+          {user && (
+            <Link href="/membership" aria-label="Membership">
+              <Image
+                src={badgeSrc}
+                alt="Privé membership"
+                width={308}
+                height={132}
+                className="h-10 w-auto 2xl:h-12"
+              />
+            </Link>
+          )}
 
           <HeaderActions user={user} />
         </div>
       </div>
 
-      <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} pad="px-4 md:px-12" />
+      <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} touristBanners={touristBanners} pad="px-4 md:px-12" />
     </div>
   )
 }

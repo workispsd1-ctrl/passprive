@@ -3,7 +3,7 @@ import { getMoodCategories, getRestaurantFeed } from '@/lib/services/dining'
 import { getUserCoords } from '@/lib/location'
 import { FEED_PAGE_SIZE, parseFilters } from '@/lib/restaurantFilters'
 
-/** "Load more" for the filtered dining feed — same params as the /dining URL, plus `offset`. */
+/** "Load more" for the filtered dining feed — same params as the /dining URL, plus `offset`. Nearby-only, like the page. */
 export async function GET(req: Request) {
   const sp = Object.fromEntries(new URL(req.url).searchParams)
   const { moodSlug, ...filters } = parseFilters(sp)
@@ -15,6 +15,6 @@ export async function GET(req: Request) {
     moodTitle = moods.find((m) => m.slug === moodSlug)?.title
   }
 
-  const rows = await getRestaurantFeed({ ...filters, moodTitle }, offset, FEED_PAGE_SIZE, await getUserCoords())
+  const rows = await getRestaurantFeed({ ...filters, moodTitle }, offset, FEED_PAGE_SIZE, await getUserCoords(), { nearbyOnly: true })
   return NextResponse.json({ rows, hasMore: rows.length >= FEED_PAGE_SIZE })
 }

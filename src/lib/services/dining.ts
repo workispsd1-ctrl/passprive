@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { FEED_PAGE_SIZE, NEARBY_RADIUS_KM, toRpcArgs, type Coords, type FeedFilters } from '@/lib/restaurantFilters';
+import { FEED_PAGE_SIZE, toRpcArgs, type Coords, type FeedFilters } from '@/lib/restaurantFilters';
+import { scopeToRadius } from '@/lib/nearby';
 import type {
   Restaurant,
   DiningOffer,
@@ -37,16 +38,9 @@ export async function getNewRestaurants(
   return coords ? nearbyOrAll(rows).slice(0, limit) : rows;
 }
 
-/**
- * App parity: nearby-radius scoping (NEARBY_RADIUS_KM) for curated rails. If
- * nothing is within the radius (e.g. a visitor outside Mauritius) the nearest
- * ones are kept rather than leaving the rail empty.
- */
+/** Curated rails: only restaurants within the shared 3–5 km radius (lib/nearby). */
 export function nearbyOrAll(rows: FeaturedRestaurant[]): FeaturedRestaurant[] {
-  const near = rows.filter(
-    (r) => r.distance_km != null && r.distance_km <= NEARBY_RADIUS_KM,
-  );
-  return near.length ? near : rows;
+  return scopeToRadius(rows, (r) => r.distance_km, true);
 }
 
 /**
@@ -54,17 +48,32 @@ export function nearbyOrAll(rows: FeaturedRestaurant[]): FeaturedRestaurant[] {
  * fetchRestaurantFeedPage. `instant` has no RPC param, so (like the app) it
  * fetches bookable restaurants and trims client-side.
  */
+// Enough to hold every restaurant within MAX_NEARBY_KM on the island.
+const NEARBY_FEED_FETCH = 200;
+
+/**
+ * `nearbyOnly` (home-screen use) keeps only restaurants within the shared
+ * 3–5 km radius when a location is known. The radius can only be applied to
+ * the full result set, so it fetches one large batch in the requested sort
+ * order, trims it, then pages through it locally.
+ */
 export async function getRestaurantFeed(
   filters: FeedFilters,
   offset = 0,
   limit = FEED_PAGE_SIZE,
   coords?: Coords | null,
+  { nearbyOnly = false }: { nearbyOnly?: boolean } = {},
 ): Promise<FeaturedRestaurant[]> {
   const supabase = await createClient();
-  const { data } = await supabase.rpc('restaurant_feed', toRpcArgs(filters, limit, offset, coords));
-  const rows = (data ?? []) as FeaturedRestaurant[];
-  return filters.badge === 'instant'
-    ? rows.filter((r) => r.booking_service_type === 'instant')
+  const scoped = nearbyOnly && !!coords;
+  const { data } = await supabase.rpc(
+    'restaurant_feed',
+    scoped ? toRpcArgs(filters, NEARBY_FEED_FETCH, 0, coords) : toRpcArgs(filters, limit, offset, coords),
+  );
+  let rows = (data ?? []) as FeaturedRestaurant[];
+  if (filters.badge === 'instant') rows = rows.filter((r) => r.booking_service_type === 'instant');
+  return scoped
+    ? scopeToRadius(rows, (r) => r.distance_km, true).slice(offset, offset + limit)
     : rows;
 }
 
@@ -121,7 +130,7 @@ export async function getPromotionalCollections(
         | null;
       const moodTitle = Array.isArray(rel) ? rel[0]?.title : rel?.title;
       const restaurants = moodTitle
-        ? await getRestaurantFeed({ moodTitle }, 0, 12, coords)
+        ? await getRestaurantFeed({ moodTitle }, 0, 12, coords, { nearbyOnly: true })
         : [];
       return {
         id: c.id as string,

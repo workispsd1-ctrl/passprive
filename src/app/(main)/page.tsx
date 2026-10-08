@@ -15,7 +15,7 @@ import {
 import { getOffersForYou } from '@/lib/services/offersForYou';
 import { UpcomingBookings } from '@/components/sections/home/UpcomingBookings';
 import { getUserCoords } from '@/lib/location';
-import { sortByDistanceFrom } from '@/lib/utils';
+import { scopeStoresToRadius } from '@/lib/nearby';
 import { getCurrentUser } from '@/lib/services/user';
 import { getUpcomingDiningBookings } from '@/lib/services/bookings';
 import type { Metadata } from 'next';
@@ -41,7 +41,8 @@ export default async function Home() {
     await Promise.all([
       getNewKickInStores({ limit: 8, userLat: coords?.lat, userLng: coords?.lng }),
       getNewRestaurants(40, coords),
-      getActiveStores().then((all) => sortByDistanceFrom(all, coords)),
+      // every rail below draws from these, so the 3–5 km radius applies to all of them
+      getActiveStores().then((all) => scopeStoresToRadius(all, coords)),
       getOffersForYou(),
       getEditorialCollections(),
       user ? getUpcomingDiningBookings(user.id) : Promise.resolve([]),

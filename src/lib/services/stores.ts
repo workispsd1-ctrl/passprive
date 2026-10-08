@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { sortByMerchant } from '@/lib/utils'
+import { scopeStoresToRadius, scopeToRadius } from '@/lib/nearby'
 import type {
   StoreRow,
   StoreMoodCategory,
@@ -24,9 +25,6 @@ import type {
 } from '@/lib/types/stores'
 import type { FeaturedRestaurant } from '@/lib/types/dining'
 
-// app parity: Home/NewKickInStores.jsx NEW_KICK_RADIUS_KM (= locationScope's NEARBY_RADIUS_KM)
-const NEW_KICK_RADIUS_KM = 15
-
 export async function getNewKickInStores(
   params: { userLat?: number; userLng?: number; city?: string; limit?: number } = {}
 ): Promise<NewKickInStore[]> {
@@ -38,14 +36,12 @@ export async function getNewKickInStores(
     p_user_lng: params.userLng ?? null,
     p_city: params.city ?? null,
     // the RPC doesn't scope by distance itself, so over-fetch when we have
-    // coords to filter with — enough candidates survive the 15km cut below.
+    // coords to filter with — enough candidates survive the radius cut below.
     p_limit: hasCoords ? Math.max(requestedLimit, 30) : requestedLimit,
   })
   const rows = (data ?? []) as NewKickInStore[]
-  if (!hasCoords) return rows.slice(0, requestedLimit)
-
-  const scoped = rows.filter((s) => s.distance_km != null && s.distance_km <= NEW_KICK_RADIUS_KM)
-  return (scoped.length ? scoped : rows).slice(0, requestedLimit)
+  // shared 3–5 km radius (lib/nearby); untouched without a location
+  return scopeToRadius(rows, (s) => s.distance_km, hasCoords).slice(0, requestedLimit)
 }
 
 export async function getActiveStores(): Promise<StoreRow[]> {
@@ -65,17 +61,20 @@ export async function getActiveStores(): Promise<StoreRow[]> {
  * "Trending now" rail) this just pulls active product stores and ranks them
  * by merchant tier instead of depending on that flag being set.
  */
-export async function getTopBrandStores(limit = 12): Promise<StoreRow[]> {
+export async function getTopBrandStores(limit = 12, coords?: { lat: number; lng: number } | null): Promise<StoreRow[]> {
   const supabase = await createClient()
-  const { data } = await supabase
+  let query = supabase
     .from('stores')
     .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded')
     .eq('is_active', true)
     .eq('store_type', 'PRODUCT')
     .order('sort_order')
     .order('name')
-    .limit(limit)
-  return sortByMerchant((data ?? []) as StoreRow[])
+  // with a location, trim to the 3–5 km radius before taking the top `limit`
+  if (!coords) query = query.limit(limit)
+  const { data } = await query
+  const rows = scopeStoresToRadius((data ?? []) as StoreRow[], coords).slice(0, limit)
+  return sortByMerchant(rows)
 }
 
 export type StorePromotionalCollection = {
@@ -137,8 +136,8 @@ export async function getWellnessStores(): Promise<StoreRow[]> {
 
 /**
  * "Time for a Glow Up" — app parity: WellnessPromotionalCards.jsx, which
- * filters `promotional_collections` on slug 'glow-up' specifically (the
- * shopping screen's version filters by `screens` instead).
+ * loads one `promotional_collections` row by slug. The web uses the
+ * 'time-for-glow-up' card (the app still reads the older 'glow-up' one).
  */
 export async function getWellnessPromotionalCollections(): Promise<StorePromotionalCollection[]> {
   const supabase = await createClient()
@@ -146,7 +145,7 @@ export async function getWellnessPromotionalCollections(): Promise<StorePromotio
     .from('promotional_collections')
     .select('id, title, subtitle, starts_at, ends_at, banner_image_url')
     .eq('is_active', true)
-    .contains('screens', ['wellness'])
+    .eq('slug', 'time-for-glow-up')
     .order('sort_order', { ascending: true })
 
   const now = Date.now()

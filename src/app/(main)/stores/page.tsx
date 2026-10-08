@@ -7,6 +7,8 @@ import {
   getShoppingPromotionalCollections,
 } from '@/lib/services/stores'
 import { getWebsiteBanners } from '@/lib/services/websiteBanners'
+import { getUserCoords } from '@/lib/location'
+import { scopeStoresToRadius } from '@/lib/nearby'
 
 import type { Metadata } from 'next'
 
@@ -25,11 +27,13 @@ export const metadata: Metadata = {
 }
 
 export default async function Stores() {
+  const coords = await getUserCoords()
   const [stores, moodCategories, banners, topBrands, promoCollections] = await Promise.all([
-    getActiveStores(),
+    // every store rail draws from this, so the 3–5 km radius applies to all of them
+    getActiveStores().then((all) => scopeStoresToRadius(all, coords)),
     getStoreMoodCategories(),
     getWebsiteBanners('store'),
-    getTopBrandStores(),
+    getTopBrandStores(12, coords),
     getShoppingPromotionalCollections(),
   ])
 
