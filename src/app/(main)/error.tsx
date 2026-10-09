@@ -18,8 +18,8 @@ export default function MainError({
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 text-center">
       <div className="flex flex-col items-center gap-5 max-w-sm">
 
-        <div className="w-16 h-16 rounded-3xl bg-violet-50 border border-violet-100 flex items-center justify-center">
-          <AlertCircle className="w-8 h-8 text-violet-500" />
+        <div className="w-16 h-16 rounded-3xl bg-brand-tint border border-brand-tint-strong flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-brand" />
         </div>
 
         <div>
@@ -33,7 +33,7 @@ export default function MainError({
           <button
             type="button"
             onClick={reset}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-gray-900 text-white font-bold text-sm hover:bg-black transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-full bg-brand text-white font-bold text-sm hover:bg-brand-dark transition-colors"
           >
             <RotateCcw className="w-4 h-4" /> Try again
           </button>

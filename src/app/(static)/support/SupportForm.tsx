@@ -85,7 +85,7 @@ export function SupportForm() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
         {plan && (
-          <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 font-medium">
+          <div className="rounded-xl border border-brand/25 bg-brand-tint px-4 py-3 text-sm text-brand-dark font-medium">
             Requesting: <span className="font-bold">{plan === 'premium' ? 'Privé Premium — ₨4,000/year' : 'Privé Black — ₨7,000/year'}</span>
           </div>
         )}

@@ -61,10 +61,10 @@ export function PPCoinsPayment({ restaurantId, ppBalance, onPaid }: Props) {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Coins className="w-4 h-4 text-violet-500" />
+          <Coins className="w-4 h-4 text-brand" />
           <p className="text-sm font-bold text-gray-800">Pay with PP Points</p>
         </div>
-        <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full">
+        <span className="text-xs font-bold text-brand bg-brand-tint px-2.5 py-1 rounded-full">
           ₨{ppBalance.toFixed(2)} available
         </span>
       </div>

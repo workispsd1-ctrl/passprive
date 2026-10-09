@@ -32,7 +32,7 @@ function Chip({
       className={cn(
         'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'border-[#FF6A19] bg-[#FFF1EA] text-[#FF6A19]'
+          ? 'border-brand-light bg-brand-tint text-brand-light'
           : 'border-gray-200 text-gray-700 hover:bg-gray-50',
       )}
     >
@@ -155,7 +155,7 @@ export function FilterDialog({
           <button
             type="button"
             onClick={() => onApply(draft)}
-            className="rounded-full bg-[#FF6A19] px-6 py-2 text-sm font-semibold text-white hover:bg-[#E85A0F]"
+            className="rounded-full bg-brand-light px-6 py-2 text-sm font-semibold text-white hover:bg-[#E85A0F]"
           >
             Apply Filters
           </button>

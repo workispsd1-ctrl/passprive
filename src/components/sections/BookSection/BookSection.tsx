@@ -19,7 +19,7 @@ export function BookSection() {
 
 
           <div className='order-2 md:order-1 bg-white md:bg-transparent p-5 md:p-0 flex flex-col gap-6'>
-            <div className='flex items-center gap-2 text-purple-500'>
+            <div className='flex items-center gap-2 text-brand'>
               <CalendarDays className='w-5 h-5 md:w-7 md:h-7' aria-hidden='true' />
               <span className='text-xl md:text-3xl font-bold tracking-wide'>Book</span>
             </div>
@@ -29,7 +29,7 @@ export function BookSection() {
               className='text-base md:text-2xl font-bold text-gray-900 leading-tight'
             >
               <span className='font-extrabold'>Find the table </span>
-              <span className='italic bg-linear-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent'>
+              <span className='italic bg-linear-to-r from-brand to-pink-500 bg-clip-text text-transparent'>
                 that fits the moment.
               </span>
             </h2>

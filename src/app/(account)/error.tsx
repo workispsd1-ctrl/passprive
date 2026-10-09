@@ -32,7 +32,7 @@ export default function AccountError({
           <button
             type="button"
             onClick={reset}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-brand text-white font-bold text-sm hover:bg-brand-dark transition-colors"
           >
             <RotateCcw className="w-4 h-4" /> Try again
           </button>

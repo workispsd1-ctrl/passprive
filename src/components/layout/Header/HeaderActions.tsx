@@ -20,7 +20,7 @@ function getInitial(name?: string | null, email?: string) {
 // Privé credits pill. Uniform across the home (orange) and default (white)
 // headers, matching the Figma spec.
 export const actionCircleClass =
-  'flex h-10 w-10 items-center justify-center rounded-[75px] border-[0.75px] border-transparent text-[#FF6A19] transition-colors hover:brightness-95 2xl:h-12 2xl:w-12'
+  'flex h-10 w-10 items-center justify-center rounded-[75px] border-[0.75px] border-transparent text-brand-light transition-colors hover:brightness-95 2xl:h-12 2xl:w-12'
 export const actionCircleStyle = {
   backgroundImage:
     'linear-gradient(#FFF9F6, #FFF9F6), linear-gradient(151.63deg, #FF6A19 -48.58%, #F7F0EC 82.47%)',
@@ -34,10 +34,9 @@ export function HeaderActions({ user }: Props) {
   return (
     <>
       <div className="flex items-center gap-2 shrink-0">
-        {/* TODO(design): point at the real wishlist route once it exists */}
         <Link
-          href="#"
-          aria-label="Wishlist"
+          href="/saved"
+          aria-label="Favourites"
           className={actionCircleClass}
           style={actionCircleStyle}
         >
@@ -49,23 +48,17 @@ export function HeaderActions({ user }: Props) {
             type="button"
             aria-label="Open profile"
             onClick={() => setDrawerOpen(true)}
-            className={`${actionCircleClass} text-[13px] font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A19]/40 2xl:text-[14px]`}
+            className={`${actionCircleClass} text-[13px] font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-light/40 2xl:text-[14px]`}
             style={actionCircleStyle}
           >
             {getInitial(user.name, user.email)}
           </button>
         ) : (
-          <LoginDialog triggerClassName="h-10 rounded-full border border-[#FF6A19]/30 bg-[#FFF1EA] px-4 text-[13px] font-semibold text-[#FF6A19] hover:bg-[#FFE4D5] 2xl:h-12 2xl:text-[14px]" />
+          <LoginDialog triggerClassName="h-10 rounded-full border border-brand-light/30 bg-brand-tint px-4 text-[13px] font-semibold text-brand-light hover:bg-brand-tint-strong 2xl:h-12 2xl:text-[14px]" />
         )}
       </div>
 
-      {user && (
-        <ProfileDrawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          user={user}
-        />
-      )}
+      {user && <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} user={user} />}
     </>
   )
 }

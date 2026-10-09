@@ -94,7 +94,7 @@ export function BankOffersSection({
           <ul className="flex flex-col gap-2 px-5 pb-5 text-[13px] text-gray-600">
             {toPoints(active?.detail_body ?? null).map((point, i) => (
               <li key={i} className="flex items-start gap-2">
-                <span className="mt-0.5 text-[#FF4800]">•</span>
+                <span className="mt-0.5 text-brand">•</span>
                 <span>{point}</span>
               </li>
             ))}

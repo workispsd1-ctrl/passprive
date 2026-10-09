@@ -18,6 +18,8 @@ export type DiningBooking = {
     full_address: string | null
     cost_for_two: number | null
     merchant_type: 'preferred_partner' | 'verified_pay' | null
+    cancellation_available?: boolean | null
+    cancellation_cutoff_minutes?: number | null
   } | null
 }
 

@@ -33,7 +33,7 @@ const RESTAURANTS = [
     rating: 4.6,
     reviewCount: 267,
     promo: 'Happy Hour 50% OFF',
-    bg: 'bg-gradient-to-br from-purple-300 to-indigo-500',
+    bg: 'bg-gradient-to-br from-brand/40 to-brand',
   },
   {
     id: 4,

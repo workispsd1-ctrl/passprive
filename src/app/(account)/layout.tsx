@@ -1,32 +1,13 @@
-import Image from 'next/image'
-import Link from 'next/link'
-import { HeaderActions } from '@/components/layout/Header/HeaderActions'
+import { Header } from '@/components/layout'
 import { PageTitleProvider } from '@/components/layout/MinimalHeader/PageTitleContext'
-import { MinimalHeaderTitle } from '@/components/layout/MinimalHeader/MinimalHeaderTitle'
-import { getCurrentUser } from '@/lib/services/user'
+import { PageTitleBar } from '@/components/layout/MinimalHeader/PageTitleBar'
 
-export default async function MinimalLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser()
-
+/** Account pages (bookings, wallet, membership, …): the site header + an app-style title row. */
+export default function AccountLayout({ children }: { children: React.ReactNode }) {
   return (
     <PageTitleProvider>
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 h-16 gap-2 max-w-7xl mx-auto">
-          <Link href="/" aria-label="PassPrive home">
-            <Image
-              src="/logo-dark.png"
-              alt="PassPrive"
-              width={168}
-              height={40}
-              className="h-11 w-auto object-contain"
-            />
-          </Link>
-          <MinimalHeaderTitle />
-          <div className="flex justify-end">
-            <HeaderActions user={user} />
-          </div>
-        </div>
-      </header>
+      <Header minimal />
+      <PageTitleBar />
       <div className="flex-1">
         {children}
       </div>

@@ -19,7 +19,7 @@ export function BrandsGrid({ brands, onSelect }: Props) {
         <button
           type='button'
           onClick={onSelect}
-          className='flex items-center gap-1 text-[13px] text-violet-600 font-semibold hover:text-violet-700 transition-colors'
+          className='flex items-center gap-1 text-[13px] text-brand font-semibold hover:text-brand-dark transition-colors'
         >
           View all <ChevronRight className='w-3.5 h-3.5' />
         </button>
@@ -30,7 +30,7 @@ export function BrandsGrid({ brands, onSelect }: Props) {
             key={b.id}
             type='button'
             onClick={onSelect}
-            className='group relative rounded-2xl overflow-hidden border border-gray-100 bg-white hover:border-violet-300 hover:shadow-xl hover:shadow-violet-500/10 transition-all duration-200 text-left'
+            className='group relative rounded-2xl overflow-hidden border border-gray-100 bg-white hover:border-brand/40 hover:shadow-xl hover:shadow-brand/10 transition-all duration-200 text-left'
           >
             <div className='relative aspect-3/2 bg-gray-100 overflow-hidden'>
               {b.gifting_card_image_url ?? b.image ? (
@@ -53,7 +53,7 @@ export function BrandsGrid({ brands, onSelect }: Props) {
                 </div>
               )}
               <div className='absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity'>
-                <ArrowRight className='w-3 h-3 text-violet-600' />
+                <ArrowRight className='w-3 h-3 text-brand' />
               </div>
             </div>
             <div className='p-3'>

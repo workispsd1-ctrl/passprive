@@ -17,7 +17,7 @@ export function GiftBrandCard({ brand, selected, onSelect }: Props) {
       type='button'
       onClick={() => onSelect(brand)}
       className={`relative flex flex-col rounded-2xl overflow-hidden border-2 transition-all ${
-        selected ? 'border-violet-500 shadow-md' : 'border-gray-100 hover:border-violet-200'
+        selected ? 'border-brand shadow-md' : 'border-gray-100 hover:border-brand/25'
       }`}
     >
       <div className='relative w-full aspect-[3/2] bg-gray-100'>
@@ -39,7 +39,7 @@ export function GiftBrandCard({ brand, selected, onSelect }: Props) {
         <p className='text-[10px] text-gray-400 mt-0.5 capitalize'>{brand.type}</p>
       </div>
       {selected && (
-        <div className='absolute inset-0 border-2 border-violet-500 rounded-2xl pointer-events-none' />
+        <div className='absolute inset-0 border-2 border-brand rounded-2xl pointer-events-none' />
       )}
     </button>
   )

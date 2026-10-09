@@ -212,7 +212,7 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
     return (
       <div ref={containerRef} className='relative w-full'>
         <div className='flex h-12 items-center gap-3 rounded-full bg-white px-5 shadow-[0px_4px_4px_0px_rgba(223,94,43,1)] 2xl:h-16 2xl:px-6'>
-          <Search className='h-5 w-5 shrink-0 text-[#FF6A19] 2xl:h-7 2xl:w-7' aria-hidden='true' />
+          <Search className='h-5 w-5 shrink-0 text-brand-light 2xl:h-7 2xl:w-7' aria-hidden='true' />
           <span className='h-6 w-px shrink-0 bg-[#E4E4E4] 2xl:h-7' aria-hidden='true' />
           <input
             ref={inputRef}
@@ -275,7 +275,7 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
     return (
       <div ref={containerRef} className='relative w-full'>
         <div className='flex h-10 items-center gap-2 rounded-full bg-[#F6F4F4] px-4 2xl:h-12 2xl:px-5'>
-          <Search className='h-4.5 w-4.5 shrink-0 text-[#FF6A19] 2xl:h-5 2xl:w-5' aria-hidden='true' />
+          <Search className='h-4.5 w-4.5 shrink-0 text-brand-light 2xl:h-5 2xl:w-5' aria-hidden='true' />
           <span className='h-5 w-px shrink-0 bg-[#E4E4E4] 2xl:h-6' aria-hidden='true' />
           <input
             ref={inputRef}

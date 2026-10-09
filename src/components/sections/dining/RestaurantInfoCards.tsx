@@ -23,7 +23,7 @@ function ExpandableCard({ emoji, title, text }: { emoji: string; title: string; 
         <button
           type='button'
           onClick={() => setExpanded(e => !e)}
-          className='text-[12px] font-semibold text-violet-600 mt-2 hover:text-violet-800 hover:underline'
+          className='text-[12px] font-semibold text-brand mt-2 hover:text-brand-dark hover:underline'
         >
           {expanded ? 'view less' : 'view more'}
         </button>

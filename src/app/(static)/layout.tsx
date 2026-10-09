@@ -1,20 +1,10 @@
-import Image from 'next/image'
-import Link from 'next/link'
+import { Header } from '@/components/layout'
 
+/** FAQs, terms, privacy, support: the site header; each page has its own app-style title row. */
 export default function SimpleLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <header className="flex justify-center py-5 border-b border-gray-200">
-        <Link href="/" aria-label="PassPrive home">
-          <Image
-            src="/logo-dark.png"
-            alt="PassPrive"
-            width={280}
-            height={67}
-            className="h-16 w-auto object-contain"
-          />
-        </Link>
-      </header>
+      <Header minimal />
       <div className="flex-1">
         {children}
       </div>

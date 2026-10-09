@@ -26,13 +26,13 @@ export function DateStrip({
             onClick={() => onSelect(d.id)}
             className={cn(
               'flex w-16 shrink-0 flex-col items-center rounded-2xl border py-2 transition-colors',
-              active ? 'border-[#FF4800] bg-[#FF4800]/5' : 'border-gray-200 hover:border-gray-400',
+              active ? 'border-brand bg-brand/5' : 'border-gray-200 hover:border-gray-400',
             )}
           >
-            <span className={cn('text-[10px] font-semibold uppercase', active ? 'text-[#FF4800]' : 'text-gray-400')}>
+            <span className={cn('text-[10px] font-semibold uppercase', active ? 'text-brand' : 'text-gray-400')}>
               {d.topLabel === 'Today' || d.topLabel === 'Tomorrow' ? d.topLabel : d.month}
             </span>
-            <span className={cn('text-[18px] leading-tight font-bold', active ? 'text-[#FF4800]' : 'text-gray-900')}>
+            <span className={cn('text-[18px] leading-tight font-bold', active ? 'text-brand' : 'text-gray-900')}>
               {d.day}
             </span>
             <span className='text-[11px] text-gray-500'>{d.weekday}</span>
@@ -84,7 +84,7 @@ export function SlotGrid({
               onClick={() => onSelect(slot)}
               className={cn(
                 'flex flex-col items-center rounded-xl border px-1 py-2.5 transition-colors',
-                active ? 'border-[#FF4800] bg-[#FF4800] text-white' : 'border-gray-200 text-gray-800 hover:border-gray-400',
+                active ? 'border-brand bg-brand text-white' : 'border-gray-200 text-gray-800 hover:border-gray-400',
               )}
             >
               <span className='text-[13px] font-bold'>{slot.label}</span>

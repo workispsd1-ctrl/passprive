@@ -153,15 +153,15 @@ export function PayCheckoutClient({ booking, cashbackRate, defaultAmount }: Prop
 
       {/* Cashback preview */}
       {cashbackEarned > 0 && (
-        <div className="bg-violet-50 border border-violet-100 rounded-2xl px-5 py-4 mb-4 flex items-center justify-between">
+        <div className="bg-brand-tint border border-brand-tint-strong rounded-2xl px-5 py-4 mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Coins className="w-5 h-5 text-violet-500" />
+            <Coins className="w-5 h-5 text-brand" />
             <div>
-              <p className="text-sm font-bold text-violet-700">You&apos;ll earn</p>
-              <p className="text-xs text-violet-400">{cashbackRate}% cashback as PP Coins</p>
+              <p className="text-sm font-bold text-brand-dark">You&apos;ll earn</p>
+              <p className="text-xs text-brand/70">{cashbackRate}% cashback as PP Coins</p>
             </div>
           </div>
-          <p className="text-xl font-extrabold text-violet-600">₨{cashbackEarned.toFixed(2)}</p>
+          <p className="text-xl font-extrabold text-brand">₨{cashbackEarned.toFixed(2)}</p>
         </div>
       )}
 
@@ -182,7 +182,7 @@ export function PayCheckoutClient({ booking, cashbackRate, defaultAmount }: Prop
         type="button"
         onClick={handlePay}
         disabled={loading || numAmount <= 0}
-        className="w-full py-4 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
+        className="w-full py-4 rounded-2xl bg-brand hover:bg-brand-dark text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
       >
         {loading
           ? <><Loader2 className="w-5 h-5 animate-spin" /> Redirecting to payment…</>

@@ -23,7 +23,7 @@ export function CurrencyInput({ value, onChange, label, error, size = 'md' }: Pr
       {label && (
         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{label}</p>
       )}
-      <div className={`flex items-center gap-2 ${s.border} border-gray-200 rounded-xl ${s.padding} focus-within:border-violet-500 transition-colors`}>
+      <div className={`flex items-center gap-2 ${s.border} border-gray-200 rounded-xl ${s.padding} focus-within:border-brand transition-colors`}>
         <span className={`${s.prefix} text-gray-400 shrink-0`}>₨</span>
         <input
           type="text"

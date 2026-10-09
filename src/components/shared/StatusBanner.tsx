@@ -10,7 +10,7 @@ interface Props {
 const STYLES = {
   success: { wrap: 'bg-green-50 border-green-100', icon: 'text-green-500', title: 'text-green-700', sub: 'text-green-600' },
   warning: { wrap: 'bg-amber-50 border-amber-100', icon: 'text-amber-500', title: 'text-amber-700', sub: 'text-amber-600' },
-  info:    { wrap: 'bg-violet-50 border-violet-100', icon: 'text-violet-500', title: 'text-violet-700', sub: 'text-violet-500' },
+  info:    { wrap: 'bg-brand-tint border-brand-tint-strong', icon: 'text-brand', title: 'text-brand-dark', sub: 'text-brand' },
 }
 
 const ICONS = {

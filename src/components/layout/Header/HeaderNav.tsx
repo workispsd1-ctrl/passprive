@@ -58,7 +58,7 @@ export function HeaderNav() {
                 <span
                   className={cn(
                     'absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[9px] font-bold whitespace-nowrap text-white',
-                    badge === 'NEW' ? 'bg-[#FF6A19]' : 'bg-[#1C1C1E]',
+                    badge === 'NEW' ? 'bg-brand-light' : 'bg-[#1C1C1E]',
                   )}
                 >
                   {badge}

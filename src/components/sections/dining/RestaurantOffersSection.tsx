@@ -17,7 +17,7 @@ export function RestaurantOffersSection({ mainOffers, bankOffers }: Props) {
         {mainOffers.map(offer => (
           <div key={offer.id} className='shrink-0 w-80 relative'>
             <div className='flex h-[100px] rounded-2xl overflow-hidden'>
-              <div className='w-[140px] shrink-0 bg-linear-to-br from-violet-600 via-purple-500 to-purple-400 flex flex-col justify-center px-4 py-3'>
+              <div className='w-[140px] shrink-0 bg-linear-to-br from-brand via-brand to-brand/70 flex flex-col justify-center px-4 py-3'>
                 <p className='text-white font-black text-[18px] leading-tight'>{offer.title}</p>
                 {offer.badge_text && (
                   <span className='mt-1.5 text-[10px] font-semibold text-white/80 bg-white/20 rounded px-1.5 py-0.5 inline-block w-fit'>
@@ -25,7 +25,7 @@ export function RestaurantOffersSection({ mainOffers, bankOffers }: Props) {
                   </span>
                 )}
               </div>
-              <div className='flex-1 bg-violet-50 flex flex-col justify-center px-4 py-3'>
+              <div className='flex-1 bg-brand-tint flex flex-col justify-center px-4 py-3'>
                 {offer.description && (
                   <p className='text-[13px] font-semibold text-gray-900 leading-snug'>{offer.description}</p>
                 )}

@@ -83,7 +83,7 @@ export function CheckoutClient({ plan }: Props) {
     <div className="px-4 pb-12 max-w-md mx-auto">
 
       {/* Plan summary card */}
-      <div className={`mt-5 rounded-3xl text-white p-6 ${isBlack ? 'bg-linear-to-br from-gray-900 to-black' : 'bg-linear-to-br from-violet-600 to-purple-800'}`}>
+      <div className={`mt-5 rounded-3xl text-white p-6 ${isBlack ? 'bg-linear-to-br from-gray-900 to-black' : 'bg-linear-to-br from-brand to-brand-dark'}`}>
         <p className="text-xs font-bold opacity-60 uppercase tracking-widest mb-1">Subscribing to</p>
         <p className="text-2xl font-extrabold">{plan.plan_name.trim()}</p>
         <div className="flex items-baseline gap-2 mt-3">
@@ -99,7 +99,7 @@ export function CheckoutClient({ plan }: Props) {
         <ul className="flex flex-col gap-2">
           {perks.map(perk => (
             <li key={perk} className="flex items-start gap-2.5 text-sm text-gray-700">
-              <Check className={`w-4 h-4 mt-0.5 shrink-0 ${isBlack ? 'text-gray-700' : 'text-violet-500'}`} />
+              <Check className={`w-4 h-4 mt-0.5 shrink-0 ${isBlack ? 'text-gray-700' : 'text-brand'}`} />
               {perk}
             </li>
           ))}
@@ -126,7 +126,7 @@ export function CheckoutClient({ plan }: Props) {
         type="button"
         onClick={handlePay}
         disabled={loading}
-        className={`mt-5 w-full py-4 rounded-2xl text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 ${isBlack ? 'bg-gray-900 hover:bg-black' : 'bg-violet-600 hover:bg-violet-700'}`}
+        className={`mt-5 w-full py-4 rounded-2xl text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 ${isBlack ? 'bg-gray-900 hover:bg-black' : 'bg-brand hover:bg-brand-dark'}`}
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
         {loading ? 'Redirecting to payment…' : `Pay ₨${Number(plan.amount).toLocaleString()}`}

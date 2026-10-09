@@ -188,7 +188,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
     return (
       <div className='mx-auto max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center'>
         <p className='font-semibold text-gray-800'>This store hasn’t listed bookable services yet.</p>
-        <Link href={store.href} className='mt-3 inline-block text-sm font-semibold text-[#FF4800]'>Back to {store.name}</Link>
+        <Link href={store.href} className='mt-3 inline-block text-sm font-semibold text-brand'>Back to {store.name}</Link>
       </div>
     )
   }
@@ -203,7 +203,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
           {store.name} · {dayLabel(dateId)}, {longDate(dateId)} at {slot.label}
         </p>
         <p className='text-sm text-gray-500'>{selected.map(s => (s.quantity > 1 ? `${s.title} ×${s.quantity}` : s.title)).join(', ')}</p>
-        <Link href={store.href} className='mt-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-black'>
+        <Link href={store.href} className='mt-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-white hover:bg-brand-dark'>
           Done
         </Link>
       </div>
@@ -281,7 +281,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
           type='button'
           disabled={busy}
           onClick={confirm}
-          className='flex items-center justify-center gap-2 rounded-xl bg-gray-900 py-3.5 text-[15px] font-bold text-white hover:bg-black disabled:opacity-60'
+          className='flex items-center justify-center gap-2 rounded-full bg-brand py-3.5 text-[15px] font-bold text-white hover:bg-brand-dark disabled:opacity-60'
         >
           {busy && <Loader2 className='h-4 w-4 animate-spin' />}
           {!isLoggedIn ? 'Log in to book' : isFree ? 'Book Appointment' : `Pay Now · ${money(payAmount)}`}
@@ -319,15 +319,15 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
                   onClick={() => setOfferIdx(i)}
                   className={cn(
                     'flex items-start justify-between gap-3 rounded-2xl border p-4 text-left',
-                    i === offerIdx ? 'border-[#FF4800] bg-[#FF4800]/5' : 'border-gray-200 hover:border-gray-400',
+                    i === offerIdx ? 'border-brand bg-brand/5' : 'border-gray-200 hover:border-gray-400',
                   )}
                 >
                   <div>
                     <p className='text-[14px] font-bold text-gray-900'>{o.title}</p>
                     {o.description && <p className='mt-0.5 text-[12px] text-gray-500'>{o.description}</p>}
                   </div>
-                  <span className={cn('mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2', i === offerIdx ? 'border-[#FF4800]' : 'border-gray-300')}>
-                    {i === offerIdx && <span className='h-2.5 w-2.5 rounded-full bg-[#FF4800]' />}
+                  <span className={cn('mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2', i === offerIdx ? 'border-brand' : 'border-gray-300')}>
+                    {i === offerIdx && <span className='h-2.5 w-2.5 rounded-full bg-brand' />}
                   </span>
                 </button>
               ))}
@@ -341,7 +341,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
           type='button'
           disabled={!slot || busy}
           onClick={proceedFromSlot}
-          className='flex items-center justify-center gap-2 rounded-xl bg-gray-900 py-3.5 text-[15px] font-bold text-white hover:bg-black disabled:opacity-40'
+          className='flex items-center justify-center gap-2 rounded-full bg-brand py-3.5 text-[15px] font-bold text-white hover:bg-brand-dark disabled:opacity-40'
         >
           {busy && <Loader2 className='h-4 w-4 animate-spin' />}
           {isLoggedIn ? 'Proceed' : 'Log in to continue'}
@@ -369,7 +369,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
                   type='button'
                   disabled={busy}
                   onClick={() => { const same = conflict.sameSlot; setConflict(null); if (!same) setStep('review') }}
-                  className='rounded-xl bg-gray-900 py-3 text-sm font-bold text-white hover:bg-black'
+                  className='rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-dark'
                 >
                   {conflict.sameSlot ? 'Okay' : 'Continue booking'}
                 </button>
@@ -392,7 +392,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
             onClick={() => { setCategoryId(c.id); setGender('WOMEN') }}
             className='flex w-20 shrink-0 flex-col items-center gap-1.5 text-center'
           >
-            <span className={cn('relative flex h-18 w-18 items-center justify-center overflow-hidden rounded-2xl border-2 bg-orange-50', c.id === category?.id ? 'border-[#FF4800]' : 'border-transparent')}>
+            <span className={cn('relative flex h-18 w-18 items-center justify-center overflow-hidden rounded-2xl border-2 bg-orange-50', c.id === category?.id ? 'border-brand' : 'border-transparent')}>
               {c.image ? <Image src={c.image} alt={c.title} fill className='object-cover' sizes='72px' /> : <span className='text-[20px] font-bold text-gray-700'>{c.title[0]?.toUpperCase()}</span>}
             </span>
             <span className={cn('line-clamp-2 text-[12px] leading-tight', c.id === category?.id ? 'font-semibold text-gray-900' : 'text-gray-600')}>{c.title}</span>
@@ -432,11 +432,11 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
                     </p>
                   </div>
                   {n === 0 ? (
-                    <button type='button' onClick={() => change(item.id, 1)} className='shrink-0 rounded-lg border border-[#FF4800] px-4 py-1.5 text-[13px] font-bold text-[#FF4800] hover:bg-[#FF4800]/5'>
+                    <button type='button' onClick={() => change(item.id, 1)} className='shrink-0 rounded-lg border border-brand px-4 py-1.5 text-[13px] font-bold text-brand hover:bg-brand/5'>
                       Add
                     </button>
                   ) : (
-                    <div className='flex shrink-0 items-center gap-3 rounded-lg bg-[#FF4800] px-2 py-1.5 text-white'>
+                    <div className='flex shrink-0 items-center gap-3 rounded-lg bg-brand px-2 py-1.5 text-white'>
                       <button type='button' aria-label='Remove one' onClick={() => change(item.id, -1)}><Minus className='h-4 w-4' /></button>
                       <span className='w-4 text-center text-[13px] font-bold'>{n}</span>
                       <button type='button' aria-label='Add one' onClick={() => change(item.id, 1)}><Plus className='h-4 w-4' /></button>
@@ -460,7 +460,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
                 {totalCount} service{totalCount === 1 ? '' : 's'}{servicesTotal > 0 ? ` · ${money(servicesTotal)}` : ''}
               </p>
             </div>
-            <button type='button' onClick={() => setStep('slot')} className='shrink-0 rounded-xl bg-gray-900 px-6 py-3 text-[14px] font-bold text-white hover:bg-black'>
+            <button type='button' onClick={() => setStep('slot')} className='shrink-0 rounded-full bg-brand px-6 py-3 text-[14px] font-bold text-white hover:bg-brand-dark'>
               Select slot
             </button>
           </div>

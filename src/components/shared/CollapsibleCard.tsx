@@ -26,7 +26,7 @@ export function CollapsibleCard({ title, icon, badge, defaultOpen = false, child
           {icon}
           <span className="text-sm font-semibold text-gray-800">{title}</span>
           {badge && (
-            <span className="text-xs bg-violet-100 text-violet-600 font-medium px-2 py-0.5 rounded-full">{badge}</span>
+            <span className="text-xs bg-brand-tint-strong text-brand font-medium px-2 py-0.5 rounded-full">{badge}</span>
           )}
         </div>
         {open ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}

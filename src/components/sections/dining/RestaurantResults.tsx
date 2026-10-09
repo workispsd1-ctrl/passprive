@@ -47,7 +47,7 @@ export function RestaurantResults({
         <p className="text-base font-semibold text-[#0D141C]">No restaurants match these filters</p>
         <Link
           href="/dining"
-          className="mt-4 inline-block rounded-full bg-[#FF6A19] px-5 py-2 text-sm font-semibold text-white"
+          className="mt-4 inline-block rounded-full bg-brand-light px-5 py-2 text-sm font-semibold text-white"
         >
           Clear all filters
         </Link>
@@ -68,7 +68,7 @@ export function RestaurantResults({
             type="button"
             onClick={loadMore}
             disabled={loading}
-            className="rounded-full border border-[#FF6A19] px-6 py-2.5 text-sm font-semibold text-[#FF6A19] transition-colors hover:bg-[#FFF1EA] disabled:opacity-60"
+            className="rounded-full border border-brand-light px-6 py-2.5 text-sm font-semibold text-brand-light transition-colors hover:bg-brand-tint disabled:opacity-60"
           >
             {loading ? 'Loading…' : 'Load more'}
           </button>

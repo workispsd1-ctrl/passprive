@@ -51,3 +51,24 @@ export const TIER_PERKS: Record<string, string[]> = {
     'Highest standard PassPrivé reward rate',
   ],
 }
+
+/**
+ * A plan with the display fields the app's Membership screen reads
+ * (utils/planPresentation.js PLAN_COLUMNS) — tier, tags, benefits, theme, …
+ */
+export type MembershipPlan = SubscriptionPlan & {
+  original_amount: string | null
+  tier: string | null
+  tags: string[]
+  benefits: string[]
+  deals_per_month: number | null
+  deals_per_restaurant_per_month: number | null
+  cashback_label: string | null
+  cta_label: string | null
+  card_bg_url: string | null
+  badge_url: string | null
+  theme: Partial<Record<
+    'baseColor' | 'borderColor' | 'textColor' | 'mutedColor' | 'accentColor' | 'ctaBg' | 'ctaColor' | 'shadowColor',
+    string
+  >> | null
+}

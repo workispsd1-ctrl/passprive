@@ -54,24 +54,24 @@ export function RedeemModal({ onClose, onRedeemed }: Props) {
             <CheckCircle className='w-14 h-14 text-green-500 mx-auto mb-3' />
             <p className='text-[17px] font-bold text-gray-900'>Code Redeemed!</p>
             <p className='text-[13px] text-gray-500 mt-1'>{success.message}</p>
-            <div className='mt-4 p-4 rounded-2xl bg-violet-50 border border-violet-100'>
-              <p className='text-[13px] text-violet-600 font-medium'>Amount credited</p>
-              <p className='text-[28px] font-black text-violet-700 mt-0.5'>₨{success.amount}</p>
+            <div className='mt-4 p-4 rounded-2xl bg-brand-tint border border-brand-tint-strong'>
+              <p className='text-[13px] text-brand font-medium'>Amount credited</p>
+              <p className='text-[28px] font-black text-brand-dark mt-0.5'>₨{success.amount}</p>
               <p className='text-[12px] text-gray-500 mt-1'>New balance: ₨{success.new_balance}</p>
             </div>
             <button
               type='button'
               onClick={onClose}
-              className='mt-5 w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold text-[14px]'
+              className='mt-5 w-full py-3 rounded-2xl bg-brand text-white font-semibold text-[14px]'
             >
               Done
             </button>
           </div>
         ) : (
           <>
-            <div className='flex items-center gap-3 p-4 rounded-2xl bg-violet-50 border border-violet-100 mb-5'>
-              <Gift className='w-5 h-5 text-violet-500 shrink-0' />
-              <p className='text-[13px] text-violet-700'>Enter the code from your gift card to add coins to your balance.</p>
+            <div className='flex items-center gap-3 p-4 rounded-2xl bg-brand-tint border border-brand-tint-strong mb-5'>
+              <Gift className='w-5 h-5 text-brand shrink-0' />
+              <p className='text-[13px] text-brand-dark'>Enter the code from your gift card to add coins to your balance.</p>
             </div>
 
             <input
@@ -80,7 +80,7 @@ export function RedeemModal({ onClose, onRedeemed }: Props) {
               onChange={e => setCode(e.target.value.toUpperCase())}
               onKeyDown={e => e.key === 'Enter' && handleRedeem()}
               placeholder='GIFT-XXXX'
-              className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[15px] font-mono tracking-widest text-center focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 uppercase'
+              className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[15px] font-mono tracking-widest text-center focus:outline-none focus:border-brand/70 focus:ring-2 focus:ring-brand-tint-strong uppercase'
               maxLength={20}
               autoFocus
             />
@@ -93,7 +93,7 @@ export function RedeemModal({ onClose, onRedeemed }: Props) {
               type='button'
               onClick={handleRedeem}
               disabled={loading || !code.trim()}
-              className='mt-4 w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity'
+              className='mt-4 w-full py-3 rounded-2xl bg-brand text-white font-semibold text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity'
             >
               {loading ? 'Redeeming…' : 'Redeem Code'}
             </button>

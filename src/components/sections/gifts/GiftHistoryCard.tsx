@@ -42,7 +42,7 @@ export function GiftHistoryCard({ summary, onBuyClick }: Props) {
             type='button'
             onClick={() => setHistoryTab(id)}
             className={`flex-1 py-2 rounded-xl text-[12px] font-semibold transition-all ${
-              historyTab === id ? 'bg-violet-50 text-violet-700' : 'text-gray-400 hover:text-gray-600'
+              historyTab === id ? 'bg-brand-tint text-brand-dark' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             {label}
@@ -65,7 +65,7 @@ export function GiftHistoryCard({ summary, onBuyClick }: Props) {
             <button
               type='button'
               onClick={onBuyClick}
-              className='mt-3 text-[12px] text-violet-600 font-semibold hover:underline'
+              className='mt-3 text-[12px] text-brand font-semibold hover:underline'
             >
               Buy now →
             </button>
@@ -95,11 +95,11 @@ export function GiftHistoryCard({ summary, onBuyClick }: Props) {
                   <button
                     type='button'
                     onClick={() => copyCode(c.id, c.code)}
-                    className='shrink-0 w-7 h-7 rounded-lg bg-violet-50 hover:bg-violet-100 flex items-center justify-center transition-colors'
+                    className='shrink-0 w-7 h-7 rounded-lg bg-brand-tint hover:bg-brand-tint-strong flex items-center justify-center transition-colors'
                   >
                     {copiedId === c.id
-                      ? <CheckCheck className='w-3.5 h-3.5 text-violet-600' />
-                      : <Copy className='w-3.5 h-3.5 text-violet-400' />
+                      ? <CheckCheck className='w-3.5 h-3.5 text-brand' />
+                      : <Copy className='w-3.5 h-3.5 text-brand/70' />
                     }
                   </button>
                 )}

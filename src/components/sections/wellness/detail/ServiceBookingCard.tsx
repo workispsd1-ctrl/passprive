@@ -12,7 +12,7 @@ function CashbackLine({ store }: { store: ServiceStore }) {
     <p className='flex items-center gap-1 text-[12px] text-gray-600'>
       {canPayBill(store) ? (
         <span>
-          Earn {pct > 0 ? <span className='font-bold text-[#FF4800]'>{pct}% cashback</span> : 'cashback'} on bill payment
+          Earn {pct > 0 ? <span className='font-bold text-brand'>{pct}% cashback</span> : 'cashback'} on bill payment
         </span>
       ) : (
         <span>Earn cashback on bill payment (Coming soon)</span>
@@ -35,7 +35,7 @@ export function ServiceBookingCard({ store, hasServices }: { store: ServiceStore
   const bookButton = showBook && hasServices && (
     <Link
       href={`/wellness/${store.slug ?? store.id}/book`}
-      className='block w-full rounded-xl bg-gray-900 py-3.5 text-center text-[14px] font-bold text-white transition-colors hover:bg-black'
+      className='block w-full rounded-full bg-brand py-3.5 text-center text-[14px] font-bold text-white transition-colors hover:bg-brand-dark'
     >
       Book a slot
     </Link>

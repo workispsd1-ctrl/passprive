@@ -19,6 +19,8 @@ interface Props {
   touristBanners: WebsiteBanner[]
   /** 'black' | 'premium' | 'none' — app parity: PackageBadge.jsx */
   membershipTier: string
+  /** account/static pages: no location picker, no category nav */
+  minimal?: boolean
 }
 
 const MEMBERSHIP_BADGE: Record<string, string> = {
@@ -33,7 +35,7 @@ const MEMBERSHIP_BADGE: Record<string, string> = {
 // Every other page gets the white "default" theme (small logo, colored logo,
 // peach-tinted action circles) — the search bar is always inline on every
 // page now, just restyled to a light-grey pill off the orange home theme.
-export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBanners, membershipTier }: Props) {
+export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBanners, membershipTier, minimal = false }: Props) {
   const isHome = usePathname() === '/'
   const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/membership/FreeBadge.webp'
 
@@ -49,7 +51,7 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
         className={cn(
           'flex h-18 items-center gap-3 px-6 2xl:h-24 2xl:gap-[14.51px] 2xl:px-12',
           isHome
-            ? 'bg-[#FF4800] border-b-2 border-[rgba(206,68,14,0.14)]'
+            ? 'bg-brand border-b-2 border-[rgba(206,68,14,0.14)]'
             : 'border-b border-gray-100',
         )}
       >
@@ -74,15 +76,18 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
           />
         </Link>
 
-        <span
-          className={cn(
-            'h-8 w-px shrink-0 2xl:h-11',
-            isHome ? 'bg-[#B53B0B]' : 'bg-gray-200',
-          )}
-          aria-hidden="true"
-        />
-
-        <LocationButton variant="desktop" theme={isHome ? 'light' : 'default'} />
+        {!minimal && (
+          <>
+            <span
+              className={cn(
+                'h-8 w-px shrink-0 2xl:h-11',
+                isHome ? 'bg-[#B53B0B]' : 'bg-gray-200',
+              )}
+              aria-hidden="true"
+            />
+            <LocationButton variant="desktop" theme={isHome ? 'light' : 'default'} />
+          </>
+        )}
 
         {isHome ? (
           <div className="mx-auto w-full max-w-160 flex-1 2xl:max-w-196">
@@ -95,8 +100,10 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
         )}
 
         <div className="flex shrink-0 items-center gap-2">
-          {/* TODO(design): wire real Privé credits balance. Coin = app asset. */}
-          <div
+          {/* Privé credits balance — opens the Privé Credits page. Coin = app asset. */}
+          <Link
+            href="/prive-credits"
+            aria-label="Privé credits"
             className="relative flex h-10 min-w-21.5 items-center rounded-[75px] border-[0.75px] border-transparent pl-12 pr-5 2xl:h-12 2xl:min-w-30 2xl:pl-16"
             style={{
               // The fill layer must be opaque (pre-composited rgba(255,106,25,0.04)
@@ -121,11 +128,11 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
               <span className="block font-(family-name:--font-dm-sans) text-[28px] leading-none font-bold tracking-[-0.89px] text-[#606366]">
                 {credits == null ? '—' : Math.round(credits).toLocaleString()}
               </span>
-              <span className="block font-(family-name:--font-dm-sans) text-[10.24px] leading-[8px] font-normal tracking-normal text-[#FF6A19]">
+              <span className="block font-(family-name:--font-dm-sans) text-[10.24px] leading-[8px] font-normal tracking-normal text-brand-light">
                 Priv&eacute; credits
               </span>
             </span>
-          </div>
+          </Link>
 
           {/* App membership badge (Free/Plus/Black), 308×132 — app parity: PackageBadge.jsx.
               Signed-in users only: a logged-out visitor has no membership to show. */}
@@ -145,7 +152,9 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
         </div>
       </div>
 
-      <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} touristBanners={touristBanners} pad="px-4 md:px-12" />
+      {!minimal && (
+        <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} touristBanners={touristBanners} pad="px-4 md:px-12" />
+      )}
     </div>
   )
 }

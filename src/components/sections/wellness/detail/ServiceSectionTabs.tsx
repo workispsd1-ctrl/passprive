@@ -38,13 +38,13 @@ export function ServiceSectionTabs({ tabs }: { tabs: { id: string; label: string
             onClick={() => setActive(t.id)}
             className={cn(
               'relative shrink-0 py-3 text-[14px] font-semibold transition-colors',
-              active === t.id ? 'text-[#FF4800]' : 'text-gray-600 hover:text-gray-900',
+              active === t.id ? 'text-brand' : 'text-gray-600 hover:text-gray-900',
             )}
           >
             {t.label}
             <span
               className={cn(
-                'absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#FF4800] transition-opacity',
+                'absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-brand transition-opacity',
                 active === t.id ? 'opacity-100' : 'opacity-0',
               )}
             />

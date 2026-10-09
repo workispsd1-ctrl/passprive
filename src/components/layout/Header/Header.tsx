@@ -4,7 +4,12 @@ import { getCurrentUser } from '@/lib/services/user'
 import { getWebsiteBanners } from '@/lib/services/websiteBanners'
 import { getUserMembership } from '@/lib/services/subscription'
 
-export async function Header() {
+/**
+ * Site header. `minimal` (account + static pages) keeps the top bar — logo,
+ * search, Privé credits, membership badge, favourites, profile — and drops
+ * the location picker and the category nav/hero, which are for browsing.
+ */
+export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
   // Home/wellness/tourist hero banners live in the header so the category-nav
   // pill can be positioned relative to them per-route (overlap on home, below
   // on wellness/tourist); HeaderHeroNav picks the right one by pathname.
@@ -36,9 +41,10 @@ export async function Header() {
         wellnessBanners={wellnessBanners}
         touristBanners={touristBanners}
         membershipTier={membershipTier}
+        minimal={minimal}
       />
       <div className="md:hidden">
-        <MobileHeaderClient user={user} banners={homeBanners} wellnessBanners={wellnessBanners} touristBanners={touristBanners} />
+        <MobileHeaderClient user={user} banners={homeBanners} wellnessBanners={wellnessBanners} touristBanners={touristBanners} minimal={minimal} />
       </div>
     </header>
   )

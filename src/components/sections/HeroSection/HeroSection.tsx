@@ -29,12 +29,12 @@ export async function HeroSection() {
         <span className='font-(family-name:--font-dm-sans) font-bold'>
           Discover Mauritius&apos;{' '}
         </span>
-        <em className='font-(family-name:--font-libre-baskerville) italic font-bold text-[#FF6A19]'>
+        <em className='font-(family-name:--font-libre-baskerville) italic font-bold text-brand-light'>
           Best Dining
         </em>
         <br className='hidden md:block' />
         <span className='font-(family-name:--font-dm-sans) font-normal'> with </span>
-        <em className='font-(family-name:--font-libre-baskerville) italic font-bold text-[#FF6A19]'>
+        <em className='font-(family-name:--font-libre-baskerville) italic font-bold text-brand-light'>
           Exclusive Cashback
         </em>
       </h1>
@@ -72,7 +72,7 @@ export async function HeroSection() {
         <div className='relative z-10 w-full max-w-2xl px-4 2xl:max-w-49'>
           {banners.length === 0 && (
             <p className='mb-6 text-[22px] leading-none tracking-normal md:text-[34px] 2xl:text-[40px]'>
-              <em className='font-(family-name:--font-libre-baskerville) italic font-bold text-[#FF6B1C]'>
+              <em className='font-(family-name:--font-libre-baskerville) italic font-bold text-brand-light'>
                 Dine More,
               </em>{' '}
               <em className='font-(family-name:--font-libre-baskerville) italic font-bold text-[#0E295E]'>

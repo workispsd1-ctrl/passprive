@@ -153,7 +153,7 @@ export function SaveListSheet({
                   className={cn(
                     'flex h-6 w-6 items-center justify-center rounded-full border',
                     row.saved
-                      ? 'border-[#FF4800] bg-[#FF4800] text-white'
+                      ? 'border-brand bg-brand text-white'
                       : 'border-gray-300 text-transparent',
                   )}
                 >
@@ -171,13 +171,13 @@ export function SaveListSheet({
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && createAndSave()}
                 placeholder="New list name"
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-[14px] outline-none focus:border-[#FF4800]"
+                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-[14px] outline-none focus:border-brand"
               />
               <button
                 type="button"
                 onClick={createAndSave}
                 disabled={saving || !newName.trim()}
-                className="rounded-lg bg-[#FF4800] px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                className="rounded-lg bg-brand px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
               >
                 Save
               </button>
@@ -194,7 +194,7 @@ export function SaveListSheet({
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-[14px] font-semibold text-[#FF4800] transition-colors hover:bg-orange-50"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-[14px] font-semibold text-brand transition-colors hover:bg-orange-50"
             >
               <Plus className="h-4 w-4" /> Create new list
             </button>

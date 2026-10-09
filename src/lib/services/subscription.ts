@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { SubscriptionPlan, UserMembership } from '@/lib/types/subscription'
+import type { SubscriptionPlan, UserMembership, MembershipPlan } from '@/lib/types/subscription'
 import type { CashbackPlan } from '@/lib/cashback'
 
 export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
@@ -9,6 +9,21 @@ export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
     .select('id, plan_name, amount, type, cashback, sort_order, product_id, price_id')
     .order('sort_order')
   return (data ?? []) as SubscriptionPlan[]
+}
+
+/** Active plans with their display fields — app parity: Membership.jsx plan query. */
+export async function getMembershipPlans(): Promise<MembershipPlan[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('subscription')
+    .select('id, plan_name, amount, original_amount, type, product_id, price_id, sort_order, tier, tags, benefits, deals_per_month, deals_per_restaurant_per_month, cashback, cashback_label, cta_label, card_bg_url, badge_url, theme')
+    .eq('is_active', true)
+    .order('sort_order')
+  return ((data ?? []) as MembershipPlan[]).map(p => ({
+    ...p,
+    tags: Array.isArray(p.tags) ? p.tags : [],
+    benefits: Array.isArray(p.benefits) ? p.benefits : [],
+  }))
 }
 
 export async function getUserMembership(userId: string): Promise<UserMembership | null> {

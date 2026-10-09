@@ -63,7 +63,7 @@ export function RedeemCodeCard({ onRedeemSuccess }: Props) {
           <button
             type='button'
             onClick={() => setSuccess(null)}
-            className='mt-3 text-[12px] text-violet-600 font-semibold hover:underline'
+            className='mt-3 text-[12px] text-brand font-semibold hover:underline'
           >
             Redeem another code
           </button>
@@ -71,7 +71,7 @@ export function RedeemCodeCard({ onRedeemSuccess }: Props) {
       ) : (
         <>
           <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed mb-2 transition-colors ${
-            error ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50 focus-within:border-violet-400 focus-within:bg-white'
+            error ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50 focus-within:border-brand/70 focus-within:bg-white'
           }`}>
             <input
               type='text'

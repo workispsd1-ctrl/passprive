@@ -186,7 +186,7 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
         <p className='text-sm text-gray-500'>
           {restaurant.name} · {dayLabel(dateId)}, {slot.label} · {guests} guest{guests === 1 ? '' : 's'}
         </p>
-        <Link href='/bookings' className='mt-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-black'>
+        <Link href='/bookings' className='mt-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-white hover:bg-brand-dark'>
           View my bookings
         </Link>
       </div>
@@ -228,7 +228,7 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
             </p>
           )}
           {cashbackPct > 0 && (
-            <p className='mt-2 inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-[12px] font-semibold text-violet-700'>
+            <p className='mt-2 inline-flex rounded-full bg-brand-tint px-2.5 py-1 text-[12px] font-semibold text-brand-dark'>
               + {cashbackPct}% cashback when you pay your bill via PassPrivé
             </p>
           )}
@@ -248,7 +248,7 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
         )}
 
         <div className='rounded-2xl border border-gray-200 bg-white p-5'>
-          <button type='button' onClick={() => setShowNotes(v => !v)} className='text-[14px] font-semibold text-[#FF4800]'>
+          <button type='button' onClick={() => setShowNotes(v => !v)} className='text-[14px] font-semibold text-brand'>
             {showNotes ? 'Hide special request' : '+ Add special request'}
           </button>
           {showNotes && (
@@ -271,7 +271,7 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
           type='button'
           disabled={submitting}
           onClick={handleConfirm}
-          className='flex items-center justify-center gap-2 rounded-xl bg-gray-900 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-black disabled:opacity-60'
+          className='flex items-center justify-center gap-2 rounded-full bg-brand py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-brand-dark disabled:opacity-60'
         >
           {submitting && <Loader2 className='h-4 w-4 animate-spin' />}
           {isLoggedIn ? ctaLabel : 'Log in to book'}
@@ -299,7 +299,7 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
                   onClick={() => setGuests(g)}
                   className={cn(
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-[14px] font-semibold transition-colors',
-                    g === guests ? 'border-[#FF4800] bg-[#FF4800] text-white' : 'border-gray-200 text-gray-800 hover:border-gray-400',
+                    g === guests ? 'border-brand bg-brand text-white' : 'border-gray-200 text-gray-800 hover:border-gray-400',
                   )}
                 >
                   {g}
@@ -349,9 +349,9 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
                 key={label}
                 type='button'
                 onClick={() => setSlot(null)}
-                className='flex items-center gap-1 rounded-full border border-[#FF4800]/30 bg-[#FF4800]/5 px-3 py-1.5 text-[13px] font-semibold text-gray-900'
+                className='flex items-center gap-1 rounded-full border border-brand/30 bg-brand/5 px-3 py-1.5 text-[13px] font-semibold text-gray-900'
               >
-                {label} <ChevronDown className='h-3.5 w-3.5 text-[#FF4800]' />
+                {label} <ChevronDown className='h-3.5 w-3.5 text-brand' />
               </button>
             ))}
           </div>
@@ -364,7 +364,7 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
                 onClick={() => setSlot(s)}
                 className={cn(
                   'shrink-0 rounded-xl border px-4 py-2 text-[13px] font-bold transition-colors',
-                  s.time24 === slot.time24 ? 'border-[#FF4800] bg-[#FF4800] text-white' : 'border-gray-200 text-gray-800 hover:border-gray-400',
+                  s.time24 === slot.time24 ? 'border-brand bg-brand text-white' : 'border-gray-200 text-gray-800 hover:border-gray-400',
                 )}
               >
                 {s.label}
@@ -384,20 +384,20 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
                       onClick={() => setOptionKey(o.key)}
                       className={cn(
                         'flex w-full items-start justify-between gap-3 rounded-2xl border p-4 text-left transition-colors',
-                        active ? 'border-[#FF4800] bg-[#FF4800]/5' : 'border-gray-200 hover:border-gray-400',
+                        active ? 'border-brand bg-brand/5' : 'border-gray-200 hover:border-gray-400',
                       )}
                     >
                       <div>
                         <p className='text-[15px] font-bold text-gray-900'>{o.label}</p>
                         {hasCoverCharge && <p className='mt-0.5 text-[12px] text-gray-500'>Redeemable cover charge: MUR {coverAmount}</p>}
                         {cashbackPct > 0 && (
-                          <span className='mt-2 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700'>
+                          <span className='mt-2 inline-flex rounded-full bg-brand-tint px-2 py-0.5 text-[11px] font-semibold text-brand-dark'>
                             + {cashbackPct}% cashback
                           </span>
                         )}
                       </div>
-                      <span className={cn('mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2', active ? 'border-[#FF4800]' : 'border-gray-300')}>
-                        {active && <span className='h-2.5 w-2.5 rounded-full bg-[#FF4800]' />}
+                      <span className={cn('mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2', active ? 'border-brand' : 'border-gray-300')}>
+                        {active && <span className='h-2.5 w-2.5 rounded-full bg-brand' />}
                       </span>
                     </button>
                     {/* app parity: one-tier-up upsell under each offer */}
@@ -407,7 +407,7 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
                         className='-mt-2 flex items-center justify-between rounded-b-2xl bg-linear-to-r from-[#211B1B] to-[#685125] px-4 pt-4 pb-3 text-[13px] font-semibold text-white'
                       >
                         <span>{nextCashbackPct}% cashback with {PLAN_LABEL[nextPlan]}</span>
-                        <span className='text-[#FF4800]'>Upgrade &amp; Apply →</span>
+                        <span className='text-brand'>Upgrade &amp; Apply →</span>
                       </Link>
                     )}
                   </div>
@@ -429,7 +429,7 @@ export function DiningBookingFlow({ restaurant, hours, offers, isLoggedIn, backH
             type='button'
             disabled={!optionKey}
             onClick={() => setStep('review')}
-            className='rounded-xl bg-gray-900 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-black disabled:opacity-40'
+            className='rounded-full bg-brand py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-brand-dark disabled:opacity-40'
           >
             Proceed
           </button>

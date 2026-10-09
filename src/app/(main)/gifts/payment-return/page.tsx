@@ -76,7 +76,7 @@ function PaymentReturnInner() {
   if (state === 'loading') return (
     <main className='min-h-screen bg-gray-50 flex items-center justify-center'>
       <div className='text-center'>
-        <Loader2 className='w-10 h-10 text-violet-500 animate-spin mx-auto mb-4' />
+        <Loader2 className='w-10 h-10 text-brand animate-spin mx-auto mb-4' />
         <p className='text-[15px] font-semibold text-gray-700'>Confirming your gift…</p>
         <p className='text-[13px] text-gray-400 mt-1'>Please don't close this page.</p>
       </div>
@@ -110,10 +110,10 @@ function PaymentReturnInner() {
         </div>
 
         {/* Voucher card */}
-        <div className='rounded-3xl bg-gradient-to-br from-violet-800 to-violet-600 p-6 text-white text-center mb-4'>
-          <p className='text-violet-200 text-[11px] font-semibold uppercase tracking-wider mb-3'>PassPrivé Gift Card</p>
+        <div className='rounded-3xl bg-gradient-to-br from-brand-dark to-brand p-6 text-white text-center mb-4'>
+          <p className='text-white/80 text-[11px] font-semibold uppercase tracking-wider mb-3'>PassPrivé Gift Card</p>
           <p className='text-[32px] font-black mb-1'>₨{result!.amount.toLocaleString()}</p>
-          <p className='text-violet-200 text-[12px] mb-4'>Gift Card Value</p>
+          <p className='text-white/80 text-[12px] mb-4'>Gift Card Value</p>
           <div className='bg-white/10 backdrop-blur rounded-2xl px-4 py-3'>
             <p className='font-mono text-[18px] font-bold tracking-widest'>{result!.gift_code}</p>
           </div>
@@ -122,7 +122,7 @@ function PaymentReturnInner() {
         <button
           type='button'
           onClick={copy}
-          className='w-full py-3 rounded-2xl border-2 border-violet-200 bg-violet-50 text-violet-700 font-semibold text-[14px] flex items-center justify-center gap-2 mb-3'
+          className='w-full py-3 rounded-2xl border-2 border-brand/25 bg-brand-tint text-brand-dark font-semibold text-[14px] flex items-center justify-center gap-2 mb-3'
         >
           {copied ? <CheckCheck className='w-4 h-4' /> : <Copy className='w-4 h-4' />}
           {copied ? 'Copied!' : 'Copy Code'}
@@ -148,7 +148,7 @@ export default function GiftPaymentReturnPage() {
   return (
     <Suspense fallback={
       <main className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <Loader2 className='w-8 h-8 text-violet-500 animate-spin' />
+        <Loader2 className='w-8 h-8 text-brand animate-spin' />
       </main>
     }>
       <PaymentReturnInner />

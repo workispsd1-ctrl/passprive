@@ -111,7 +111,7 @@ function CoverChargeReturnInner() {
           </p>
           <Link
             href={phase.storeHref ?? '/wellness'}
-            className="mt-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-black"
+            className="mt-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-white hover:bg-brand-dark"
           >
             Done
           </Link>
@@ -125,7 +125,7 @@ export default function CoverChargeReturnPage() {
   return (
     <Suspense fallback={
       <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-violet-400 animate-spin" />
+        <Loader2 className="w-10 h-10 text-brand/70 animate-spin" />
       </main>
     }>
       <CoverChargeReturnInner />

@@ -90,13 +90,13 @@ export function ServiceOffersSection({ inStoreOffers, bankOffers, merchant }: Pr
           <PagerCard
             icon={<Gem className='h-4 w-4' />}
             title='Exclusive'
-            titleClass='text-[#FF4800]'
+            titleClass='text-brand'
             items={inStoreOffers.map(exclusiveBody)}
           />
         )}
         {cashbackPct > 0 && (
-          <div className='flex w-72 shrink-0 flex-col rounded-2xl border border-violet-100 bg-violet-50 p-4 md:w-auto'>
-            <div className='flex items-center gap-1.5 text-[13px] font-bold text-violet-700'>
+          <div className='flex w-72 shrink-0 flex-col rounded-2xl border border-brand-tint-strong bg-brand-tint p-4 md:w-auto'>
+            <div className='flex items-center gap-1.5 text-[13px] font-bold text-brand-dark'>
               <BadgePercent className='h-4 w-4' /> PassPrivé cashback
             </div>
             <p className='mt-3 text-[15px] font-bold text-gray-900'>Get {cashbackPct}% cash back</p>

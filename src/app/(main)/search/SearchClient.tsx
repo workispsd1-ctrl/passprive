@@ -90,7 +90,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           e.preventDefault()
           submit(query)
         }}
-        className="flex h-12 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 shadow-sm focus-within:border-[#FF6A19]"
+        className="flex h-12 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 shadow-sm focus-within:border-brand-light"
       >
         <Search className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
         <input
@@ -147,7 +147,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 className={cn(
                   'shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                   tab === t.key
-                    ? 'border-[#FF6A19] bg-[#FFF1EA] text-[#FF6A19]'
+                    ? 'border-brand-light bg-brand-tint text-brand-light'
                     : 'border-gray-200 text-gray-700 hover:bg-gray-50',
                 )}
               >
@@ -179,7 +179,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                         {[r.location_name, r.city].filter(Boolean).join(', ')}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-[#FFF1EA] px-2 py-0.5 text-[10px] font-semibold capitalize text-[#FF6A19]">
+                    <span className="shrink-0 rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold capitalize text-brand-light">
                       {r.type === 'tourist_place' ? 'Place' : r.type}
                     </span>
                   </Link>

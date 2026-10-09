@@ -16,7 +16,7 @@ const TIER_LABELS: Record<string, string> = {
 
 const TIER_GRADIENT: Record<string, string> = {
   none: 'bg-linear-to-br from-slate-700 via-slate-800 to-slate-900',
-  premium: 'bg-linear-to-br from-violet-600 via-purple-700 to-indigo-800',
+  premium: 'bg-linear-to-br from-brand via-brand-dark to-brand-dark',
   black: 'bg-linear-to-br from-zinc-800 via-neutral-900 to-black',
 }
 
@@ -103,24 +103,24 @@ export function WalletClient({ balance, transactions, membership }: Props) {
         <div className="lg:col-span-2 flex flex-col gap-4">
 
           {/* Cashback rate card */}
-          <div className="rounded-2xl bg-violet-50 border border-violet-100 p-5 flex items-center gap-4 flex-1">
-            <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center shrink-0">
-              <Sparkles className="w-6 h-6 text-violet-600" />
+          <div className="rounded-2xl bg-brand-tint border border-brand-tint-strong p-5 flex items-center gap-4 flex-1">
+            <div className="w-12 h-12 rounded-2xl bg-brand-tint-strong flex items-center justify-center shrink-0">
+              <Sparkles className="w-6 h-6 text-brand" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-violet-900">You earn {rate}% cashback</p>
-              <p className="text-xs text-violet-500 mt-1">
+              <p className="text-sm font-bold text-brand-dark">You earn {rate}% cashback</p>
+              <p className="text-xs text-brand mt-1">
                 {isPaid ? `${tierLabel} benefit` : 'On every eligible bill payment'}
               </p>
             </div>
-            <span className="text-3xl font-black text-violet-600 tabular-nums">{rate}%</span>
+            <span className="text-3xl font-black text-brand tabular-nums">{rate}%</span>
           </div>
 
           {/* Upgrade prompt — only when on free tier */}
           {!isPaid && (
             <Link
               href="/membership"
-              className="rounded-2xl bg-linear-to-br from-violet-600 to-purple-700 p-5 text-white shadow-md flex items-center justify-between gap-3 hover:opacity-95 transition-opacity"
+              className="rounded-2xl bg-linear-to-br from-brand to-brand-dark p-5 text-white shadow-md flex items-center justify-between gap-3 hover:opacity-95 transition-opacity"
             >
               <div>
                 <p className="text-sm font-bold">Upgrade to Privé Premium</p>
@@ -186,22 +186,22 @@ export function WalletClient({ balance, transactions, membership }: Props) {
             ].map((item, i) => (
               <div
                 key={item.tier}
-                className={`flex items-center justify-between px-5 py-4 ${i > 0 ? 'border-t border-gray-50' : ''} ${tier === item.tier ? 'bg-violet-50' : ''}`}
+                className={`flex items-center justify-between px-5 py-4 ${i > 0 ? 'border-t border-gray-50' : ''} ${tier === item.tier ? 'bg-brand-tint' : ''}`}
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm font-semibold ${tier === item.tier ? 'text-violet-700' : 'text-gray-700'}`}>
+                    <span className={`text-sm font-semibold ${tier === item.tier ? 'text-brand-dark' : 'text-gray-700'}`}>
                       {item.label}
                     </span>
                     {tier === item.tier && (
-                      <span className="text-[10px] font-bold text-violet-500 bg-violet-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-bold text-brand bg-brand-tint-strong px-2 py-0.5 rounded-full">
                         Your plan
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
                 </div>
-                <span className={`text-lg font-black tabular-nums ${tier === item.tier ? 'text-violet-600' : 'text-gray-300'}`}>
+                <span className={`text-lg font-black tabular-nums ${tier === item.tier ? 'text-brand' : 'text-gray-300'}`}>
                   {item.rate}%
                 </span>
               </div>

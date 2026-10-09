@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { SupportForm } from './SupportForm'
+import { PageBackTitle } from '@/components/shared/PolicyPage'
 
 export const metadata: Metadata = {
   title: 'Support | PassPrivé',
@@ -9,11 +10,10 @@ export const metadata: Metadata = {
 
 export default function SupportPage() {
   return (
-    <main className="min-h-screen bg-white py-12 px-4">
+    <main className="min-h-screen bg-white px-4 pt-6 pb-12 font-(family-name:--font-dm-sans)">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-900 text-center mb-10">
-          How can we help you?
-        </h1>
+        <PageBackTitle title="Help & Support" />
+        <p className="mt-6 mb-8 text-center text-[18px] font-bold text-[#2C2D32]">How can we help you?</p>
         <Suspense>
           <SupportForm />
         </Suspense>

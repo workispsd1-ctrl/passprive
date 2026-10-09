@@ -139,7 +139,7 @@ function PaymentReturnInner() {
           <div className="flex flex-col gap-2 w-full mt-2">
             <button
               onClick={() => runVerification(phase.sessionId, phase.merchantTrace, 'pending')}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-brand text-white font-bold text-sm hover:bg-brand-dark"
             >
               <RefreshCw className="w-4 h-4" />
               Check again
@@ -170,7 +170,7 @@ export default function PaymentReturnPage() {
   return (
     <Suspense fallback={
       <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-violet-400 animate-spin" />
+        <Loader2 className="w-10 h-10 text-brand/70 animate-spin" />
       </main>
     }>
       <PaymentReturnInner />

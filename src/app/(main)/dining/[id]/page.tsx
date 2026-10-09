@@ -203,7 +203,7 @@ export default async function RestaurantPage({
                   </div>
                   <Link
                     href={`/dining/${restaurant.slug ?? restaurant.id}/book`}
-                    className='block w-full py-3.5 rounded-xl bg-gray-900 text-white font-bold text-[14px] text-center hover:bg-black transition-colors'
+                    className='block w-full py-3.5 rounded-full bg-brand text-white font-bold text-[14px] text-center hover:bg-brand-dark transition-colors'
                   >
                     Book a table
                   </Link>
@@ -217,7 +217,7 @@ export default async function RestaurantPage({
           <div className='md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 z-20 shadow-lg'>
             <Link
               href={`/dining/${restaurant.slug ?? restaurant.id}/book`}
-              className='block w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] text-center hover:bg-black transition-colors'
+              className='block w-full py-3.5 rounded-full bg-brand text-white font-bold text-[15px] text-center hover:bg-brand-dark transition-colors'
             >
               Book a table
             </Link>

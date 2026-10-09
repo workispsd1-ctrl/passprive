@@ -17,7 +17,7 @@ export function PromotionalCollectionsSection({
     <>
       {collections.map((c) => (
         <section key={c.id} className="mx-auto max-w-7xl px-4 py-4 md:px-8 2xl:max-w-394">
-          <div className="relative flex min-h-[520px] flex-col justify-end overflow-hidden rounded-[20px] bg-linear-to-br from-[#FF6A19] to-[#FF9A5C] md:min-h-[600px]">
+          <div className="relative flex min-h-[520px] flex-col justify-end overflow-hidden rounded-[20px] bg-linear-to-br from-brand-light to-[#FF9A5C] md:min-h-[600px]">
             {c.hasBanner ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function TermsCheckbox({ checked, onChange, children, accent = 'violet' }: Props) {
-  const activeColor = accent === 'black' ? 'bg-gray-900 border-gray-900' : 'bg-violet-600 border-violet-600'
+  const activeColor = accent === 'black' ? 'bg-gray-900 border-gray-900' : 'bg-brand border-brand'
   return (
     <label className="flex items-start gap-3 cursor-pointer">
       <div

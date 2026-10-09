@@ -23,7 +23,7 @@ export function TouristCard({ place }: Props) {
 
         {/* Ad badge – top left */}
         {place.ad_badge_text && (
-          <div className="absolute top-2.5 left-2.5 bg-gradient-to-r from-purple-500 to-brand px-2.5 py-1 rounded-full shadow-sm z-10">
+          <div className="absolute top-2.5 left-2.5 bg-gradient-to-r from-brand to-brand px-2.5 py-1 rounded-full shadow-sm z-10">
             <span className="text-white text-[9px] font-bold whitespace-nowrap">
               {place.ad_badge_text}
             </span>

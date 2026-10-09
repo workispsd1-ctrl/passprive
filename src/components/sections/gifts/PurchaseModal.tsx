@@ -109,7 +109,7 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
         {/* Step indicator */}
         <div className='flex gap-1 px-6 pt-3 shrink-0'>
           {STEPS.map((s, i) => (
-            <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${i <= stepIndex ? 'bg-violet-500' : 'bg-gray-100'}`} />
+            <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${i <= stepIndex ? 'bg-brand' : 'bg-gray-100'}`} />
           ))}
         </div>
 
@@ -151,7 +151,7 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                     type='button'
                     onClick={() => { setAmount(a); setCustomAmount('') }}
                     className={`py-4 rounded-2xl border-2 font-bold text-[15px] transition-all ${
-                      amount === a && !customAmount ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-100 text-gray-700 hover:border-violet-200'
+                      amount === a && !customAmount ? 'border-brand bg-brand-tint text-brand-dark' : 'border-gray-100 text-gray-700 hover:border-brand/25'
                     }`}
                   >
                     ₨{a.toLocaleString()}
@@ -165,7 +165,7 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                   placeholder='Custom amount'
                   value={customAmount}
                   onChange={e => { setCustomAmount(e.target.value); setAmount(0) }}
-                  className='w-full pl-8 pr-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+                  className='w-full pl-8 pr-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-brand/70 focus:ring-2 focus:ring-brand-tint-strong'
                   min={100}
                 />
               </div>
@@ -179,21 +179,21 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                 placeholder='Recipient name'
                 value={recipientName}
                 onChange={e => setRecipientName(e.target.value)}
-                className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+                className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-brand/70 focus:ring-2 focus:ring-brand-tint-strong'
               />
               <input
                 type='text'
                 placeholder='Gift title (e.g. Happy Birthday!)'
                 value={giftTitle}
                 onChange={e => setGiftTitle(e.target.value)}
-                className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+                className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-brand/70 focus:ring-2 focus:ring-brand-tint-strong'
               />
               <textarea
                 placeholder='Personal message (optional)'
                 value={giftMessage}
                 onChange={e => setGiftMessage(e.target.value)}
                 rows={3}
-                className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 resize-none'
+                className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-brand/70 focus:ring-2 focus:ring-brand-tint-strong resize-none'
               />
             </div>
           )}
@@ -201,18 +201,18 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
           {step === 'confirm' && (
             <div className='space-y-4'>
               {/* Card preview */}
-              <div className='relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-gradient-to-br from-violet-800 to-violet-600'>
+              <div className='relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-gradient-to-br from-brand-dark to-brand'>
                 {selectedEvent?.image_url && (
                   <Image src={selectedEvent.image_url} alt='' fill className='object-cover opacity-30' sizes='500px' />
                 )}
                 <div className='absolute inset-0 flex flex-col justify-between p-5'>
                   <div>
-                    <p className='text-violet-200 text-[11px] font-semibold uppercase tracking-wider'>PassPrivé Gift</p>
+                    <p className='text-white/80 text-[11px] font-semibold uppercase tracking-wider'>PassPrivé Gift</p>
                     <p className='text-white font-bold text-[18px] mt-1'>{giftTitle || selectedEvent?.title || 'Gift Card'}</p>
-                    {recipientName && <p className='text-violet-200 text-[13px] mt-0.5'>For {recipientName}</p>}
+                    {recipientName && <p className='text-white/80 text-[13px] mt-0.5'>For {recipientName}</p>}
                   </div>
                   <div>
-                    {selectedBrand && <p className='text-violet-200 text-[12px]'>{selectedBrand.name}</p>}
+                    {selectedBrand && <p className='text-white/80 text-[12px]'>{selectedBrand.name}</p>}
                     <p className='text-white font-black text-[28px]'>₨{effectiveAmount.toLocaleString()}</p>
                   </div>
                 </div>
@@ -236,7 +236,7 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                 </div>
                 <div className='flex justify-between px-4 py-3 text-[14px]'>
                   <span className='font-bold text-gray-900'>Total payable</span>
-                  <span className='font-black text-violet-700'>₨{payable.toLocaleString()}</span>
+                  <span className='font-black text-brand-dark'>₨{payable.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -253,7 +253,7 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                 type='button'
                 onClick={handlePay}
                 disabled={loading}
-                className='w-full py-3.5 rounded-2xl bg-violet-600 text-white font-bold text-[15px] flex items-center justify-center gap-2 disabled:opacity-60'
+                className='w-full py-3.5 rounded-2xl bg-brand text-white font-bold text-[15px] flex items-center justify-center gap-2 disabled:opacity-60'
               >
                 {loading ? <Loader2 className='w-4 h-4 animate-spin' /> : null}
                 {loading ? 'Redirecting to payment…' : `Pay ₨${payable.toLocaleString()}`}

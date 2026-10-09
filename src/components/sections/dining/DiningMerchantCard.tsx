@@ -137,7 +137,7 @@ export function DiningMerchantCard({
             onClick={handleHeart}
             className={cn(
               'absolute right-2.5 top-2.5 z-20 drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)] transition-transform hover:scale-110 active:scale-125',
-              saved ? 'scale-110 text-[#FF4800]' : 'text-white',
+              saved ? 'scale-110 text-brand' : 'text-white',
             )}
           >
             <Heart className={cn('h-6 w-6', saved && 'fill-current')} />
@@ -181,12 +181,12 @@ export function DiningMerchantCard({
         {(stampSheet || trending) && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {stampSheet && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#E84A00]/8 px-2.5 py-1 text-[11px] font-medium text-[#E84A00]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark">
                 <Grid2x2 className="h-3 w-3" /> Stamp sheet
               </span>
             )}
             {trending && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#E84A00]/8 px-2.5 py-1 text-[11px] font-medium text-[#E84A00]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark">
                 <Flame className="h-3 w-3 fill-current" /> Trending
               </span>
             )}

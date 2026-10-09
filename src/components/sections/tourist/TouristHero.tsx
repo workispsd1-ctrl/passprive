@@ -31,7 +31,7 @@ export function TouristHero({ totalPlaces, freeEntryCount, searchQuery, setSearc
 
         <h1 className="text-[26px] md:text-[40px] font-bold text-white leading-tight drop-shadow-sm mt-3">
           Explore Mauritius&rsquo;s{' '}
-          <span className="text-purple-300 drop-shadow-sm">
+          <span className="text-white/80 drop-shadow-sm">
             best attractions
           </span>
         </h1>

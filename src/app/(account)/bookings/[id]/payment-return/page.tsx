@@ -132,7 +132,7 @@ export default function DiningPaymentReturnPage() {
   return (
     <Suspense fallback={
       <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-violet-400 animate-spin" />
+        <Loader2 className="w-10 h-10 text-brand/70 animate-spin" />
       </main>
     }>
       <PaymentReturnInner />

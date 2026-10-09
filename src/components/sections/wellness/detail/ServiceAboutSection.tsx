@@ -40,7 +40,7 @@ export function ServiceAboutSection({ highlights, description }: { highlights: s
       {(highlightsText || description) && (
         <div className='grid gap-3 md:grid-cols-2'>
           {highlightsText && (
-            <AboutCard icon={<Sparkles className='h-5 w-5 text-[#FF4800]' />} title='Highlights' body={highlightsText} />
+            <AboutCard icon={<Sparkles className='h-5 w-5 text-brand' />} title='Highlights' body={highlightsText} />
           )}
           {description && (
             <AboutCard icon={<Trophy className='h-5 w-5 text-amber-500' />} title='What makes it worth it' body={description} />
@@ -54,7 +54,7 @@ export function ServiceAboutSection({ highlights, description }: { highlights: s
       >
         <div>
           <p className='text-[14px] font-bold text-gray-900'>Have queries or need help?</p>
-          <p className='mt-0.5 flex items-center gap-0.5 text-[13px] font-semibold text-[#FF4800]'>
+          <p className='mt-0.5 flex items-center gap-0.5 text-[13px] font-semibold text-brand'>
             Contact help &amp; support <ChevronRight className='h-3.5 w-3.5' />
           </p>
         </div>

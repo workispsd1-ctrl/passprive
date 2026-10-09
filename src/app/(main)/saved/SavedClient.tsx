@@ -43,7 +43,7 @@ export function SavedClient({ items }: { items: SavedItem[] }) {
             onClick={() => setTab(t.id)}
             className={cn(
               'shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors',
-              tab === t.id ? 'border-[#FF4800] bg-[#FF4800] text-white' : 'border-gray-200 text-gray-700 hover:border-gray-400',
+              tab === t.id ? 'border-brand bg-brand text-white' : 'border-gray-200 text-gray-700 hover:border-gray-400',
             )}
           >
             {t.label}
@@ -57,7 +57,7 @@ export function SavedClient({ items }: { items: SavedItem[] }) {
           <Heart className='h-10 w-10 text-gray-300' />
           <p className='font-semibold text-gray-700'>Nothing saved here yet</p>
           <p className='text-sm text-gray-400'>Tap the heart on any restaurant, salon or store to save it.</p>
-          <Link href='/' className='mt-1 rounded-full bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-black'>Explore</Link>
+          <Link href='/' className='mt-1 rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark'>Explore</Link>
         </div>
       ) : (
         <div className='mt-6 flex flex-wrap justify-center gap-5 md:justify-start'>

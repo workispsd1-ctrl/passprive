@@ -21,7 +21,7 @@ export function PaymentErrorCard({ message, onRetry, retryLabel = 'Try again', o
           <button
             type="button"
             onClick={onRetry}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-brand text-white font-bold text-sm hover:bg-brand-dark"
           >
             <RefreshCw className="w-4 h-4" />
             {retryLabel}

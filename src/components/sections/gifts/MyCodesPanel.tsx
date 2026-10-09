@@ -41,9 +41,9 @@ function CodeCard({ code }: { code: GiftCode }) {
         <button
           type='button'
           onClick={copy}
-          className='shrink-0 p-2 rounded-xl bg-violet-50 hover:bg-violet-100 transition-colors'
+          className='shrink-0 p-2 rounded-xl bg-brand-tint hover:bg-brand-tint-strong transition-colors'
         >
-          {copied ? <CheckCheck className='w-4 h-4 text-violet-600' /> : <Copy className='w-4 h-4 text-violet-500' />}
+          {copied ? <CheckCheck className='w-4 h-4 text-brand' /> : <Copy className='w-4 h-4 text-brand' />}
         </button>
       )}
     </div>

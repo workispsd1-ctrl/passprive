@@ -29,7 +29,7 @@ export function CardImageSlider({ place }: Props) {
   }, [place.cover_image, place.tourist_place_media_assets, googlePhotoUrl]);
 
   if (images.length === 0) {
-    return <div className="w-full h-full bg-linear-to-br from-purple-100 to-purple-50" />;
+    return <div className="w-full h-full bg-linear-to-br from-brand-tint-strong to-brand-tint" />;
   }
 
   return (

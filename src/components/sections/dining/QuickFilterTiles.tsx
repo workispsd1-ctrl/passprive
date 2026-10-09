@@ -34,7 +34,7 @@ const CHIPS = [
 
 const chipBase =
   'flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors'
-const chipOn = 'border-[#FF6A19] bg-[#FFF1EA] text-[#FF6A19]'
+const chipOn = 'border-brand-light bg-brand-tint text-brand-light'
 const chipOff = 'border-gray-200 text-gray-700 hover:bg-gray-50'
 
 export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] }) {
@@ -100,7 +100,7 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
                       }}
                       className={cn(
                         'w-full px-3 py-2 text-left hover:bg-gray-50',
-                        filters.sort === s.key && 'font-bold text-[#FF6A19]',
+                        filters.sort === s.key && 'font-bold text-brand-light',
                       )}
                     >
                       {s.label}

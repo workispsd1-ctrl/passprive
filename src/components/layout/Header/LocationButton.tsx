@@ -57,7 +57,7 @@ export function LocationButton({ variant = 'desktop', theme = 'default' }: Props
         className={`flex shrink-0 items-center gap-2 transition-opacity hover:opacity-80 2xl:gap-2.75`}
       >
         <MapPin
-          className={`h-5 w-5 shrink-0 2xl:h-6 2xl:w-6 ${light ? 'text-white' : 'text-[#FF6A19]'}`}
+          className={`h-5 w-5 shrink-0 2xl:h-6 2xl:w-6 ${light ? 'text-white' : 'text-brand-light'}`}
           aria-hidden="true"
         />
         <div className="flex flex-col items-start gap-0.75 leading-tight">

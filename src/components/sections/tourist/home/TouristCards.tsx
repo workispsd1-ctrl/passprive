@@ -40,7 +40,7 @@ function TagPill({ children }: { children: React.ReactNode }) {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-[#FFF1EB] px-2 py-0.5 text-[11px] font-medium text-[#C2410C]">
+    <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-brand-tint px-2 py-0.5 text-[11px] font-medium text-[#C2410C]">
       {children}
     </span>
   )
@@ -179,7 +179,7 @@ export function DayPlanCard({
       </p>
       <p className="mt-0.5 line-clamp-2 w-full text-[11px] text-gray-400">{plan.stopNames.join(', ')}</p>
       {trending && (
-        <span className="mt-1.5 rounded-full bg-[#FFF1EB] px-2 py-0.5 text-[10px] font-semibold" style={{ color: ACCENT }}>
+        <span className="mt-1.5 rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold" style={{ color: ACCENT }}>
           Trending
         </span>
       )}

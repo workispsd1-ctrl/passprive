@@ -176,7 +176,7 @@ export function ServiceHeader({ store, hours, rating }: Props) {
           <h1 className='text-[22px] leading-tight font-bold text-gray-900 md:text-[28px]'>{store.name}</h1>
           {categories && <p className='mt-0.5 truncate text-[13px] text-gray-500'>{categories}</p>}
           {(distance || area) && (
-            <p className='mt-0.5 truncate text-[13px] font-medium text-[#FF4800]'>
+            <p className='mt-0.5 truncate text-[13px] font-medium text-brand'>
               {[distance, area].filter(Boolean).join(' • ')}
             </p>
           )}

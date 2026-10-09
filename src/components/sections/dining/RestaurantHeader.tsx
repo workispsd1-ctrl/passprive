@@ -51,7 +51,7 @@ export function RestaurantHeader({ restaurant, cashbackInfo, todayHours, allHour
           </span>
         )}
         {restaurant.merchant_type === 'preferred' && (
-          <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-50 border border-violet-200 text-[11px] font-semibold text-violet-700 mt-1.5'>
+          <span className='shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-tint border border-brand/25 text-[11px] font-semibold text-brand-dark mt-1.5'>
             <Award className='w-3 h-3' /> Preferred Partner
           </span>
         )}
@@ -113,13 +113,13 @@ export function RestaurantHeader({ restaurant, cashbackInfo, todayHours, allHour
       {/* Cashback badge */}
       {restaurant.merchant_type ? (
         cashbackInfo ? (
-          <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
-            <span className='text-violet-600 font-black text-[15px]'>{cashbackInfo.cashback_rate}%</span>
-            <span className='text-[13px] font-semibold text-violet-700'>PP Coins cashback on your bill</span>
+          <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-brand-tint border border-brand-tint-strong'>
+            <span className='text-brand font-black text-[15px]'>{cashbackInfo.cashback_rate}%</span>
+            <span className='text-[13px] font-semibold text-brand-dark'>PP Coins cashback on your bill</span>
           </div>
         ) : (
-          <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-violet-50 border border-violet-100'>
-            <span className='text-[13px] font-semibold text-violet-700'>Earn PP Coins cashback here</span>
+          <div className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-brand-tint border border-brand-tint-strong'>
+            <span className='text-[13px] font-semibold text-brand-dark'>Earn PP Coins cashback here</span>
           </div>
         )
       ) : (

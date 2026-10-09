@@ -44,7 +44,7 @@ export function ServiceMenuSection({ categories }: { categories: ServiceCategory
             <span
               className={cn(
                 'relative flex h-18 w-18 items-center justify-center overflow-hidden rounded-2xl border-2 bg-orange-50 transition-colors',
-                c.id === active.id ? 'border-[#FF4800]' : 'border-transparent',
+                c.id === active.id ? 'border-brand' : 'border-transparent',
               )}
             >
               {c.image ? (

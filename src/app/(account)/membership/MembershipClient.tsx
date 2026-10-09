@@ -1,334 +1,172 @@
 'use client'
 
-import { Check, Crown, Sparkles, Zap, ArrowRight } from 'lucide-react'
-import type { SubscriptionPlan, UserMembership } from '@/lib/types/subscription'
-import { TIER_PERKS, PLAN_TIER } from '@/lib/types/subscription'
+import { useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Check } from 'lucide-react'
+import LoginDialog from '@/components/LoginDialog'
+import type { MembershipPlan, UserMembership } from '@/lib/types/subscription'
+import { amountOf, canUpgradeTo, currentPlanOf, tierOf, visualOf } from '@/lib/membershipPlans'
 
-function formatExpiry(iso: string | null) {
-  if (!iso) return null
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+function formatDate(value: string | null) {
+  if (!value) return 'Not available'
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? 'Not available' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-/* ─── Basic card ────────────────────────────────────────────────── */
-function BasicCard({ isActive }: { isActive: boolean }) {
-  const perks = TIER_PERKS.none
-  return (
-    <div className={`relative flex flex-col h-140 rounded-3xl overflow-hidden bg-white border ${isActive ? 'border-gray-300 ring-2 ring-gray-200 shadow-lg' : 'border-gray-200 shadow-sm'}`}>
-      {isActive && (
-        <span className="absolute top-4 right-4 z-10 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-gray-900 text-white">
-          Your plan
-        </span>
-      )}
-
-      {/* Header */}
-      <div className="bg-linear-to-br from-slate-50 to-gray-100 px-6 pt-8 pb-6 border-b border-gray-100">
-        <div className="flex items-center gap-2 mb-5">
-          <Zap className="w-4 h-4 text-gray-400" />
-          <span className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Basic</span>
-        </div>
-        <p className="text-5xl font-extrabold text-gray-900 leading-none">Free</p>
-        <div className="mt-4 inline-flex items-center gap-1.5 bg-gray-200/80 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-full">
-          ✦ 0.5% at all merchants
-        </div>
-      </div>
-
-      {/* Perks */}
-      <div className="flex-1 px-6 pt-5">
-        <ul className="flex flex-col gap-3">
-          {perks.map(perk => (
-            <li key={perk} className="flex items-start gap-2.5">
-              <Check className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <span className="text-sm text-gray-500 leading-snug">{perk}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* CTA */}
-      <div className="px-6 pb-6">
-        <div className="w-full py-3.5 rounded-2xl border-2 border-gray-200 text-center text-sm font-bold text-gray-400">
-          Free forever
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ─── Premium card ──────────────────────────────────────────────── */
-function PremiumCard({ plan, isActive, isLoggedIn }: { plan: SubscriptionPlan; isActive: boolean; isLoggedIn: boolean }) {
-  const perks = TIER_PERKS.premium
-  const href = isLoggedIn ? '/membership/checkout?plan=premium' : '/login?redirect=/membership/checkout?plan=premium'
+/* ─── Plan card — app parity: Membership.jsx PlanCard ─────────────────── */
+function PlanCard({ plan, isCurrent, canUpgrade, onUpgrade }: { plan: MembershipPlan; isCurrent: boolean; canUpgrade: boolean; onUpgrade: () => void }) {
+  const v = visualOf(plan)
+  const amount = amountOf(plan.amount)
+  const monthly = amount > 0 ? Math.round(amount / 12) : 0
+  const dark = v.tier !== 'free'
 
   return (
-    <div className={`relative flex flex-col h-140 rounded-3xl overflow-hidden shadow-xl ${isActive ? 'ring-2 ring-violet-400' : ''}`}>
-      {/* Badge */}
-      {!isActive && (
-        <span className="absolute top-4 right-4 z-10 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/25 text-white border border-white/20 backdrop-blur-sm">
-          Popular
-        </span>
-      )}
-      {isActive && (
-        <span className="absolute top-4 right-4 z-10 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/20 text-white">
-          Your plan
-        </span>
-      )}
-
-      {/* Header */}
-      <div className="bg-linear-to-br from-violet-500 via-purple-600 to-indigo-800 px-6 pt-8 pb-6">
-        <div className="flex items-center gap-2 mb-5">
-          <Sparkles className="w-4 h-4 text-white/80" />
-          <span className="text-xs font-bold uppercase tracking-[0.18em] text-white/60">{plan.plan_name.trim()}</span>
-        </div>
-        <div className="flex items-end gap-1.5">
-          <span className="text-5xl font-extrabold text-white leading-none">₨{Number(plan.amount).toLocaleString()}</span>
-          <span className="text-sm text-white/50 mb-1">/yr</span>
-        </div>
-        <div className="mt-4 inline-flex items-center gap-1.5 bg-white/15 border border-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-          ✦ {plan.cashback}% at Preferred Partners
-        </div>
-      </div>
-
-      {/* Perks */}
-      <div className="flex-1 bg-white px-6 pt-5">
-        <ul className="flex flex-col gap-3">
-          {perks.map(perk => (
-            <li key={perk} className="flex items-start gap-2.5">
-              <Check className="w-4 h-4 text-violet-500 mt-0.5 shrink-0" />
-              <span className="text-sm text-gray-700 leading-snug">{perk}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* CTA */}
-      <div className="bg-white px-6 pb-6">
-        {isActive ? (
-          <div className="w-full py-3.5 rounded-2xl border-2 border-violet-200 text-center text-sm font-bold text-violet-400">
-            Current plan
+    <div
+      className='relative overflow-hidden rounded-3xl border-[1.5px]'
+      style={{ borderColor: v.borderColor, backgroundColor: v.baseColor, boxShadow: `0 6px 16px ${v.shadowColor}38` }}
+    >
+      {v.bg && <Image src={v.bg} alt='' fill className='object-cover' sizes='(max-width: 768px) 100vw, 520px' />}
+      <div className='relative flex h-full flex-col p-5.5'>
+        {v.tags.length > 0 && (
+          <div className='mb-4 flex flex-wrap gap-1.5'>
+            {v.tags.map(tag => (
+              <span key={tag} className='rounded-full bg-[#FFD46E] px-2 py-1 text-[9px] font-bold tracking-[0.3px] text-[#4C3500] uppercase'>
+                {tag}
+              </span>
+            ))}
           </div>
-        ) : (
-          <a href={href} className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 transition-colors">
-            Get {plan.plan_name.trim()} <ArrowRight className="w-4 h-4" />
-          </a>
         )}
-      </div>
-    </div>
-  )
-}
 
-/* ─── Black card ────────────────────────────────────────────────── */
-function BlackCard({ plan, isActive, isLoggedIn }: { plan: SubscriptionPlan; isActive: boolean; isLoggedIn: boolean }) {
-  const perks = TIER_PERKS.black
-  const href = isLoggedIn ? '/membership/checkout?plan=black' : '/login?redirect=/membership/checkout?plan=black'
+        {v.badge ? (
+          <Image src={v.badge} alt={plan.plan_name.trim()} width={308} height={132} className='mb-4 h-9 w-auto self-start' />
+        ) : (
+          <p className='mb-4 text-[20px] leading-9 font-bold tracking-[0.4px]' style={{ color: v.textColor }}>{plan.plan_name.trim()}</p>
+        )}
 
-  return (
-    <div className={`relative flex flex-col h-140 rounded-3xl overflow-hidden bg-zinc-950 shadow-2xl ${isActive ? 'ring-1 ring-zinc-600' : ''}`}>
-      {/* Amber accent line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-400/60 to-transparent" />
+        {amount <= 0 ? (
+          <p className='mb-4 text-[38px] font-bold' style={{ color: v.textColor }}>Free</p>
+        ) : (
+          <div className='mb-4'>
+            <p className='flex flex-wrap items-baseline'>
+              <span className='text-[28px] font-bold text-white'>MUR {amount.toLocaleString()}</span>
+              <span className='ml-px text-[18px] font-bold' style={{ color: v.textColor }}>/yr</span>
+              {v.originalAmount && (
+                <span className='ml-2 text-[14px] font-medium line-through' style={{ color: v.mutedColor }}>
+                  MUR {v.originalAmount.toLocaleString()}
+                </span>
+              )}
+            </p>
+            {monthly > 0 && <p className='mt-0.5 text-[13px]' style={{ color: v.mutedColor }}>or MUR {monthly}/month</p>}
+          </div>
+        )}
 
-      {/* Badge */}
-      {!isActive && (
-        <span className="absolute top-4 right-4 z-10 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25">
-          Most Exclusive
-        </span>
-      )}
-      {isActive && (
-        <span className="absolute top-4 right-4 z-10 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 text-white/70">
-          Your plan
-        </span>
-      )}
-
-      {/* Header */}
-      <div className="px-6 pt-8 pb-6 border-b border-white/5">
-        <div className="flex items-center gap-2 mb-5">
-          <Crown className="w-4 h-4 text-amber-400/80" />
-          <span className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">{plan.plan_name.trim()}</span>
-        </div>
-        <div className="flex items-end gap-1.5">
-          <span className="text-5xl font-extrabold text-white leading-none">₨{Number(plan.amount).toLocaleString()}</span>
-          <span className="text-sm text-zinc-600 mb-1">/yr</span>
-        </div>
-        <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-semibold px-3 py-1.5 rounded-full">
-          ✦ {plan.cashback}% at Preferred Partners
-        </div>
-      </div>
-
-      {/* Perks */}
-      <div className="flex-1 px-6 pt-5">
-        <ul className="flex flex-col gap-3">
-          {perks.map(perk => (
-            <li key={perk} className="flex items-start gap-2.5">
-              <Check className="w-4 h-4 text-zinc-600 mt-0.5 shrink-0" />
-              <span className="text-sm text-zinc-300 leading-snug">{perk}</span>
+        <ul className='mb-5.5 flex-1 space-y-2.5'>
+          {v.benefits.map(b => (
+            <li key={b} className='flex items-center gap-2.5 text-[13px]' style={{ color: v.textColor }}>
+              <Check className='h-4 w-4 shrink-0' strokeWidth={2.5} style={{ color: v.checkColor }} />
+              {b}
             </li>
           ))}
         </ul>
-      </div>
 
-      {/* CTA */}
-      <div className="px-6 pb-6">
-        {isActive ? (
-          <div className="w-full py-3.5 rounded-2xl border border-white/10 text-center text-sm font-bold text-zinc-600">
-            Current plan
-          </div>
-        ) : (
-          <a href={href} className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-white text-zinc-900 text-sm font-bold hover:bg-zinc-100 transition-colors">
-            Get {plan.plan_name.trim()} <ArrowRight className="w-4 h-4" />
-          </a>
-        )}
+        <div className='flex gap-2.5'>
+          <Link
+            href={`/plans/${plan.id}`}
+            className={`flex h-12 flex-1 items-center justify-center rounded-full border-[1.5px] px-2.5 text-[13px] font-bold transition-opacity hover:opacity-80 ${
+              dark ? 'border-white text-white' : 'border-black/18 text-[#888888]'
+            }`}
+          >
+            Know more
+          </Link>
+          {isCurrent ? (
+            <span className={`flex h-12 flex-1 items-center justify-center rounded-full px-2.5 text-[13px] font-bold ${dark ? 'bg-white/12 text-white/55' : 'bg-black/7 text-[#909090]'}`}>
+              Current Plan
+            </span>
+          ) : canUpgrade && v.ctaLabel ? (
+            <button
+              type='button'
+              onClick={onUpgrade}
+              className='flex h-12 flex-1 items-center justify-center rounded-full px-2.5 text-[13px] font-bold transition-opacity hover:opacity-90'
+              style={{ backgroundColor: v.ctaBg ?? '#FF5200', color: v.ctaColor ?? '#FFFFFF' }}
+            >
+              {v.ctaLabel}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   )
 }
 
-/* ─── Page ──────────────────────────────────────────────────────── */
 interface Props {
-  plans: SubscriptionPlan[]
+  plans: MembershipPlan[]
   membership: UserMembership | null
   isLoggedIn: boolean
 }
 
-function SubscriptionTable({ membership, currentTier }: { membership: UserMembership | null; currentTier: string }) {
-  const isActive = currentTier !== 'none'
-  const tierLabel = currentTier === 'black' ? 'Privé Black' : currentTier === 'premium' ? 'Privé Premium' : 'None'
-  const statusLabel = isActive ? 'Active' : 'Inactive'
-
-  const rows = [
-    { label: 'Membership status', value: statusLabel, accent: isActive },
-    { label: 'Membership type', value: tierLabel, accent: false },
-    { label: 'Start date', value: membership?.membership_started ? formatExpiry(membership.membership_started) : 'Not available', accent: false },
-    { label: 'End date', value: membership?.membership_expiry ? formatExpiry(membership.membership_expiry) : 'Not available', accent: false },
-  ]
-
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-gray-100">
-        <p className="text-sm font-bold text-gray-700">Subscription details</p>
-      </div>
-      {rows.map((row, i) => (
-        <div key={row.label} className={`flex items-center justify-between px-5 py-3.5 ${i < rows.length - 1 ? 'border-b border-gray-50' : ''}`}>
-          <span className="text-sm text-gray-500">{row.label}</span>
-          <span className={`text-sm font-semibold ${row.accent ? 'text-green-600' : 'text-gray-800'}`}>
-            {row.value}
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
+/** Membership plans — app parity: screens/Membership.jsx. */
 export function MembershipClient({ plans, membership, isLoggedIn }: Props) {
-  const currentTier = membership?.membership_tier ?? 'none'
-  const expiryLabel = formatExpiry(membership?.membership_expiry ?? null)
+  const router = useRouter()
+  const [loginOpen, setLoginOpen] = useState(false)
 
-  const premiumPlan = plans.find(p => PLAN_TIER[p.product_id] === 'premium')
-  const blackPlan = plans.find(p => PLAN_TIER[p.product_id] === 'black')
+  // app parity: hasActiveMembership + activeTier
+  const rawTier = (membership?.membership_tier ?? 'none').trim().toLowerCase()
+  const isActive = rawTier !== 'none' && rawTier !== 'inactive' && rawTier !== 'free'
+  const currentPlan = currentPlanOf(plans, membership)
+  const activeTier = currentPlan ? tierOf(currentPlan) : isActive ? null : 'free'
+
+  // app parity: Black, Plus, custom tiers, then Free
+  const order: Record<string, number> = { black: 0, plus: 1, free: 3 }
+  const sorted = [...plans].sort((a, b) => (order[tierOf(a)] ?? 2) - (order[tierOf(b)] ?? 2) || a.sort_order - b.sort_order)
+
+  function upgrade(plan: MembershipPlan) {
+    if (!isLoggedIn) { setLoginOpen(true); return }
+    router.push(`/membership/checkout?plan=${encodeURIComponent(plan.id)}`)
+  }
 
   return (
-    <div className="relative pb-16 overflow-hidden">
-      {/* Background decoration */}
-      <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-200 h-80 rounded-full bg-violet-500/6 blur-3xl" />
+    <div className='mx-auto max-w-5xl px-4 pt-1 pb-16 font-(family-name:--font-dm-sans) md:px-6'>
+      {/* the page title ("Unlock more with Privé") is in the layout's title row */}
+      <p className='mb-6 pl-12.5 text-[14px] text-[#666666]'>One upgrade, endless rewards</p>
 
-      {/* Hero */}
-      <div className="relative px-6 pt-10 pb-6 max-w-5xl mx-auto">
-        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Choose your plan</h1>
-        <p className="mt-2 text-[15px] text-gray-500 max-w-lg leading-relaxed">
-          Discover more. Pay easily. Earn every time. Upgrade to earn more at Preferred Partners.
-        </p>
-
-        {/* Active membership status pill */}
-        {isLoggedIn && membership && currentTier !== 'none' && (
-          <div className={`mt-5 inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl text-sm font-semibold text-white ${
-            currentTier === 'black' ? 'bg-zinc-900' : 'bg-violet-600'
-          }`}>
-            {currentTier === 'black' ? <Crown className="w-4 h-4 text-amber-400" /> : <Sparkles className="w-4 h-4" />}
-            {currentTier === 'premium' ? 'Privé Premium' : 'Privé Black'} active
-            {expiryLabel && <span className="opacity-60 font-normal">· expires {expiryLabel}</span>}
-          </div>
-        )}
+      <div className='grid gap-4.5 md:grid-cols-2'>
+        {sorted.map(plan => (
+          <PlanCard key={plan.id} plan={plan} isCurrent={tierOf(plan) === activeTier} canUpgrade={canUpgradeTo(plan, currentPlan)} onUpgrade={() => upgrade(plan)} />
+        ))}
       </div>
 
-      {/* Subscription details table */}
-      {isLoggedIn && (
-        <div className="relative px-6 max-w-5xl mx-auto mb-8">
-          <SubscriptionTable membership={membership} currentTier={currentTier} />
-        </div>
+      {isActive && membership && (
+        <section className='mt-6 rounded-[18px] border border-gray-200 bg-white p-4'>
+          <h2 className='mb-2.5 text-[16px] font-bold text-[#161616]'>Subscription details</h2>
+          {[
+            ['Membership status', 'Active'],
+            ['Membership type', (membership.membership_tier ?? '').toUpperCase() || 'Not available'],
+            ['Start date', formatDate(membership.membership_started)],
+            ['End date', formatDate(membership.membership_expiry)],
+          ].map(([label, value]) => (
+            <div key={label} className='flex items-center justify-between gap-2.5 border-b border-gray-100 py-2.5 text-[13px] last:border-0'>
+              <span className='font-medium text-[#888888]'>{label}</span>
+              <span className='text-right font-semibold text-[#161616]'>{value}</span>
+            </div>
+          ))}
+          <div className='mt-3 rounded-xl bg-gray-50 p-3 text-[12px] leading-[18px] text-[#888888]'>
+            <p className='text-[13px] font-semibold text-[#161616]'>Consent</p>
+            <p className='mt-1'>By continuing your membership, you consent to PassPrivé membership terms, recurring billing rules, and applicable usage conditions.</p>
+            <p className='mt-2.5 text-[13px] font-semibold text-[#161616]'>Information disclosure</p>
+            <p className='mt-1'>Subscription and payment information may be shared with payment providers and authorized partners only to process billing, deliver benefits, and meet legal obligations.</p>
+            <p className='mt-2.5 text-[13px] font-semibold text-[#161616]'>Cancellation</p>
+            <p className='mt-1'>Cancellation requests stop upcoming renewals as per policy terms. Charges already processed are handled according to the refund and cancellation policy.</p>
+          </div>
+        </section>
       )}
 
-      {/* Cards */}
-      <div className="relative px-5 max-w-5xl mx-auto">
-        <div className="flex gap-4 overflow-x-auto pb-4 md:pb-0 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:gap-5 md:items-center">
-          <div className="snap-start shrink-0 w-67.5 md:w-auto">
-            <BasicCard isActive={currentTier === 'none'} />
-          </div>
-
-          {premiumPlan && (
-            <div className="snap-start shrink-0 w-67.5 md:w-auto">
-              <PremiumCard plan={premiumPlan} isActive={currentTier === 'premium'} isLoggedIn={isLoggedIn} />
-            </div>
-          )}
-
-          {blackPlan && (
-            <div className="snap-start shrink-0 w-67.5 md:w-auto">
-              <BlackCard plan={blackPlan} isActive={currentTier === 'black'} isLoggedIn={isLoggedIn} />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Rewards rate comparison table */}
-      <div className="relative px-5 max-w-5xl mx-auto mt-10">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <p className="text-sm font-bold text-gray-800">How rewards work by merchant type</p>
-            <p className="text-xs text-gray-400 mt-0.5">Your reward rate depends on both your membership and the merchant's PassPrivé plan</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider w-1/3">Membership</th>
-                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Verified Pay Partner</th>
-                  <th className="text-center px-4 py-3 text-xs font-bold text-violet-500 uppercase tracking-wider">Preferred Partner ✦</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                <tr className={currentTier === 'none' ? 'bg-gray-50' : ''}>
-                  <td className="px-6 py-3.5 font-semibold text-gray-700">
-                    Privé Free
-                    {currentTier === 'none' && <span className="ml-2 text-[10px] font-bold text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">Your plan</span>}
-                  </td>
-                  <td className="text-center px-4 py-3.5 font-bold text-gray-500">0.5%</td>
-                  <td className="text-center px-4 py-3.5 font-bold text-gray-500">0.5%</td>
-                </tr>
-                <tr className={currentTier === 'premium' ? 'bg-violet-50' : ''}>
-                  <td className="px-6 py-3.5 font-semibold text-gray-700">
-                    Privé Premium
-                    {currentTier === 'premium' && <span className="ml-2 text-[10px] font-bold text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded-full">Your plan</span>}
-                  </td>
-                  <td className="text-center px-4 py-3.5 font-bold text-gray-500">0.5%</td>
-                  <td className="text-center px-4 py-3.5 font-bold text-violet-600">2%</td>
-                </tr>
-                <tr className={currentTier === 'black' ? 'bg-zinc-50' : ''}>
-                  <td className="px-6 py-3.5 font-semibold text-gray-700">
-                    Privé Black
-                    {currentTier === 'black' && <span className="ml-2 text-[10px] font-bold text-zinc-500 bg-zinc-200 px-1.5 py-0.5 rounded-full">Your plan</span>}
-                  </td>
-                  <td className="text-center px-4 py-3.5 font-bold text-gray-500">0.5%</td>
-                  <td className="text-center px-4 py-3.5 font-bold text-zinc-800">4%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50">
-            <p className="text-xs text-gray-400">✦ Preferred Partners offer higher rewards for Premium &amp; Black members. At Verified Pay Partners, all tiers earn the standard 0.5%.</p>
-          </div>
-        </div>
-      </div>
-
-      <p className="text-center text-xs text-gray-400 mt-8">
-        Questions? <a href="/support" className="underline text-gray-500">Contact support</a>.
+      <p className='mt-8 text-center text-[13px] text-[#888888]'>
+        Questions? <Link href='/support' className='underline'>Contact support</Link>
       </p>
+
+      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} hideTrigger />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { DiningBooking, StoreBooking } from '@/lib/types/bookings'
 
-const BOOKING_SELECT = 'id, restaurant_id, booking_date, booking_time, party_size, status, booking_code, source, customer_name, special_request, restaurants(id, name, slug, cover_image, area, full_address, cost_for_two, merchant_type)'
+const BOOKING_SELECT = 'id, restaurant_id, booking_date, booking_time, party_size, status, booking_code, source, customer_name, special_request, restaurants(id, name, slug, cover_image, area, full_address, cost_for_two, merchant_type, cancellation_available, cancellation_cutoff_minutes)'
 
 export async function getUserDiningBookings(userId: string): Promise<DiningBooking[]> {
   const supabase = await createClient()

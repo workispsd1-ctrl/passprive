@@ -15,6 +15,7 @@ import { PPCoinsPayment } from '@/components/shared/PPCoinsPayment'
 import { CollapsibleCard } from '@/components/shared/CollapsibleCard'
 import { TermsList } from '@/components/shared/TermsList'
 import { StatusBanner } from '@/components/shared/StatusBanner'
+import { CancelBooking } from './CancelBooking'
 
 const TERMS = [
   'Please arrive 15 minutes prior to your reservation time.',
@@ -81,7 +82,7 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
         </div>
         <div className="flex items-center gap-3">
           <StatusBadge status={booking.status} />
-          <span className="font-mono text-sm font-bold text-violet-600 bg-violet-50 px-3 py-1.5 rounded-full border border-violet-100">
+          <span className="font-mono text-sm font-bold text-brand bg-brand-tint px-3 py-1.5 rounded-full border border-brand-tint-strong">
             {booking.booking_code}
           </span>
         </div>
@@ -120,10 +121,10 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
             {/* Detail rows grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
               {[
-                { icon: <CalendarDays className="w-4 h-4 text-violet-400" />, label: 'Date', value: formatDateFull(booking.booking_date) },
-                { icon: <Clock className="w-4 h-4 text-violet-400" />, label: 'Time', value: formatTime(booking.booking_time) },
-                { icon: <MapPin className="w-4 h-4 text-violet-400" />, label: 'Location', value: location },
-                { icon: <Users className="w-4 h-4 text-violet-400" />, label: 'Guests', value: `${booking.party_size} ${booking.party_size === 1 ? 'guest' : 'guests'}` },
+                { icon: <CalendarDays className="w-4 h-4 text-brand/70" />, label: 'Date', value: formatDateFull(booking.booking_date) },
+                { icon: <Clock className="w-4 h-4 text-brand/70" />, label: 'Time', value: formatTime(booking.booking_time) },
+                { icon: <MapPin className="w-4 h-4 text-brand/70" />, label: 'Location', value: location },
+                { icon: <Users className="w-4 h-4 text-brand/70" />, label: 'Guests', value: `${booking.party_size} ${booking.party_size === 1 ? 'guest' : 'guests'}` },
               ].map(row => (
                 <div key={row.label} className="flex items-start gap-3 px-5 py-4">
                   <div className="mt-0.5 shrink-0">{row.icon}</div>
@@ -172,10 +173,10 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
               {earnedFromUrl > 0 && (
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-1.5">
-                    <Coins className="w-4 h-4 text-violet-500" />
+                    <Coins className="w-4 h-4 text-brand" />
                     <p className="text-sm font-semibold text-gray-700">PP Coins credited</p>
                   </div>
-                  <p className="text-sm font-extrabold text-violet-600">₨{earnedFromUrl.toFixed(2)}</p>
+                  <p className="text-sm font-extrabold text-brand">₨{earnedFromUrl.toFixed(2)}</p>
                 </div>
               )}
             </StatusBanner>
@@ -183,7 +184,7 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
 
 
           {isActive && !billJustPaid && cashbackRate > 0 && (
-            <div className="bg-linear-to-br from-violet-600 to-purple-700 rounded-2xl p-5 text-white">
+            <div className="bg-linear-to-br from-brand to-brand-dark rounded-2xl p-5 text-white">
               <div className="flex items-center gap-2 mb-1">
                 <Wallet className="w-4 h-4 text-white/80" />
                 <p className="text-sm font-bold">Pay Bill &amp; Earn PP Coins</p>
@@ -193,7 +194,7 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
               </p>
               <Link
                 href={`/bookings/${booking.id}/pay${estimatedBill > 0 ? `?amount=${estimatedBill}` : ''}`}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-violet-700 text-sm font-bold hover:bg-violet-50 transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-brand-dark text-sm font-bold hover:bg-brand-tint transition-colors"
               >
                 <Coins className="w-4 h-4" />
                 Pay Bill &amp; Earn Coins
@@ -217,7 +218,7 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5" /> Booking Reference
             </p>
-            <p className="font-mono text-xl font-extrabold text-violet-600 tracking-widest">{booking.booking_code}</p>
+            <p className="font-mono text-xl font-extrabold text-brand tracking-widest">{booking.booking_code}</p>
             <p className="text-xs text-gray-400 mt-1">Present this code at the restaurant</p>
           </div>
 
@@ -227,8 +228,8 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
               <User className="w-3.5 h-3.5" /> Guest Details
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
-                <User className="w-4 h-4 text-violet-500" />
+              <div className="w-9 h-9 rounded-full bg-brand-tint-strong flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-brand" />
               </div>
               <p className="text-sm font-semibold text-gray-800">{userName}</p>
             </div>
@@ -243,13 +244,14 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
                 <p className="text-xs text-gray-400 mt-0.5">Not eligible for modification</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 px-5 py-4">
-              <Ban className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-gray-700">Cancellation not available</p>
-                <p className="text-xs text-gray-400 mt-0.5">Not eligible for cancellation</p>
-              </div>
-            </div>
+            <CancelBooking
+              bookingId={booking.id}
+              bookingDate={booking.booking_date}
+              bookingTime={booking.booking_time}
+              isActive={isActive}
+              cancellationAvailable={restaurant?.cancellation_available === true}
+              cutoffMinutes={restaurant?.cancellation_cutoff_minutes ?? null}
+            />
           </div>
 
         </div>

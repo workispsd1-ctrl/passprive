@@ -22,7 +22,7 @@ export default async function BookingsPage() {
 
   return (
     <main className="min-h-screen">
-      <SetPageTitle title="Review your bookings" />
+      <SetPageTitle title="Your bookings" />
       <BookingsClient diningBookings={diningBookings} storeBookings={storeBookings} />
     </main>
   )

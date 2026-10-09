@@ -56,7 +56,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
           <button
             type="button"
             onClick={() => router.push('/wallet')}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-bold text-sm hover:bg-brand-dark transition-colors"
           >
             <Wallet className="w-4 h-4" /> View Wallet
           </button>
@@ -99,7 +99,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
                 value={amountInput.value}
                 onChange={e => { amountInput.onChange(e); setError(null) }}
                 placeholder="0.00"
-                className="flex-1 text-5xl font-extrabold text-gray-900 bg-transparent border-b-2 border-gray-200 focus:border-violet-500 focus:outline-none pb-2 placeholder:text-gray-200 transition-colors"
+                className="flex-1 text-5xl font-extrabold text-gray-900 bg-transparent border-b-2 border-gray-200 focus:border-brand focus:outline-none pb-2 placeholder:text-gray-200 transition-colors"
               />
             </div>
             <p className="text-xs text-gray-400 mt-3">Enter the total amount from your restaurant receipt</p>
@@ -156,7 +156,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
             membershipTier === 'black'
               ? 'bg-zinc-950'
               : membershipTier === 'premium'
-              ? 'bg-linear-to-br from-violet-600 to-purple-700'
+              ? 'bg-linear-to-br from-brand to-brand-dark'
               : 'bg-linear-to-br from-gray-600 to-gray-800'
           }`}>
             <div className="flex items-center gap-2 mb-1">
@@ -175,7 +175,7 @@ export function PayBillClient({ restaurantId, restaurantName, cashbackRate, memb
             <ol className="flex flex-col gap-2.5">
               {['Dine at the restaurant', 'Enter your total receipt amount', 'Cashback is instantly credited to your wallet'].map((step, i) => (
                 <li key={step} className="flex items-start gap-2.5 text-sm text-gray-600">
-                  <span className="shrink-0 w-5 h-5 rounded-full bg-violet-100 text-violet-600 text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-brand-tint-strong text-brand text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
                   {step}
                 </li>
               ))}
