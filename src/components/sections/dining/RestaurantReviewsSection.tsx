@@ -1,5 +1,6 @@
 import { Star, Info, ThumbsUp } from 'lucide-react'
 import type { Review, ReviewSummary } from '@/lib/types/dining'
+import { LeaveReviewDialog } from './LeaveReviewDialog'
 
 function ratingAvg(reviews: Review[], key: 'food_rating' | 'service_rating' | 'ambience_rating'): number | null {
   const vals = reviews.map(r => r[key]).filter((v): v is number => v != null)
@@ -20,18 +21,53 @@ function timeAgo(iso: string): string {
 interface Props {
   reviews: Review[]
   reviewSummary: ReviewSummary
+  restaurantId: string
+  restaurantName: string
+  isLoggedIn: boolean
+  alreadyReviewed: boolean
 }
 
-export function RestaurantReviewsSection({ reviews, reviewSummary }: Props) {
-  if (reviews.length === 0) return null
+export function RestaurantReviewsSection({
+  reviews,
+  reviewSummary,
+  restaurantId,
+  restaurantName,
+  isLoggedIn,
+  alreadyReviewed,
+}: Props) {
+  const leaveReview = (
+    <LeaveReviewDialog
+      restaurantId={restaurantId}
+      restaurantName={restaurantName}
+      isLoggedIn={isLoggedIn}
+      alreadyReviewed={alreadyReviewed}
+    />
+  )
+
+  if (reviews.length === 0) {
+    return (
+      <section id='reviews' className='mt-8 border-t border-gray-100 pt-6'>
+        <h2 className='text-[22px] font-bold text-gray-900 mb-5'>Ratings &amp; reviews</h2>
+        <div className='flex flex-col items-center rounded-3xl border border-gray-200 bg-gray-50 px-6 py-10 text-center'>
+          <Star className='h-9 w-9 text-gray-300' />
+          <p className='mt-3 text-[16px] font-bold text-gray-900'>No reviews yet</p>
+          <p className='mt-1 mb-5 text-[13px] text-gray-500'>Be the first to share your experience at {restaurantName}.</p>
+          {leaveReview}
+        </div>
+      </section>
+    )
+  }
 
   const foodAvg = ratingAvg(reviews, 'food_rating')
   const serviceAvg = ratingAvg(reviews, 'service_rating')
   const ambienceAvg = ratingAvg(reviews, 'ambience_rating')
 
   return (
-    <section className='mt-8 border-t border-gray-100 pt-6'>
-      <h2 className='text-[22px] font-bold text-gray-900 mb-5'>Ratings &amp; reviews</h2>
+    <section id='reviews' className='mt-8 border-t border-gray-100 pt-6'>
+      <div className='mb-5 flex flex-wrap items-center justify-between gap-3'>
+        <h2 className='text-[22px] font-bold text-gray-900'>Ratings &amp; reviews</h2>
+        {leaveReview}
+      </div>
 
       <div className='rounded-3xl bg-gray-50 border border-gray-200 p-6 md:p-8'>
         <div className='text-center'>

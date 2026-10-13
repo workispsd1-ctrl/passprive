@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft, BookText, ChevronRight, CircleHelp, Crown, FileText, Gift, Heart, LogOut, MessageCircle, Share2, Wallet,
+  ArrowLeft, BookText, ChevronRight, CircleHelp, Crown, FileText, Gift, Heart, LogOut, MessageCircle, Share2, Wallet, Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ProfileSummary, ProfileTier } from '@/lib/services/profileSummary'
@@ -24,6 +24,7 @@ const GROUPS: { title: string; items: { label: string; href: string; icon: React
     items: [
       { label: 'Your bookings', href: '/bookings', icon: BookText },
       { label: 'Favourites', href: '/saved', icon: Heart },
+      { label: 'Your reviews', href: '/reviews', icon: Star },
       { label: 'My wallet', href: '/wallet', icon: Wallet },
       { label: 'Membership', href: '/membership', icon: Crown },
       { label: 'Visit rewards', href: '/visit-rewards', icon: Gift },

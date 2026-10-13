@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import {
   Dialog,
   DialogContent,
@@ -20,7 +19,6 @@ import { CODE_LENGTH, COUNTRY_CODE, RESEND_SECONDS, friendlyOtpError, normalizeL
  * Login / sign-up by mobile number — app parity: screens/Login.jsx →
  * OtpVerification.jsx → Details.jsx. One flow for both: an existing number
  * is signed in after the code; a new one is asked for name + email.
- * Google stays available as the alternative, like the app.
  */
 type Step = 'phone' | 'otp' | 'details'
 
@@ -53,7 +51,6 @@ export default function LoginDialog({
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
   const [resendIn, setResendIn] = useState(0)
 
@@ -72,12 +69,11 @@ export default function LoginDialog({
     setEmail('')
     setError('')
     setLoading(false)
-    setGoogleLoading(false)
     setResendIn(0)
   }
 
   function handleOpenChange(next: boolean) {
-    if (loading || googleLoading) return
+    if (loading) return
     setOpen(next)
     if (next) reset()
   }
@@ -127,7 +123,7 @@ export default function LoginDialog({
     if (!data.signedIn) {
       // The backend didn't create a session for this new number, so there is
       // no account to attach the profile to yet.
-      setError('We couldn’t create your account right now. Please try again or continue with Google.')
+      setError('We couldn’t create your account right now. Please try again in a moment.')
       setCode('')
       return
     }
@@ -154,21 +150,7 @@ export default function LoginDialog({
     await sendCode()
   }
 
-  async function handleGoogleSignIn() {
-    setGoogleLoading(true)
-    setError('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
-    })
-    if (error) {
-      setError(error.message)
-      setGoogleLoading(false)
-    }
-  }
-
-  const busy = loading || googleLoading
+  const busy = loading
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -249,27 +231,6 @@ export default function LoginDialog({
                 className="mt-4.5 flex h-13.5 w-full items-center justify-center rounded-full bg-brand text-[16px] font-semibold tracking-[-0.32px] text-white transition-colors hover:bg-brand-dark disabled:opacity-70"
               >
                 {loading ? <Loader2 className="size-5 animate-spin" /> : 'Continue'}
-              </button>
-
-              <div className="my-4.5 flex items-center">
-                <div className="h-px flex-1 bg-[#E5E5EA]" />
-                <span className="mx-3 text-[16px] font-bold tracking-[-0.32px] text-[#666666]">or continue with</span>
-                <div className="h-px flex-1 bg-[#E5E5EA]" />
-              </div>
-
-              {/* app parity: single icon-only Google button */}
-              <button
-                type="button"
-                aria-label="Continue with Google"
-                disabled={busy}
-                onClick={handleGoogleSignIn}
-                className="flex h-12.5 w-full items-center justify-center rounded-full border border-[#E5E5EA] bg-white transition-colors hover:bg-gray-50 disabled:opacity-70"
-              >
-                {googleLoading ? (
-                  <Loader2 className="size-5 animate-spin text-brand" />
-                ) : (
-                  <Image src="/auth/google.webp" alt="" width={24} height={24} />
-                )}
               </button>
 
               <Terms />
