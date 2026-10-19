@@ -1,22 +1,19 @@
-'use client'
-
 import Image from 'next/image'
+import Link from 'next/link'
 import { HScroll } from '@/components/sections/home/HScroll'
-import { cn } from '@/lib/utils'
 import type { StoreMoodCategory } from '@/lib/types/stores'
 
 interface Props {
   moodCategories: StoreMoodCategory[]
-  active: string
-  onSelect: (slug: string) => void
 }
 
 /**
  * "What's on your mind?" — same rail as the dining page's MoodCategoriesSection
- * (image-only tiles, no label), reused here as filter buttons for the store
- * grid below instead of static links.
+ * (image-only tiles, no label). A tap opens that category's store list
+ * (`/stores/category/[slug]`), like the app's `handleSelectCategory` →
+ * StoreCategoryResults.
  */
-export function CategoryBar({ moodCategories, active, onSelect }: Props) {
+export function CategoryBar({ moodCategories }: Props) {
   if (!moodCategories.length) return null
 
   return (
@@ -27,23 +24,15 @@ export function CategoryBar({ moodCategories, active, onSelect }: Props) {
     >
       {moodCategories.map((cat) => {
         const imgUrl = cat.light_theme_image_url ?? cat.image_url
-        const isActive = active === cat.slug
 
         return (
-          <button
+          <Link
             key={cat.slug}
-            type="button"
+            href={`/stores/category/${encodeURIComponent(cat.slug)}`}
             aria-label={cat.title}
-            aria-pressed={isActive}
-            onClick={() => onSelect(cat.slug)}
-            className="w-32.75 shrink-0 2xl:w-45.75"
+            className="w-32.75 shrink-0 transition-transform hover:-translate-y-0.5 2xl:w-45.75"
           >
-            <div
-              className={cn(
-                'relative h-34.5 w-full overflow-hidden rounded-[17px] ring-2 ring-inset transition-colors 2xl:h-47.5 2xl:rounded-[24px]',
-                isActive ? 'ring-brand' : 'ring-transparent',
-              )}
-            >
+            <div className="relative h-34.5 w-full overflow-hidden rounded-[17px] 2xl:h-47.5 2xl:rounded-[24px]">
               {imgUrl && (
                 <Image
                   src={imgUrl}
@@ -54,7 +43,7 @@ export function CategoryBar({ moodCategories, active, onSelect }: Props) {
                 />
               )}
             </div>
-          </button>
+          </Link>
         )
       })}
     </HScroll>

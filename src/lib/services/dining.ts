@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { FEED_PAGE_SIZE, toRpcArgs, type Coords, type FeedFilters } from '@/lib/restaurantFilters';
-import { scopeToRadius } from '@/lib/nearby';
+import { scopeToRadius, withinRadius } from '@/lib/nearby';
 import type {
   Restaurant,
   DiningOffer,
@@ -55,26 +55,30 @@ const NEARBY_FEED_FETCH = 200;
  * `nearbyOnly` (home-screen use) keeps only restaurants within the shared
  * 3–5 km radius when a location is known. The radius can only be applied to
  * the full result set, so it fetches one large batch in the requested sort
- * order, trims it, then pages through it locally.
+ * order, trims it, then pages through it locally. `radiusKm` (results pages)
+ * keeps everything inside that fixed radius instead of the 3 → 5 km widening.
  */
 export async function getRestaurantFeed(
   filters: FeedFilters,
   offset = 0,
   limit = FEED_PAGE_SIZE,
   coords?: Coords | null,
-  { nearbyOnly = false }: { nearbyOnly?: boolean } = {},
+  { nearbyOnly = false, radiusKm }: { nearbyOnly?: boolean; radiusKm?: number } = {},
 ): Promise<FeaturedRestaurant[]> {
   const supabase = await createClient();
-  const scoped = nearbyOnly && !!coords;
+  const scoped = (nearbyOnly || radiusKm != null) && !!coords;
   const { data } = await supabase.rpc(
     'restaurant_feed',
     scoped ? toRpcArgs(filters, NEARBY_FEED_FETCH, 0, coords) : toRpcArgs(filters, limit, offset, coords),
   );
   let rows = (data ?? []) as FeaturedRestaurant[];
   if (filters.badge === 'instant') rows = rows.filter((r) => r.booking_service_type === 'instant');
-  return scoped
-    ? scopeToRadius(rows, (r) => r.distance_km, true).slice(offset, offset + limit)
-    : rows;
+  if (!scoped) return rows;
+  const near =
+    radiusKm != null
+      ? withinRadius(rows, (r) => r.distance_km, true, radiusKm)
+      : scopeToRadius(rows, (r) => r.distance_km, true);
+  return near.slice(offset, offset + limit);
 }
 
 

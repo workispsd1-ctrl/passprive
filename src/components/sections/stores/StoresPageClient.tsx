@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { CategoryBar } from './CategoryBar'
 import { AllStoresSection } from './AllStoresSection'
 import { DiscoverTopBrandsSection } from './DiscoverTopBrandsSection'
@@ -17,23 +16,16 @@ interface Props {
 }
 
 export function StoresPageClient({ moodCategories, stores, topBrands, promoCollections }: Props) {
-  const [activeSlug, setActiveSlug] = useState('all-stores')
-
   return (
     <>
-      <CategoryBar
-        moodCategories={moodCategories}
-        active={activeSlug}
-        onSelect={setActiveSlug}
-      />
+      <CategoryBar moodCategories={moodCategories} />
       <DiscoverTopBrandsSection stores={topBrands} />
       <TopBrandCirclesSection stores={topBrands} />
       <StorePromotionalCardsSection collections={promoCollections} stores={stores} />
       <AllStoresSection
         stores={stores}
         moodCategories={moodCategories}
-        activeCategorySlug={activeSlug}
-        onCategoryChange={setActiveSlug}
+        activeCategorySlug="all-stores"
       />
     </>
   )

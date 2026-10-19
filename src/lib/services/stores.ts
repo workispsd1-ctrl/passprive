@@ -267,7 +267,7 @@ export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<Servi
       supabase.from('store_service_items').select('id, service_id, title, description, price, duration_minutes, service_for, sort_order, is_active').eq('store_id', store.id).order('sort_order', { ascending: true }),
       supabase.from('store_offers').select('id, title, description, offer_type, discount_value, start_at, end_at, is_active').eq('store_id', store.id).eq('is_active', true).order('created_at', { ascending: false }),
       supabase.from('offers').select('id, source_type, title, short_title, subtitle, description, benefit_value, benefit_percent, logo_url, starts_at, ends_at, is_active, status, sponsor_name').order('priority', { ascending: true }),
-      supabase.from('restaurant_reviews').select('id, rating, review_text, username_snapshot, service_rating, created_at').eq('restaurant_id', store.id).eq('is_approved', true).order('created_at', { ascending: false }).limit(200),
+      supabase.from('store_reviews').select(STORE_REVIEW_COLS).eq('store_id', store.id).eq('is_approved', true).order('created_at', { ascending: false }).limit(200),
     ])
 
   const rows = <T,>(r: PromiseSettledResult<{ data: T[] | null }>): T[] =>
@@ -505,4 +505,19 @@ export async function getHomeSections(): Promise<HomeSection[]> {
     ...section,
     items: ((items ?? []) as unknown as SectionStore[]).filter(i => i.section_id === section.id),
   }))
+}
+
+const STORE_REVIEW_COLS = 'id, rating, review_text, username_snapshot, service_rating, ambience_rating, created_at'
+
+/** Approved reviews for a store (`store_reviews`), newest first. */
+export async function getStoreReviews(storeId: string): Promise<ServiceReview[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('store_reviews')
+    .select(STORE_REVIEW_COLS)
+    .eq('store_id', storeId)
+    .eq('is_approved', true)
+    .order('created_at', { ascending: false })
+    .limit(200)
+  return (data ?? []) as ServiceReview[]
 }

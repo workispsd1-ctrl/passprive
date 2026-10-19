@@ -11,11 +11,12 @@ import type { FeaturedRestaurant } from '@/lib/types/dining'
 export function FeedRestaurantCard({ r }: { r: FeaturedRestaurant }) {
   const { location } = useLocation()
   const plan = useUserPlan()
+  // Measured from the location selected right now; the feed's own distance
+  // (from the last saved location) is the fallback. Null = unknown, show nothing.
   const dist =
-    r.distance_km ??
-    (location.lat != null && location.lng != null && r.latitude != null && r.longitude != null
-      ? haversineKm(location.lat, location.lng, r.latitude, r.longitude)
-      : null)
+    location.lat != null && location.lng != null && r.latitude != null && r.longitude != null
+      ? haversineKm(location.lat, location.lng, Number(r.latitude), Number(r.longitude))
+      : (r.distance_km ?? null)
 
   const meta = [formatDistanceKm(dist), r.area ?? r.city].filter(Boolean).join(' • ')
   const stampSheet =

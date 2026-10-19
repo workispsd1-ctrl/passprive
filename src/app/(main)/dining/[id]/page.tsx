@@ -86,19 +86,9 @@ export default async function RestaurantPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [cashbackInfo, alreadyReviewed] = user
-    ? await Promise.all([
-        getUserCashbackInfo(user.id, restaurant.id),
-        // includes reviews still awaiting approval
-        supabase
-          .from('restaurant_reviews')
-          .select('id')
-          .eq('restaurant_id', restaurant.id)
-          .eq('user_id', user.id)
-          .limit(1)
-          .then(({ data }) => !!data?.length),
-      ])
-    : [null, false];
+  const cashbackInfo = user
+    ? await getUserCashbackInfo(user.id, restaurant.id)
+    : null;
 
   const cuisineTags = tags
     .filter((t) => t.tag_type === 'cuisine')
@@ -185,8 +175,6 @@ export default async function RestaurantPage({
                 reviewSummary={reviewSummary}
                 restaurantId={restaurant.id}
                 restaurantName={restaurant.name}
-                isLoggedIn={!!user}
-                alreadyReviewed={alreadyReviewed}
               />
               <RestaurantAboutSection
                 costForTwo={restaurant.cost_for_two}

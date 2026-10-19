@@ -109,7 +109,7 @@ export default async function TouristPlaceDetailPage({
 
               <PhotoStrip photos={galleryPhotos} />
 
-              <TouristReviews reviews={reviews} reviewSummary={reviewSummary} />
+              <TouristReviews reviews={reviews} reviewSummary={reviewSummary} placeId={place.id} placeName={place.place_name} />
 
               <TouristLocation place={place} />
             </div>

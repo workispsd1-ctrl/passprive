@@ -200,6 +200,7 @@ export type ServiceReview = {
   review_text: string | null
   username_snapshot: string | null
   service_rating: number | null
+  ambience_rating: number | null
   created_at: string
 }
 

@@ -84,7 +84,7 @@ export default async function WellnessStorePage({ params }: { params: Promise<{ 
               <ServiceSectionTabs tabs={tabs} />
               <ServiceOffersSection inStoreOffers={inStoreOffers} bankOffers={bankOffers} merchant={store} />
               <ServiceMenuSection categories={categories} />
-              <ServiceReviewsSection reviews={reviews} summary={summary} />
+              <ServiceReviewsSection reviews={reviews} summary={summary} storeId={store.id} storeName={store.name} />
               <ServiceAboutSection highlights={store.top_items} description={store.description} />
               <RestaurantLocationSection
                 name={store.name}

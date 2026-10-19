@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react'
 import type { ServiceReview } from '@/lib/types/stores'
+import { LeaveReviewDialog } from '@/components/shared/LeaveReviewDialog'
 
 function timeAgo(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
@@ -13,23 +14,33 @@ function timeAgo(iso: string): string {
 interface Props {
   reviews: ServiceReview[]
   summary: { avg: number; count: number }
+  storeId: string
+  storeName: string
 }
 
-/** app parity: components/ServiceReviewsSection.jsx — rating summary + review cards. */
-export function ServiceReviewsSection({ reviews, summary }: Props) {
-  const serviceVals = reviews.map(r => r.service_rating).filter((v): v is number => v != null)
-  const serviceAvg = serviceVals.length
-    ? Math.round((serviceVals.reduce((a, b) => a + b, 0) / serviceVals.length) * 10) / 10
-    : null
+function avgOf(reviews: ServiceReview[], key: 'service_rating' | 'ambience_rating'): number | null {
+  const vals = reviews.map(r => r[key]).filter((v): v is number => v != null)
+  return vals.length ? Math.round((vals.reduce((a, b) => a + Number(b), 0) / vals.length) * 10) / 10 : null
+}
+
+/** app parity: components/ServiceReviewsSection.jsx — rating summary + review cards, on `store_reviews`. */
+export function ServiceReviewsSection({ reviews, summary, storeId, storeName }: Props) {
+  const serviceAvg = avgOf(reviews, 'service_rating')
+  const ambienceAvg = avgOf(reviews, 'ambience_rating')
+  const leaveReview = <LeaveReviewDialog kind='store' entityId={storeId} entityName={storeName} />
 
   return (
     <section id='reviews' className='scroll-mt-14 pt-8'>
-      <h2 className='mb-4 text-[20px] font-bold text-gray-900'>Reviews</h2>
+      <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
+        <h2 className='text-[20px] font-bold text-gray-900'>Reviews</h2>
+        {reviews.length > 0 && leaveReview}
+      </div>
 
       {reviews.length === 0 ? (
-        <div className='rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center'>
+        <div className='flex flex-col items-center rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center'>
           <p className='text-[14px] font-semibold text-gray-800'>No reviews yet</p>
-          <p className='mt-1 text-[12px] text-gray-500'>Be the first to review after your visit in the PassPrivé app.</p>
+          <p className='mt-1 mb-4 text-[12px] text-gray-500'>Be the first to share your experience at {storeName}.</p>
+          {leaveReview}
         </div>
       ) : (
         <>
@@ -44,6 +55,12 @@ export function ServiceReviewsSection({ reviews, summary }: Props) {
               <div className='flex flex-col items-center px-6 py-3'>
                 <span className='text-[16px] font-bold text-gray-900'>{serviceAvg.toFixed(1)}</span>
                 <span className='mt-0.5 text-[12px] text-gray-500'>Service</span>
+              </div>
+            )}
+            {ambienceAvg != null && (
+              <div className='flex flex-col items-center px-6 py-3'>
+                <span className='text-[16px] font-bold text-gray-900'>{ambienceAvg.toFixed(1)}</span>
+                <span className='mt-0.5 text-[12px] text-gray-500'>Ambience</span>
               </div>
             )}
           </div>

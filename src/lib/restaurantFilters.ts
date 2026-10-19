@@ -98,7 +98,9 @@ export function countActive(f: FeedFilters & { moodSlug?: string }): number {
 /** Typed filters → `restaurant_feed` RPC arguments. */
 export function toRpcArgs(f: FeedFilters, limit: number, offset: number, coords?: Coords | null) {
   const bucket = COST_BUCKETS.find((b) => b.key === f.cost)
-  const experience = [...(f.vibes ?? []), ...(f.moodTitle ? [f.moodTitle] : [])]
+  // mood tags are saved with inconsistent spacing ("Family  dining" / "Family dining")
+  const moodTitles = f.moodTitle ? [...new Set([f.moodTitle, f.moodTitle.replace(/\s+/g, ' ').trim()])] : []
+  const experience = [...(f.vibes ?? []), ...moodTitles]
   return {
     in_lat: coords?.lat ?? null,
     in_lng: coords?.lng ?? null,

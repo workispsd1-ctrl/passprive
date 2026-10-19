@@ -12,11 +12,11 @@ interface Props {
 }
 
 export function LocationButton({ variant = 'desktop', theme = 'default' }: Props) {
-  const { location, setLocationByCity, detectFromGPS } = useLocation()
+  const { location, detecting, setLocationByCity, detectFromGPS } = useLocation()
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const light = theme === 'light'
-  const cityLabel = location.city || 'Detecting…'
+  const cityLabel = location.city || (detecting ? 'Detecting…' : 'Set location')
   const stateLabel = location.state || ''
 
   if (variant === 'mobile') {

@@ -70,7 +70,7 @@ export default async function Dining({
         <MoodCategoriesSection categories={moodCategories} />
         <QuickFilterTiles cuisineOptions={cuisineOptions} />
         <RestaurantResults
-          key={queryString}
+          key={`${queryString}:${coords?.lat ?? ''},${coords?.lng ?? ''}`}
           initialRows={rows}
           initialHasMore={rows.length >= FEED_PAGE_SIZE}
           queryString={queryString}

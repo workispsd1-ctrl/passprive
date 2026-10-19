@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { REVIEW_CONFIG, isReviewKind } from '@/lib/reviews'
 
 /** Delete one of the user's own reviews — app parity: `deleteRestaurantReview`. */
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export async function DELETE(_request: Request, { params }: { params: Promise<{ kind: string; id: string }> }) {
+  const { kind, id } = await params
+  if (!isReviewKind(kind)) {
+    return NextResponse.json({ error: 'Bad request' }, { status: 400 })
+  }
+  const config = REVIEW_CONFIG[kind]
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -14,7 +20,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { data, error } = await supabase
-    .from('restaurant_reviews')
+    .from(config.table)
     .delete()
     .eq('id', id)
     .eq('user_id', user.id)
@@ -26,6 +32,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Review not found.' }, { status: 404 })
   }
 
-  revalidatePath('/dining/[id]', 'page')
+  revalidatePath(config.path, 'page')
+  if (kind === 'store') revalidatePath('/wellness/[id]', 'page')
   return NextResponse.json({ ok: true })
 }

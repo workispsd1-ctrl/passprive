@@ -40,13 +40,32 @@ export function kmFrom(coords: LatLng | null | undefined, lat: number | null | u
   return Number.isFinite(la) && Number.isFinite(ln) ? haversineKm(coords.lat, coords.lng, la, ln) : null
 }
 
-/** scopeToRadius for rows carrying `lat`/`lng` (stores), nearest first. */
+/** Everything within a fixed `radiusKm` — no 3 km → 5 km widening (results pages). */
+export function withinRadius<T>(
+  items: T[],
+  kmOf: (item: T) => number | null | undefined,
+  hasLocation: boolean,
+  radiusKm = MAX_NEARBY_KM,
+): T[] {
+  if (!hasLocation) return items
+  return items.filter((i) => {
+    const d = kmOf(i)
+    return d != null && Number.isFinite(d) && d <= radiusKm
+  })
+}
+
+/**
+ * scopeToRadius for rows carrying `lat`/`lng` (stores), nearest first. With
+ * `radiusKm` it keeps everything inside that fixed radius instead.
+ */
 export function scopeStoresToRadius<T extends { lat: number | null; lng: number | null }>(
   stores: T[],
   coords: LatLng | null | undefined,
+  radiusKm?: number,
 ): T[] {
   if (!coords) return stores
-  return scopeToRadius(stores, (s) => kmFrom(coords, s.lat, s.lng), true)
+  const kmOf = (s: T) => kmFrom(coords, s.lat, s.lng)
+  return (radiusKm != null ? withinRadius(stores, kmOf, true, radiusKm) : scopeToRadius(stores, kmOf, true))
     .map((s) => ({ s, d: kmFrom(coords, s.lat, s.lng) ?? Infinity }))
     .sort((a, b) => a.d - b.d)
     .map(({ s }) => s)

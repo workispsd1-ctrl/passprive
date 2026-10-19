@@ -14,10 +14,14 @@ export function RestaurantResults({
   initialRows,
   initialHasMore,
   queryString,
+  emptyTitle = 'No restaurants match these filters',
+  emptyAction = { label: 'Clear all filters', href: '/dining' },
 }: {
   initialRows: FeaturedRestaurant[]
   initialHasMore: boolean
   queryString: string
+  emptyTitle?: string
+  emptyAction?: { label: string; href: string }
 }) {
   const [rows, setRows] = useState(initialRows)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -44,12 +48,12 @@ export function RestaurantResults({
   if (!rows.length) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 text-center md:px-8">
-        <p className="text-base font-semibold text-[#0D141C]">No restaurants match these filters</p>
+        <p className="text-base font-semibold text-[#0D141C]">{emptyTitle}</p>
         <Link
-          href="/dining"
+          href={emptyAction.href}
           className="mt-4 inline-block rounded-full bg-brand-light px-5 py-2 text-sm font-semibold text-white"
         >
-          Clear all filters
+          {emptyAction.label}
         </Link>
       </div>
     )

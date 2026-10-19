@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getMoodCategories, getRestaurantFeed } from '@/lib/services/dining'
 import { getUserCoords } from '@/lib/location'
 import { FEED_PAGE_SIZE, parseFilters } from '@/lib/restaurantFilters'
+import { MAX_NEARBY_KM } from '@/lib/nearby'
 
 /** "Load more" for the filtered dining feed — same params as the /dining URL, plus `offset`. Nearby-only, like the page. */
 export async function GET(req: Request) {
@@ -15,6 +16,10 @@ export async function GET(req: Request) {
     moodTitle = moods.find((m) => m.slug === moodSlug)?.title
   }
 
-  const rows = await getRestaurantFeed({ ...filters, moodTitle }, offset, FEED_PAGE_SIZE, await getUserCoords(), { nearbyOnly: true })
+  // `radius` (results pages) = everything within that many km, capped at the shared maximum
+  const radius = Number(sp.radius)
+  const radiusKm = Number.isFinite(radius) && radius > 0 ? Math.min(radius, MAX_NEARBY_KM) : undefined
+
+  const rows = await getRestaurantFeed({ ...filters, moodTitle }, offset, FEED_PAGE_SIZE, await getUserCoords(), { nearbyOnly: true, radiusKm })
   return NextResponse.json({ rows, hasMore: rows.length >= FEED_PAGE_SIZE })
 }

@@ -1,52 +1,61 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, Loader2, PenLine, Star } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import LoginDialog from '@/components/LoginDialog'
 import { cn } from '@/lib/utils'
+import { REVIEW_CONFIG, REVIEW_MAX_TEXT as MAX_TEXT, type ReviewKind } from '@/lib/reviews'
 
 // app parity: components/LeaveReviewModal.jsx — one aspect per step; the
 // last step submits the whole review.
-const STEPS = [
-  { key: 'food', label: 'Food' },
-  { key: 'service', label: 'Service' },
-  { key: 'ambience', label: 'Ambience' },
-] as const
-type StepKey = (typeof STEPS)[number]['key']
-
-const EMPTY: Record<StepKey, number> = { food: 0, service: 0, ambience: 0 }
-const MAX_TEXT = 1000
-
 interface Props {
-  restaurantId: string
-  restaurantName: string
-  isLoggedIn: boolean
-  alreadyReviewed: boolean
+  kind: ReviewKind
+  entityId: string
+  entityName: string
   className?: string
 }
 
-export function LeaveReviewDialog({ restaurantId, restaurantName, isLoggedIn, alreadyReviewed, className }: Props) {
+export function LeaveReviewDialog({ kind, entityId, entityName, className }: Props) {
   const router = useRouter()
+  const steps = REVIEW_CONFIG[kind].steps
+  // Fetched client-side so the detail pages don't have to read auth cookies.
+  const [viewer, setViewer] = useState({ loggedIn: false, reviewed: false })
+
+  const loadViewer = useCallback(() => {
+    fetch(`/api/reviews/${kind}?entityId=${encodeURIComponent(entityId)}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then((data: { loggedIn?: boolean; reviewed?: boolean } | null) => {
+        if (data) setViewer({ loggedIn: !!data.loggedIn, reviewed: !!data.reviewed })
+      })
+      .catch(() => {})
+  }, [kind, entityId])
+
+  useEffect(() => {
+    loadViewer()
+    window.addEventListener('pp:auth', loadViewer)
+    return () => window.removeEventListener('pp:auth', loadViewer)
+  }, [loadViewer])
+
   const [open, setOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [step, setStep] = useState(0)
-  const [ratings, setRatings] = useState(EMPTY)
+  const [ratings, setRatings] = useState<Record<string, number>>({})
   const [hover, setHover] = useState(0)
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<null | { approved: boolean }>(null)
 
-  const current = STEPS[step]
-  const currentRating = ratings[current.key]
-  const isLast = step === STEPS.length - 1
+  const current = steps[step]
+  const currentRating = ratings[current.key] ?? 0
+  const isLast = step === steps.length - 1
 
   function start() {
-    if (!isLoggedIn) { setLoginOpen(true); return }
+    if (!viewer.loggedIn) { setLoginOpen(true); return }
     setStep(0)
-    setRatings(EMPTY)
+    setRatings({})
     setHover(0)
     setText('')
     setError('')
@@ -57,7 +66,7 @@ export function LeaveReviewDialog({ restaurantId, restaurantName, isLoggedIn, al
   function close() {
     if (submitting) return
     setOpen(false)
-    if (done) router.refresh()
+    if (done) { loadViewer(); router.refresh() }
   }
 
   async function next() {
@@ -66,10 +75,10 @@ export function LeaveReviewDialog({ restaurantId, restaurantName, isLoggedIn, al
 
     setSubmitting(true)
     setError('')
-    const res = await fetch('/api/reviews/restaurant', {
+    const res = await fetch(`/api/reviews/${kind}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ restaurantId, ...ratings, text }),
+      body: JSON.stringify({ entityId, ratings, text }),
     })
     const data = (await res.json().catch(() => ({}))) as { error?: string; approved?: boolean }
     setSubmitting(false)
@@ -77,10 +86,10 @@ export function LeaveReviewDialog({ restaurantId, restaurantName, isLoggedIn, al
     setDone({ approved: data.approved === true })
   }
 
-  if (alreadyReviewed) {
+  if (viewer.reviewed && !open) {
     return (
       <p className={cn('inline-flex items-center gap-1.5 text-[13px] font-semibold text-green-700', className)}>
-        <CheckCircle2 className="h-4 w-4" /> You reviewed this restaurant
+        <CheckCircle2 className="h-4 w-4" /> You’ve reviewed this place
       </p>
     )
   }
@@ -108,8 +117,8 @@ export function LeaveReviewDialog({ restaurantId, restaurantName, isLoggedIn, al
               <DialogTitle className="mt-4 text-[20px] font-bold text-[#1A1325]">Thanks for your review!</DialogTitle>
               <DialogDescription className="mt-2 text-[14px] leading-5 text-[#7A7086]">
                 {done.approved
-                  ? `Your review of ${restaurantName} is now live.`
-                  : `Your review of ${restaurantName} was submitted and will appear once it's approved.`}
+                  ? `Your review of ${entityName} is now live.`
+                  : `Your review of ${entityName} was submitted and will appear once it's approved.`}
               </DialogDescription>
               <button
                 type="button"
@@ -123,11 +132,11 @@ export function LeaveReviewDialog({ restaurantId, restaurantName, isLoggedIn, al
             <>
               <div className="text-center">
                 <DialogTitle className="text-[20px] font-bold text-[#1A1325]">Leave a review</DialogTitle>
-                <DialogDescription className="mt-1 text-[14px] text-[#7A7086]">{restaurantName}</DialogDescription>
+                <DialogDescription className="mt-1 text-[14px] text-[#7A7086]">{entityName}</DialogDescription>
               </div>
 
               <div className="mt-5 flex justify-center gap-1.5" aria-hidden>
-                {STEPS.map((s, i) => (
+                {steps.map((s, i) => (
                   <span key={s.key} className={cn('h-1 w-8 rounded-full', i <= step ? 'bg-brand' : 'bg-[#E5E5EA]')} />
                 ))}
               </div>

@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { MapPin, Phone, Share2, Navigation, Globe } from 'lucide-react'
-import { getStoreBySlugOrId } from '@/lib/services/stores'
+import { getStoreBySlugOrId, getStoreReviews } from '@/lib/services/stores'
+import { ServiceReviewsSection } from '@/components/sections/wellness/detail/ServiceReviewsSection'
 import type { OpeningHour } from '@/lib/types/stores'
 
 const fetchStore = cache((id: string) => getStoreBySlugOrId(id))
@@ -99,6 +100,11 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
   if (!data) notFound()
 
   const { store, gallery, hours, items, tags, offers } = data
+  const reviews = await getStoreReviews(store.id)
+  const reviewSummary = {
+    avg: reviews.length ? reviews.reduce((sum, r) => sum + Number(r.rating ?? 0), 0) / reviews.length : 0,
+    count: reviews.length,
+  }
 
   const allPhotos = [store.cover_image, ...gallery.map(g => g.file_url)].filter(Boolean) as string[]
   const { isOpen, closeTime } = hours.length > 0 ? todayStatus(hours) : { isOpen: false, closeTime: null }
@@ -330,6 +336,10 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                   </MenuGalleryProvider>
                 </section>
               )}
+
+              <div className='mt-6 border-t border-gray-100'>
+                <ServiceReviewsSection reviews={reviews} summary={reviewSummary} storeId={store.id} storeName={store.name} />
+              </div>
 
               {store.description && (
                 <section className='mt-6 border-t border-gray-100 pt-5 pb-10'>

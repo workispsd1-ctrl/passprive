@@ -43,13 +43,18 @@ export function haversineKm(
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
 }
 
-/** e.g. `5.3km`, or null when the distance is unknown. */
+/** e.g. `5.3km` (`350m` under 1 km), or null when the distance is unknown. */
 export function formatDistanceKm(
   km: number | null | undefined,
   suffix = 'km',
 ): string | null {
+  // null/undefined/'' mean "distance unknown" — Number(null) is 0, which would print "0.0km"
+  if (km == null || (km as unknown) === '') return null
   const n = typeof km === 'number' ? km : Number(km)
-  return Number.isFinite(n) ? `${n.toFixed(1)}${suffix}` : null
+  if (!Number.isFinite(n)) return null
+  // under 1 km read in metres ("350m") — "0.0km" tells the visitor nothing
+  if (suffix === 'km' && n < 1) return `${Math.max(10, Math.round((n * 1000) / 10) * 10)}m`
+  return `${n.toFixed(1)}${suffix}`
 }
 
 /**

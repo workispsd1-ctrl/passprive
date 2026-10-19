@@ -8,9 +8,8 @@ import type { MoodCategory } from '@/lib/types/dining'
  * Same data source (restaurant_mood_categories, is_active, sort_order). The
  * app never renders `title` as text on the chip (image only) — matched here.
  *
- * TODO(design): the app navigates a tap to a mood-filtered restaurant list
- * (`filterType: 'mood_tag'`); the web has no such route yet, so these link to
- * `/dining` with a `mood` query param that isn't wired up to filter results.
+ * A tap opens the mood's restaurant list (`/dining/mood/[slug]`), like the
+ * app's `handleSelectMood` → OfferRestaurants with `filterType: 'mood_tag'`.
  */
 export function MoodCategoriesSection({
   categories,
@@ -28,9 +27,9 @@ export function MoodCategoriesSection({
       {categories.map((c) => (
         <Link
           key={c.key}
-          href={`/dining?mood=${encodeURIComponent(c.slug)}`}
+          href={`/dining/mood/${encodeURIComponent(c.slug)}`}
           aria-label={c.title}
-          className="w-32.75 shrink-0 2xl:w-45.75"
+          className="w-32.75 shrink-0 transition-transform hover:-translate-y-0.5 2xl:w-45.75"
         >
           <div className="relative h-34.5 w-full overflow-hidden rounded-[17px] 2xl:h-47.5 2xl:rounded-[24px]">
             {c.image_url && (

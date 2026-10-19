@@ -5,13 +5,14 @@ import { SavedProvider } from '@/lib/context/SavedContext'
 import { PlanProvider } from '@/lib/context/PlanContext'
 import { getCurrentUser } from '@/lib/services/user'
 import { getUserPlan } from '@/lib/services/subscription'
+import { getHeaderLocation } from '@/lib/location'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
-  const plan = await getUserPlan(user?.id)
+  const [plan, headerLocation] = await Promise.all([getUserPlan(user?.id), getHeaderLocation()])
 
   return (
-    <LocationProvider>
+    <LocationProvider initial={headerLocation}>
       <AuthPromptProvider>
         <SavedProvider>
           <PlanProvider plan={plan}>

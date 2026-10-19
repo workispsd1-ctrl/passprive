@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 
 /** Deals — app parity: DealsScreen (restaurant_feed with `in_has_offer`). */
 export default async function DealsPage() {
-  const rows = await getRestaurantFeed({ hasOffer: true }, 0, FEED_PAGE_SIZE, await getUserCoords())
+  const coords = await getUserCoords()
+  const rows = await getRestaurantFeed({ hasOffer: true }, 0, FEED_PAGE_SIZE, coords)
   return (
     <main className="pb-16">
       <div className="mx-auto max-w-7xl px-4 pt-6 md:px-8 2xl:max-w-394">
@@ -20,6 +21,8 @@ export default async function DealsPage() {
         </h1>
       </div>
       <RestaurantResults
+        // remount when the header location changes — the grid holds its own rows
+        key={`${coords?.lat ?? ''},${coords?.lng ?? ''}`}
         initialRows={rows}
         initialHasMore={rows.length >= FEED_PAGE_SIZE}
         queryString="offer=1"

@@ -14,8 +14,15 @@ interface Props {
   stores: StoreRow[]
   moodCategories: StoreMoodCategory[]
   activeCategorySlug: string
-  onCategoryChange: (slug: string) => void
+  /** heading above the list (default "All Stores") */
+  title?: string
+  /** `rail` = one scrolling row (stores home), `grid` = wrapped results page */
+  layout?: 'rail' | 'grid'
 }
+
+/** "Home & Furniture" / "home-furniture" → "home-and-furniture" style key for comparing categories. */
+const categoryKey = (value: string) =>
+  value.trim().toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 const DISTANCE_OPTIONS = [
   { label: 'Under 5km', km: 5 },
@@ -28,7 +35,7 @@ const SORT_OPTIONS = [
   { label: 'Nearest', value: 'nearest' as const },
 ]
 
-export function AllStoresSection({ stores, moodCategories, activeCategorySlug }: Props) {
+export function AllStoresSection({ stores, moodCategories, activeCategorySlug, title = 'All Stores', layout = 'rail' }: Props) {
   const { location } = useLocation()
   const plan = useUserPlan()
   const userCoords = useMemo(
@@ -62,8 +69,10 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug }:
     let result = storesWithDist
 
     if (activeCategoryTitle) {
+      // app parity: storeMatchesMoodCategory — compare normalised keys, not raw text
+      const wanted = new Set([categoryKey(activeCategoryTitle), categoryKey(activeCategorySlug)])
       result = result.filter(s =>
-        (s.category ?? '').split(',').map(c => c.trim()).includes(activeCategoryTitle)
+        (s.category ?? '').split(',').some(c => wanted.has(categoryKey(c)))
       )
     }
 
@@ -84,7 +93,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug }:
     }
 
     return result
-  }, [storesWithDist, activeCategoryTitle, distanceKm, minDiscount, sort, userCoords])
+  }, [storesWithDist, activeCategoryTitle, activeCategorySlug, distanceKm, minDiscount, sort, userCoords])
 
   const activeDistLabel = DISTANCE_OPTIONS.find(o => o.km === distanceKm)?.label
   const activeSortLabel = SORT_OPTIONS.find(o => o.value === sort)?.label
@@ -93,7 +102,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug }:
   return (
     <section className="py-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-4 md:px-8">
-        <h2 className="text-[18px] font-bold text-gray-900">All Stores</h2>
+        <h2 className="text-[18px] font-bold text-gray-900">{title}</h2>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -193,7 +202,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug }:
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-[13px] text-gray-400">No stores match your filters.</p>
       ) : (
-        <HScroll maxWidthClassName="w-full max-w-none" gapClassName="gap-4 2xl:gap-6" className="py-0">
+        <StoreList layout={layout}>
           {filtered.map((store) => {
             const meta = [
               store.dist != null ? (store.dist < 1 ? `${Math.round(store.dist * 1000)}m` : `${store.dist.toFixed(1)}km`) : null,
@@ -235,8 +244,19 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug }:
               />
             )
           })}
-        </HScroll>
+        </StoreList>
       )}
     </section>
+  )
+}
+
+function StoreList({ layout, children }: { layout: 'rail' | 'grid'; children: React.ReactNode }) {
+  if (layout === 'grid') {
+    return <div className="flex flex-wrap justify-center gap-4 px-4 md:justify-start md:px-8 2xl:gap-6">{children}</div>
+  }
+  return (
+    <HScroll maxWidthClassName="w-full max-w-none" gapClassName="gap-4 2xl:gap-6" className="py-0">
+      {children}
+    </HScroll>
   )
 }

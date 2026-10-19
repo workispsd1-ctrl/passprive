@@ -1,6 +1,6 @@
 import { Star, Info, ThumbsUp } from 'lucide-react'
 import type { Review, ReviewSummary } from '@/lib/types/dining'
-import { LeaveReviewDialog } from './LeaveReviewDialog'
+import { LeaveReviewDialog } from '@/components/shared/LeaveReviewDialog'
 
 function ratingAvg(reviews: Review[], key: 'food_rating' | 'service_rating' | 'ambience_rating'): number | null {
   const vals = reviews.map(r => r[key]).filter((v): v is number => v != null)
@@ -23,8 +23,6 @@ interface Props {
   reviewSummary: ReviewSummary
   restaurantId: string
   restaurantName: string
-  isLoggedIn: boolean
-  alreadyReviewed: boolean
 }
 
 export function RestaurantReviewsSection({
@@ -32,17 +30,8 @@ export function RestaurantReviewsSection({
   reviewSummary,
   restaurantId,
   restaurantName,
-  isLoggedIn,
-  alreadyReviewed,
 }: Props) {
-  const leaveReview = (
-    <LeaveReviewDialog
-      restaurantId={restaurantId}
-      restaurantName={restaurantName}
-      isLoggedIn={isLoggedIn}
-      alreadyReviewed={alreadyReviewed}
-    />
-  )
+  const leaveReview = <LeaveReviewDialog kind='restaurant' entityId={restaurantId} entityName={restaurantName} />
 
   if (reviews.length === 0) {
     return (

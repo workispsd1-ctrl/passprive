@@ -2,9 +2,12 @@
 
 import { Star, ThumbsUp } from 'lucide-react';
 import type { TouristPlaceReview } from '@/lib/types/touristPlaces';
+import { LeaveReviewDialog } from '@/components/shared/LeaveReviewDialog';
 
 interface Props {
   reviews: TouristPlaceReview[];
+  placeId: string;
+  placeName: string;
   reviewSummary: {
     avg: number;
     count: number;
@@ -26,12 +29,29 @@ function timeAgo(iso: string): string {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-export function TouristReviews({ reviews, reviewSummary }: Props) {
-  if (reviews.length === 0) return null;
+export function TouristReviews({ reviews, reviewSummary, placeId, placeName }: Props) {
+  const leaveReview = <LeaveReviewDialog kind="tourist" entityId={placeId} entityName={placeName} />;
+
+  if (reviews.length === 0) {
+    return (
+      <section id="reviews" className="mt-8 border-t border-gray-100 pt-6">
+        <h2 className="text-[22px] font-bold text-gray-900 mb-5">Ratings &amp; reviews</h2>
+        <div className="flex flex-col items-center rounded-3xl border border-gray-200 bg-gray-50 px-6 py-10 text-center">
+          <Star className="h-9 w-9 text-gray-300" />
+          <p className="mt-3 text-[16px] font-bold text-gray-900">No reviews yet</p>
+          <p className="mt-1 mb-5 text-[13px] text-gray-500">Be the first to share your experience at {placeName}.</p>
+          {leaveReview}
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <section className="mt-8 border-t border-gray-100 pt-6">
-      <h2 className="text-[22px] font-bold text-gray-900 mb-5">Ratings &amp; reviews</h2>
+    <section id="reviews" className="mt-8 border-t border-gray-100 pt-6">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[22px] font-bold text-gray-900">Ratings &amp; reviews</h2>
+        {leaveReview}
+      </div>
 
       <div className="rounded-3xl bg-gray-50 border border-gray-200 p-6 md:p-8">
         <div className="text-center">
