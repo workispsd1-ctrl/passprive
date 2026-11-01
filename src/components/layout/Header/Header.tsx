@@ -1,7 +1,7 @@
 import { DesktopHeaderClient } from './DesktopHeaderClient'
 import { MobileHeaderClient } from './MobileHeaderClient'
 import { getCurrentUser } from '@/lib/services/user'
-import { getWebsiteBanners } from '@/lib/services/websiteBanners'
+import { getAllAppBanners, getWebsiteBanners } from '@/lib/services/websiteBanners'
 import { getUserMembership } from '@/lib/services/subscription'
 
 /**
@@ -13,11 +13,14 @@ export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
   // Home/wellness/tourist hero banners live in the header so the category-nav
   // pill can be positioned relative to them per-route (overlap on home, below
   // on wellness/tourist); HeaderHeroNav picks the right one by pathname.
-  const [user, homeBanners, wellnessBanners, touristBanners] = await Promise.all([
+  // Phones show the app's own (portrait) banners under an overlaid header — the
+  // website creatives are wide desktop art that crops badly on a narrow screen.
+  const [user, homeBanners, wellnessBanners, touristBanners, appBanners] = await Promise.all([
     getCurrentUser(),
     getWebsiteBanners('home'),
     getWebsiteBanners('wellness'),
     getWebsiteBanners('tourist'),
+    minimal ? null : getAllAppBanners(),
   ])
 
   // App parity: components/PackageBadge.jsx — logged-out or free-tier users
@@ -44,7 +47,14 @@ export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
         minimal={minimal}
       />
       <div className="md:hidden">
-        <MobileHeaderClient user={user} banners={homeBanners} wellnessBanners={wellnessBanners} touristBanners={touristBanners} minimal={minimal} />
+        <MobileHeaderClient
+          user={user}
+          banners={homeBanners}
+          wellnessBanners={wellnessBanners}
+          touristBanners={touristBanners}
+          appBanners={appBanners}
+          minimal={minimal}
+        />
       </div>
     </header>
   )

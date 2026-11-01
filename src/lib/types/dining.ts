@@ -21,6 +21,8 @@ export type Restaurant = {
   pay_bill_enabled: boolean | null;
   service_level: string | null;
   on_boarded: boolean | null;
+  cashback_enabled: boolean | null;
+  is_promoted: boolean | null;
   cover_charge_enabled: boolean;
   cover_charge_amount: number | null;
   max_bookings_per_slot: number | null;
@@ -65,6 +67,8 @@ export type DiningOffer = {
   offer_type: string | null;
   discount_value: number | null;
   min_spend: number | null;
+  /** admin offer builder — offerKind TIME_SLOT / VISIT / …, slot window */
+  metadata?: { offerKind?: string | null; slotStart?: string | null; slotEnd?: string | null } | null;
 };
 
 export type RestaurantTag = {
@@ -137,6 +141,8 @@ export type FeaturedRestaurant = {
   booking_enabled: boolean;
   repeat_rewards_enabled: boolean;
   booking_service_type: string | null;
+  cashback_enabled?: boolean | null;
+  is_promoted?: boolean | null;
   /** set by the feed RPC when it was called with the user's coordinates */
   distance_km?: number | null;
 };

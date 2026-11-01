@@ -5,8 +5,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft, BookText, ChevronRight, CircleHelp, Crown, FileText, Gift, Heart, LogOut, MessageCircle, Share2, Wallet, Star,
+  ArrowLeft, BookText, ChevronRight, CircleHelp, Crown, FileText, Gift, Heart, LogOut, MessageCircle, Receipt, ReceiptText, Share2, Wallet, Star,
 } from 'lucide-react'
+import { BillPaymentRow } from '@/components/shared/BillPaymentRow'
 import { cn } from '@/lib/utils'
 import type { ProfileSummary, ProfileTier } from '@/lib/services/profileSummary'
 
@@ -23,7 +24,9 @@ const GROUPS: { title: string; items: { label: string; href: string; icon: React
     title: 'My space',
     items: [
       { label: 'Your bookings', href: '/bookings', icon: BookText },
+      { label: 'Transactions', href: '/transactions', icon: ReceiptText },
       { label: 'Favourites', href: '/saved', icon: Heart },
+      { label: 'Your receipts', href: '/receipts', icon: Receipt },
       { label: 'Your reviews', href: '/reviews', icon: Star },
       { label: 'My wallet', href: '/wallet', icon: Wallet },
       { label: 'Membership', href: '/membership', icon: Crown },
@@ -217,6 +220,31 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
                       <p className='text-[10.5px] font-medium text-white/85'>{b.overline}</p>
                       <p className='truncate text-[14px] font-bold'>{b.name}</p>
                     </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Transactions — app parity: Profile.jsx "Activity", the latest bill payments */}
+          <section className='mt-6'>
+            <div className='mb-2.5 flex items-center justify-between'>
+              <h2 className='text-[16px] font-bold text-[#161616]'>Transactions</h2>
+              <Link href='/transactions' onClick={onClose} className='text-[12px] font-semibold text-brand hover:underline'>View all</Link>
+            </div>
+            {!data && !failed ? (
+              <div className='flex flex-col gap-2'>
+                {[0, 1].map(i => <span key={i} className='h-16 animate-pulse rounded-2xl bg-gray-200' />)}
+              </div>
+            ) : !data?.recentPayments.length ? (
+              <p className='rounded-2xl border border-dashed border-gray-200 px-4 py-5 text-center text-[12px] text-gray-500'>
+                {failed ? 'Couldn’t load your transactions.' : 'No bill payments yet'}
+              </p>
+            ) : (
+              <div className='divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-100 bg-white'>
+                {data.recentPayments.map(p => (
+                  <Link key={p.id} href={`/transactions?open=${p.id}`} onClick={onClose} className='flex px-3.5 py-3 transition-colors hover:bg-gray-50'>
+                    <BillPaymentRow p={p} compact />
                   </Link>
                 ))}
               </div>

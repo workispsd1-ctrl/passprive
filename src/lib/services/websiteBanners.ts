@@ -40,3 +40,37 @@ export async function getWebsiteBanners(section: WebsiteBannerSection): Promise<
   const now = Date.now();
   return (data as WebsiteBanner[]).filter((banner) => isWithinWindow(banner, now));
 }
+
+/**
+ * The app's own banner tables — app parity: screens/Home/index.jsx
+ * BANNER_TABLE_FOR_CAT. Their creatives are tall phone heroes (the header sits
+ * over the top), so the website shows them on small screens only.
+ */
+const APP_TABLE_FOR_SECTION: Record<WebsiteBannerSection, string> = {
+  home: 'homeherooffers',
+  dining: 'dineinhomebanners',
+  store: 'storeshomebanners',
+  wellness: 'wellnesshomebanners',
+  tourist: 'touristhomebanners',
+};
+
+export async function getAppBanners(section: WebsiteBannerSection): Promise<WebsiteBanner[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from(APP_TABLE_FOR_SECTION[section])
+    .select(BANNER_COLUMNS)
+    .eq('is_active', true)
+    .order('priority', { ascending: true })
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  const now = Date.now();
+  return (data as WebsiteBanner[]).filter((banner) => isWithinWindow(banner, now));
+}
+
+export type AppBannerSets = Record<WebsiteBannerSection, WebsiteBanner[]>;
+
+export async function getAllAppBanners(): Promise<AppBannerSets> {
+  const sections: WebsiteBannerSection[] = ['home', 'dining', 'store', 'wellness', 'tourist'];
+  const sets = await Promise.all(sections.map(getAppBanners));
+  return Object.fromEntries(sections.map((s, i) => [s, sets[i]])) as AppBannerSets;
+}

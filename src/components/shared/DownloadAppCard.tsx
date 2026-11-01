@@ -9,7 +9,7 @@ export function DownloadAppCard() {
       <div>
         <p className="text-sm font-bold text-gray-900">Download PassPrivé</p>
         <ul className="mt-1.5 space-y-1">
-          {['Exclusive offers and deals', 'Pay via District'].map(t => (
+          {['Exclusive offers and deals', 'Pay your bill & earn Privé Credits'].map(t => (
             <li key={t} className="flex items-center gap-1.5 text-xs text-gray-500">
               <span className="w-1 h-1 rounded-full bg-gray-400 shrink-0" />
               {t}

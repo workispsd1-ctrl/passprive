@@ -87,7 +87,7 @@ export function CheckoutClient({ plan }: Props) {
         <p className="text-xs font-bold opacity-60 uppercase tracking-widest mb-1">Subscribing to</p>
         <p className="text-2xl font-extrabold">{plan.plan_name.trim()}</p>
         <div className="flex items-baseline gap-2 mt-3">
-          <span className="text-4xl font-extrabold">₨{Number(plan.amount).toLocaleString()}</span>
+          <span className="text-4xl font-extrabold">MUR {Number(plan.amount).toLocaleString()}</span>
           <span className="text-sm opacity-60">/ year</span>
         </div>
         <p className="text-sm opacity-70 mt-1">{plan.cashback}% cashback on every bill</p>
@@ -129,7 +129,7 @@ export function CheckoutClient({ plan }: Props) {
         className={`mt-5 w-full py-4 rounded-2xl text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 ${isBlack ? 'bg-gray-900 hover:bg-black' : 'bg-brand hover:bg-brand-dark'}`}
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
-        {loading ? 'Redirecting to payment…' : `Pay ₨${Number(plan.amount).toLocaleString()}`}
+        {loading ? 'Redirecting to payment…' : `Pay MUR ${Number(plan.amount).toLocaleString()}`}
       </button>
 
       <p className="mt-3 text-center text-xs text-gray-400">

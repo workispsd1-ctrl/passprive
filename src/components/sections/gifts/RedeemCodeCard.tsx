@@ -57,9 +57,9 @@ export function RedeemCodeCard({ onRedeemSuccess }: Props) {
           </div>
           <p className='text-[15px] font-bold text-gray-900'>Code Redeemed!</p>
           <p className='text-[13px] text-gray-500 mt-1'>
-            <span className='font-semibold text-green-600'>₨{success.amount}</span> added to your balance.
+            <span className='font-semibold text-green-600'>MUR {success.amount}</span> added to your balance.
           </p>
-          <p className='text-[12px] text-gray-400 mt-0.5'>New balance: ₨{success.new_balance}</p>
+          <p className='text-[12px] text-gray-400 mt-0.5'>New balance: MUR {success.new_balance}</p>
           <button
             type='button'
             onClick={() => setSuccess(null)}

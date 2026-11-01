@@ -3,6 +3,8 @@ import { getUserMembership } from '@/lib/services/subscription'
 import { getWalletBalance } from '@/lib/services/wallet'
 import { getUpcomingDiningBookings, getUserStoreBookings } from '@/lib/services/bookings'
 import { getUserVisitRewards } from '@/lib/services/visitRewards'
+import { getBillPayments, type BillPayment } from '@/lib/services/billPayments'
+import { getCashbackSummary } from '@/lib/services/cashbackSummary'
 
 export type ProfileTier = 'free' | 'plus' | 'black'
 
@@ -14,6 +16,8 @@ export type ProfileSummary = {
   credits: number
   stamps: number
   activeBookings: { key: string; href: string; name: string; image: string | null; overline: string }[]
+  /** latest bill payments — app parity: Profile.jsx "Activity → Transactions" */
+  recentPayments: BillPayment[]
 }
 
 function tierOf(raw: string): ProfileTier {
@@ -32,20 +36,22 @@ const fmtDate = (iso: string | null) => {
 /**
  * Everything the profile drawer shows — app parity: screens/Profile.jsx
  * (users row, membership tier, Privé Credits balance, stamps collected,
- * upcoming dining bookings + store appointments).
+ * upcoming dining bookings + store appointments, latest bill payments).
  */
 export async function getProfileSummary(): Promise<ProfileSummary | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data: row }, membership, wallet, dining, stores, rewards] = await Promise.all([
+  const [{ data: row }, membership, wallet, dining, stores, rewards, payments, cashback] = await Promise.all([
     supabase.from('users').select('full_name, phone, email').eq('id', user.id).maybeSingle(),
     getUserMembership(user.id),
     getWalletBalance(user.id),
     getUpcomingDiningBookings(user.id, 10),
     getUserStoreBookings(user.id),
     getUserVisitRewards().catch(() => []),
+    getBillPayments(4).catch(() => []),
+    getCashbackSummary(),
   ])
 
   const tierRaw = (membership?.membership_tier ?? 'none').trim()
@@ -79,9 +85,11 @@ export async function getProfileSummary(): Promise<ProfileSummary | null> {
     contact: row?.phone || user.phone || row?.email || user.email || '',
     tier: active ? tierOf(tierRaw) : 'free',
     validTill: active ? fmtDate(membership?.membership_expiry ?? null) : null,
-    credits: Math.round(Number(wallet?.balance ?? 0)),
+    // app parity: Profile.jsx reads the cashback summary (as the header does); the table is the fallback
+    credits: Math.round(cashback ? cashback.balance : Number(wallet?.balance ?? 0)),
     // app parity: stamps = paid visits across repeat-reward restaurants
     stamps: rewards.reduce((sum, r) => sum + (r.reward.enabled ? Number(r.reward.visitCount) || 0 : 0), 0),
     activeBookings: bookings.map(b => ({ key: b.key, href: b.href, name: b.name, image: b.image, overline: b.overline })),
+    recentPayments: payments,
   }
 }

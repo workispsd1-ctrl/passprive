@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
+import type { CardBadge } from '@/lib/cashback'
 import { Heart, Flame, Gem, Grid2x2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSaved } from '@/lib/context/SavedContext'
@@ -32,11 +34,11 @@ interface Props {
   saveId?: string
   saveType?: SavedEntityType
   /**
-   * Cashback badge art — app parity: `getEntityCashbackBadge` /
-   * `getCashbackBadgeArt`, computed by the caller from the merchant's
-   * capabilities and the viewer's plan. `null`/omitted hides the badge.
+   * Corner badge — app parity: CashbackBadge.jsx via `getCardBadge`, computed
+   * by the caller from the merchant's capabilities and the viewer's plan.
+   * `null`/omitted hides it.
    */
-  cashbackArt?: string | null
+  cardBadge?: CardBadge | null
   /** bottom strip inside the frame, e.g. "Flat 15% OFF + bank benefits" */
   offerLabel?: string
   /** small green pill on the image (used by salon cards) */
@@ -73,7 +75,7 @@ export function MerchantCard({
   tagline,
   saveId,
   saveType,
-  cashbackArt,
+  cardBadge,
   offerLabel,
   badge,
   tags,
@@ -122,32 +124,7 @@ export function MerchantCard({
             <div className="absolute inset-0 bg-linear-to-br from-gray-200 to-gray-300" />
           )}
 
-          {cashbackArt && (
-            <>
-              {/* White curved backdrop the badge sits on — app parity:
-                  CashbackBadge.jsx's CardBg.webp (736×224), rounded to match
-                  the card's own top-left corner. */}
-              <div className="pointer-events-none absolute top-0 left-0 aspect-736/224 w-60 overflow-hidden rounded-tl-[15px] 2xl:w-73">
-                <Image
-                  src="/cashback-badge-backdrop.webp"
-                  alt=""
-                  fill
-                  className="object-cover object-top-left"
-                  sizes="240px"
-                />
-              </div>
-              {/* App: getEntityCashbackBadge → cashback badge art, pinned top-left.
-                 (Card width * 120/299 wide, ~6px inset — see CashbackBadge.jsx) */}
-              <Image
-                src={cashbackArt}
-                alt="Cashback"
-                width={492}
-                height={172}
-                className="pointer-events-none absolute left-1.5 top-1.5 w-30 2xl:w-36.25"
-                style={{ height: 'auto' }}
-              />
-            </>
-          )}
+          <CardBadgeArt badge={cardBadge} />
 
           {badge && (
             <span className="absolute left-2 top-10 rounded-md bg-[#159D57] px-1.5 py-0.5 text-[9px] font-bold text-white">
@@ -171,7 +148,7 @@ export function MerchantCard({
 
         {/* offer strip — shows the orange frame; a thin bar when there's no offer */}
         {offerLabel ? (
-          <div className="px-3.5 py-1.5 text-[12px] leading-4 text-white">
+          <div className="px-3.5 py-1.5 text-[12px] leading-4 text-white 2xl:text-[13px] min-[120rem]:py-2 min-[120rem]:text-[16px] min-[120rem]:leading-5">
             <OfferText text={offerLabel} />
           </div>
         ) : (
@@ -180,16 +157,16 @@ export function MerchantCard({
       </div>
 
       <div className="px-5.25 pt-2.5 pb-3">
-        <p className="truncate text-sm font-bold leading-6 text-[#383838]">
+        <p className="truncate text-sm font-bold leading-6 text-[#383838] 2xl:text-base min-[120rem]:text-[20px] min-[120rem]:leading-7">
           {name}
         </p>
         {meta && (
-          <p className="line-clamp-2 text-xs font-medium leading-5 text-[#383838]">
+          <p className="line-clamp-2 text-xs font-medium leading-5 text-[#383838] 2xl:text-[13px] min-[120rem]:text-[16px] min-[120rem]:leading-6">
             {meta}
           </p>
         )}
         {tagline && (
-          <p className="line-clamp-1 text-xs font-normal leading-5 text-[#878787]">
+          <p className="line-clamp-1 text-xs font-normal leading-5 text-[#878787] 2xl:text-[13px] min-[120rem]:text-[16px] min-[120rem]:leading-6">
             {tagline}
           </p>
         )}
@@ -200,7 +177,7 @@ export function MerchantCard({
               return (
                 <span
                   key={tag.label}
-                  className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark"
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark min-[120rem]:text-[14px]"
                 >
                   {Icon && <Icon className="h-3 w-3" />}
                   {tag.label}

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Loader2, PenLine, Star } from 'lucide-react'
+import Image from 'next/image'
+import { t } from '@/components/sections/dining/designUnit'
+import { CheckCircle2, ChevronRight, Loader2, PenLine, Star } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import LoginDialog from '@/components/LoginDialog'
 import { cn } from '@/lib/utils'
@@ -15,9 +17,11 @@ interface Props {
   entityId: string
   entityName: string
   className?: string
+  /** 'field' — the restaurant page's "Leave a review" pill (pencil, label, chevron) */
+  variant?: 'button' | 'field' | 'figma'
 }
 
-export function LeaveReviewDialog({ kind, entityId, entityName, className }: Props) {
+export function LeaveReviewDialog({ kind, entityId, entityName, className, variant = 'button' }: Props) {
   const router = useRouter()
   const steps = REVIEW_CONFIG[kind].steps
   // Fetched client-side so the detail pages don't have to read auth cookies.
@@ -96,16 +100,48 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className }: Pro
 
   return (
     <>
-      <button
-        type="button"
-        onClick={start}
-        className={cn(
-          'inline-flex h-11 items-center justify-center gap-2 rounded-full border-[1.5px] border-brand px-5 text-[14px] font-semibold text-brand transition-colors hover:bg-brand-tint',
-          className,
-        )}
-      >
-        <PenLine className="h-4 w-4" /> Write a review
-      </button>
+      {variant === 'figma' ? (
+        // desktop restaurant page — Figma "Leave a review" pill, in design units
+        <button
+          type="button"
+          onClick={start}
+          className={cn('flex items-center border-solid border-[#e5e5e5] bg-white text-left text-[#252427] transition-colors hover:border-[#cfcfcf]', className)}
+          style={{ width: t(726), height: t(70), borderWidth: t(2), borderRadius: t(39.4), paddingLeft: t(12), paddingRight: t(20), gap: t(15), fontSize: t(24), letterSpacing: t(0.41) }}
+        >
+          <span className="flex shrink-0 items-center justify-center rounded-full bg-[#e5e5e5]" style={{ width: t(49), height: t(48) }}>
+            <Image src="/figma/detail/pencil.svg" alt="" width={24} height={24} style={{ width: t(24), height: t(24) }} />
+          </span>
+          <span className="flex-1">Leave a review</span>
+          {/* the frame's vector is a "<" turned 180° */}
+          <Image src="/figma/detail/chevron-right.svg" alt="" width={12} height={24} className="rotate-180" style={{ width: t(12), height: t(24) }} />
+        </button>
+      ) : variant === 'field' ? (
+        <button
+          type="button"
+          onClick={start}
+          className={cn(
+            'flex h-12 items-center gap-3 rounded-full border border-[#E2E2E2] bg-white pr-4 pl-1.5 text-left text-[14px] text-[#5B5A5A] transition-colors hover:border-[#C9C9C9]',
+            className,
+          )}
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#EDEDED]">
+            <PenLine className="h-4 w-4 text-[#5B5A5A]" />
+          </span>
+          <span className="flex-1">Leave a review</span>
+          <ChevronRight className="h-4.5 w-4.5 text-[#5B5A5A]" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={start}
+          className={cn(
+            'inline-flex h-11 items-center justify-center gap-2 rounded-full border-[1.5px] border-brand px-5 text-[14px] font-semibold text-brand transition-colors hover:bg-brand-tint',
+            className,
+          )}
+        >
+          <PenLine className="h-4 w-4" /> Write a review
+        </button>
+      )}
 
       <LoginDialog hideTrigger open={loginOpen} onOpenChange={setLoginOpen} />
 

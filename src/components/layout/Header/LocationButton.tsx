@@ -57,15 +57,16 @@ export function LocationButton({ variant = 'desktop', theme = 'default' }: Props
         className={`flex shrink-0 items-center gap-2 transition-opacity hover:opacity-80 2xl:gap-2.75`}
       >
         <MapPin
-          className={`h-5 w-5 shrink-0 2xl:h-6 2xl:w-6 ${light ? 'text-white' : 'text-brand-light'}`}
+          className={`h-5 w-5 shrink-0 2xl:h-6 2xl:w-6 min-[120rem]:h-8 min-[120rem]:w-8 ${light ? 'text-white' : 'text-brand-light'}`}
           aria-hidden="true"
         />
-        <div className="flex flex-col items-start gap-0.75 leading-tight">
-          <span className={`text-[14px] font-bold 2xl:text-[16px] ${light ? 'text-white' : 'text-[#0D141C]'}`}>
+        {/* tablets: the pin alone, so the search keeps its room — the name shows from lg */}
+        <div className="hidden flex-col items-start gap-0.75 leading-tight lg:flex">
+          <span className={`text-[14px] font-bold 2xl:text-[16px] min-[120rem]:text-[20px] min-[120rem]:leading-5 ${light ? 'text-white' : 'text-[#0D141C]'}`}>
             {cityLabel}
           </span>
           {stateLabel && (
-            <span className={`text-[12px] 2xl:text-[13px] ${light ? 'text-white/80' : 'text-gray-400'}`}>
+            <span className={`text-[12px] 2xl:text-[13px] min-[120rem]:text-[16px] min-[120rem]:leading-5 min-[120rem]:font-medium ${light ? 'text-white/80' : 'text-[#606366]'}`}>
               {stateLabel}
             </span>
           )}

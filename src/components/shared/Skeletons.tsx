@@ -258,11 +258,11 @@ export function BookingPageSkeleton() {
 export function CardGridPageSkeleton({ count = 8 }: { count?: number }) {
   return (
     <main className='pb-16' aria-busy='true'>
-      <div className='mx-auto max-w-7xl px-4 pt-6 md:px-8 2xl:max-w-394'>
+      <div className='mx-auto max-w-7xl px-4 pt-6 md:px-8'>
         <Bone className='h-7 w-56 rounded-full' />
         <Line className='mt-2 w-80' />
       </div>
-      <div className='mx-auto max-w-7xl px-4 py-6 md:px-8 2xl:max-w-394'>
+      <div className='mx-auto max-w-7xl px-4 py-6 md:px-8'>
         <div className='flex flex-wrap justify-center gap-4 md:justify-start'>
           {Array.from({ length: count }, (_, i) => <MerchantCardSkeleton key={i} />)}
         </div>

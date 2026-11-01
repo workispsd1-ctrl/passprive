@@ -5,7 +5,9 @@ import { ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMembership } from '@/lib/services/subscription'
 import { getWalletBalance, getWalletTransactions } from '@/lib/services/wallet'
-import { CreditsTransactions } from './CreditsTransactions'
+import { getCashbackSummary, type CashbackSummary } from '@/lib/services/cashbackSummary'
+import { PAID_STATUSES } from '@/lib/services/billPayments'
+import { CreditsTransactions, type PaymentTx } from './CreditsTransactions'
 
 export const metadata: Metadata = {
   title: 'Privé Credits',
@@ -30,9 +32,33 @@ export default async function PriveCreditsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [membership, balance, transactions] = user
-    ? await Promise.all([getUserMembership(user.id), getWalletBalance(user.id), getWalletTransactions(user.id)])
-    : [null, null, []]
+  const [membership, summary, paymentsRes] = user
+    ? await Promise.all([
+        getUserMembership(user.id),
+        getCashbackSummary(),
+        supabase
+          .from('payment_sessions')
+          .select('id, payment_context, amount_major, status, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50),
+      ])
+    : [null, null, null]
+
+  // app parity: PriveCreditsScreen — balance + credit history from the cashback
+  // summary (as the header and the app); the gift tables are only the fallback
+  let credits: CashbackSummary | null = summary
+  if (user && !credits) {
+    const [wallet, rows] = await Promise.all([getWalletBalance(user.id), getWalletTransactions(user.id)])
+    credits = {
+      balance: Number(wallet?.balance ?? 0),
+      transactions: rows.map(t => ({ id: t.id, type: t.type, amount: Number(t.amount) || 0, createdAt: t.created_at, status: '' })),
+    }
+  }
+  // "All" — the member's successful payments (PriveCreditsScreen successPayments)
+  const payments: PaymentTx[] = ((paymentsRes?.data ?? []) as { id: string; payment_context: string | null; amount_major: number | string | null; status: string | null; created_at: string }[])
+    .filter(p => PAID_STATUSES.includes(String(p.status ?? '').toUpperCase()))
+    .map(p => ({ id: p.id, context: String(p.payment_context ?? ''), amount: Number(p.amount_major) || 0, createdAt: p.created_at }))
 
   // same tier rule as the header badge (Header.tsx)
   const raw = (membership?.membership_tier ?? 'none').toLowerCase()
@@ -61,9 +87,12 @@ export default async function PriveCreditsPage() {
             <p className='mt-4 inline-block rounded-full bg-white/15 px-4 py-1.5 text-[14px] font-semibold backdrop-blur'>
               Get {hero.cashback} cashback on every bill you pay
             </p>
-            {balance && (
+            {credits && (
               <p className='mt-5 text-[14px] text-white/80'>
-                Your balance <span className='ml-1 text-[22px] font-extrabold text-white'>Rs {Math.round(balance.balance).toLocaleString('en-US')}</span>
+                Your balance{' '}
+                <span className='ml-1 text-[22px] font-extrabold text-white'>{Math.round(credits.balance).toLocaleString('en-US')}</span>{' '}
+                <em className='font-(family-name:--font-libre-baskerville) italic'>Privé</em> Credits
+                <span className='ml-2 text-white/70'>(1 Credit = MUR 1)</span>
               </p>
             )}
           </div>
@@ -116,7 +145,7 @@ export default async function PriveCreditsPage() {
         <section className='mt-10'>
           <h2 className='text-[20px] font-bold text-gray-900'>Transactions</h2>
           {user ? (
-            <CreditsTransactions transactions={transactions} />
+            <CreditsTransactions payments={payments} credits={credits?.transactions ?? []} />
           ) : (
             <p className='mt-3 rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500'>
               Log in to see the Privé Credits you’ve earned and used.

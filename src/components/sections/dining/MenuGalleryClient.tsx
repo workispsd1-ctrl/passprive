@@ -10,7 +10,7 @@ interface MenuGalleryCtx {
 }
 const MenuGalleryContext = createContext<MenuGalleryCtx | null>(null)
 
-function useMenuGallery() {
+export function useMenuGallery() {
   const ctx = useContext(MenuGalleryContext)
   if (!ctx) throw new Error('useMenuGallery must be used inside MenuGalleryProvider')
   return ctx

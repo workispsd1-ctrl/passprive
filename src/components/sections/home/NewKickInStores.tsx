@@ -28,7 +28,7 @@ export function NewKickInStores({ stores }: { stores: NewKickInStore[] }) {
             offerLabel={store.offers?.[0]?.badge_text ?? undefined}
             // The get_new_kick_in_stores RPC doesn't return merchant_type /
             // pay_bill_enabled, so cashback eligibility can't be evaluated
-            // here — cashbackArt omitted hides the badge.
+            // here — cardBadge omitted hides the badge.
           />
         )
       })}

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard } from '@/components/sections/home/MerchantCard'
 import type { StoreRow } from '@/lib/types/stores'
@@ -25,7 +25,7 @@ export function StoreRail({ stores, hrefBase }: { stores: StoreRow[]; hrefBase: 
           meta={s.location_name ?? s.city ?? undefined}
           tagline={[s.category, s.subcategory].filter(Boolean).join(', ') || undefined}
           offerLabel={s.store_offers?.[0]?.discount_value ? `Flat ${s.store_offers[0].discount_value}% OFF` : s.store_offers?.[0]?.badge_text ?? undefined}
-          cashbackArt={getCashbackBadgeArt(s, plan)}
+          cardBadge={getCardBadge(s, plan)}
         />
       ))}
     </HScroll>

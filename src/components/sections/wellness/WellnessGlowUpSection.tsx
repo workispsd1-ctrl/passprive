@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm, sortByMerchant } from '@/lib/utils'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
 import type { StoreRow } from '@/lib/types/stores'
@@ -94,7 +94,7 @@ export function WellnessGlowUpSection({
                       meta={[dist != null ? formatDistanceKm(dist) : null, s.location_name ?? s.city].filter(Boolean).join(' • ') || undefined}
                       tagline={[s.category, s.subcategory].filter(Boolean).join(', ') || undefined}
                       offerLabel={offerLabel}
-                      cashbackArt={getCashbackBadgeArt(s, plan)}
+                      cardBadge={getCardBadge(s, plan)}
                       tags={tags}
                     />
                   )

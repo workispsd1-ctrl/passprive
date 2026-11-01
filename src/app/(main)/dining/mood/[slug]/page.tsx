@@ -41,7 +41,7 @@ export default async function MoodPage({ params }: Props) {
 
   return (
     <main className="pb-16">
-      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-8 2xl:max-w-394">
+      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-8">
         <PageBackTitle title={title} />
         <p className="mt-2 text-[13px] text-[#605D64] md:text-[14px]">
           {coords

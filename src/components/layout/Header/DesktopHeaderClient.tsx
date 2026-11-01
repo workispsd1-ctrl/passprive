@@ -49,7 +49,7 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
     <div className="hidden bg-white md:block">
       <div
         className={cn(
-          'flex h-18 items-center gap-3 px-6 2xl:h-24 2xl:gap-[14.51px] 2xl:px-12',
+          'flex h-18 items-center gap-3 px-6 2xl:h-24 2xl:gap-[14.51px] 2xl:px-12 min-[120rem]:gap-[30px]',
           isHome
             ? 'bg-brand border-b-2 border-[rgba(206,68,14,0.14)]'
             : 'border-b border-gray-100',
@@ -104,7 +104,7 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
           <Link
             href="/prive-credits"
             aria-label="Privé credits"
-            className="relative flex h-10 min-w-21.5 items-center rounded-[75px] border-[0.75px] border-transparent pl-12 pr-5 2xl:h-12 2xl:min-w-30 2xl:pl-16"
+            className="relative ml-3 flex h-10 min-w-21.5 items-center rounded-[75px] border-[0.75px] border-transparent pl-12 pr-5 2xl:h-12 2xl:min-w-30 2xl:pl-16 min-[120rem]:pl-12"
             style={{
               // The fill layer must be opaque (pre-composited rgba(255,106,25,0.04)
               // over white) — a translucent fill lets the border-gradient layer
@@ -122,10 +122,10 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
               alt=""
               width={129}
               height={129}
-              className="absolute -left-3 top-1/2 h-10 w-10 -translate-y-1/2 2xl:h-12 2xl:w-12"
+              className="absolute -left-3 top-1/2 h-10 w-10 -translate-y-1/2 2xl:h-12 2xl:w-12 min-[120rem]:-left-[7px] min-[120rem]:h-[55px] min-[120rem]:w-[55px]"
             />
             <span className="leading-tight">
-              <span className="block font-(family-name:--font-dm-sans) text-[28px] leading-none font-bold tracking-[-0.89px] text-[#606366]">
+              <span className="block font-(family-name:--font-inter) text-[28px] leading-none font-bold tracking-[-0.89px] text-[#606366]">
                 {credits == null ? '—' : Math.round(credits).toLocaleString()}
               </span>
               <span className="block font-(family-name:--font-dm-sans) text-[10.24px] leading-[8px] font-normal tracking-normal text-brand-light">
@@ -137,7 +137,7 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
           {/* App membership badge (Free/Plus/Black), 308×132 — app parity: PackageBadge.jsx.
               Signed-in users only: a logged-out visitor has no membership to show. */}
           {user && (
-            <Link href="/membership" aria-label="Membership">
+            <Link href="/membership" aria-label="Membership" className="min-[120rem]:mr-4">
               <Image
                 src={badgeSrc}
                 alt="Privé membership"

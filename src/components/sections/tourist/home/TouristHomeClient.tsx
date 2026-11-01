@@ -104,7 +104,7 @@ export function TouristHomeClient({
 
   return (
     <>
-      <HScroll title="Browse by Category" gapClassName="gap-3 md:gap-4">
+      <HScroll title="Browse by Category" gapClassName="gap-3 md:gap-4 xl:gap-6 2xl:gap-8 min-[120rem]:gap-12">
         {categories.map((c) => {
           const selected = filter?.key === c.key
           return (
@@ -113,13 +113,13 @@ export function TouristHomeClient({
               type="button"
               onClick={() => onCategory(c)}
               aria-pressed={selected}
-              className={`flex w-28 shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] ring-2 transition md:w-32 ${
+              className={`flex w-28 shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] ring-2 transition md:w-32 xl:w-36 2xl:w-44 min-[120rem]:w-56 ${
                 selected ? 'ring-[#F0592A]' : 'ring-transparent hover:shadow-md'
               }`}
             >
-              <div className="relative h-24 w-full md:h-28">
+              <div className="relative h-24 w-full md:h-28 xl:h-32 2xl:h-38 min-[120rem]:h-48">
                 {c.imageUrl ? (
-                  <Image src={c.imageUrl} alt="" fill sizes="128px" className="object-contain p-2" />
+                  <Image src={c.imageUrl} alt="" fill sizes="(min-width: 1920px) 224px, 176px" className="object-contain p-2" />
                 ) : (
                   <div className="flex h-full items-center justify-center">
                     <MapPin className="h-8 w-8" style={{ color: ACCENT }} />
@@ -127,7 +127,7 @@ export function TouristHomeClient({
                 )}
               </div>
               <span
-                className="flex min-h-10 items-center justify-center px-1.5 py-1.5 text-center text-[12px] font-semibold leading-tight text-white"
+                className="flex min-h-10 items-center justify-center px-1.5 py-1.5 text-center text-[12px] font-semibold leading-tight text-white 2xl:min-h-12 2xl:text-[14px] min-[120rem]:min-h-16 min-[120rem]:text-[18px]"
                 style={{ backgroundColor: ACCENT }}
               >
                 {c.label}
@@ -193,7 +193,7 @@ export function TouristHomeClient({
         <HScroll
           title="Plan one full day"
           subtitle="Stops close together • Top-rated in each region • Low travel friction"
-          gapClassName="gap-5"
+          gapClassName="gap-5 2xl:gap-8 min-[120rem]:gap-12"
         >
           {plans.map((plan, i) => (
             <DayPlanCard

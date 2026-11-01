@@ -33,7 +33,7 @@ const CHIPS = [
 ] as const
 
 const chipBase =
-  'flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors'
+  'flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors 2xl:px-3.5 2xl:py-1.5 2xl:text-sm min-[120rem]:h-12 min-[120rem]:gap-2 min-[120rem]:px-5 min-[120rem]:text-[18px]'
 const chipOn = 'border-brand-light bg-brand-tint text-brand-light'
 const chipOff = 'border-gray-200 text-gray-700 hover:bg-gray-50'
 
@@ -66,8 +66,8 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
 
   return (
     <section className="py-6">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 md:px-8 2xl:max-w-394">
-        <h2 className="font-(family-name:--font-dm-sans) text-[19px] font-bold leading-none tracking-normal text-[#0D141C] md:text-[20px]">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 md:px-8">
+        <h2 className="font-(family-name:--font-dm-sans) text-[19px] font-bold leading-none tracking-normal text-[#0D141C] md:text-[20px] xl:text-[22px] 2xl:text-[26px] min-[120rem]:text-[32px]">
           All restaurants
         </h2>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -128,7 +128,7 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
         </div>
       </div>
 
-      <div className="mx-auto mt-5 flex max-w-7xl gap-6.75 overflow-x-auto px-4 pb-2 md:px-8 [&::-webkit-scrollbar]:hidden scrollbar-none 2xl:max-w-394">
+      <div className="mx-auto mt-5 flex max-w-7xl gap-6.75 overflow-x-auto px-4 pb-2 md:px-8 [&::-webkit-scrollbar]:hidden scrollbar-none min-[120rem]:gap-11">
         {BADGES.map((badge) => {
           const dim = !!filters.badge && filters.badge !== badge.key
           return (
@@ -137,7 +137,7 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
               type="button"
               aria-pressed={filters.badge === badge.key}
               onClick={() => update({ badge: filters.badge === badge.key ? null : badge.key })}
-              className="relative aspect-106/120 w-38 shrink-0 overflow-hidden rounded-[24px] 2xl:w-52.5 2xl:rounded-[32px]"
+              className="relative aspect-106/120 w-38 shrink-0 overflow-hidden rounded-[24px] 2xl:w-52.5 2xl:rounded-[32px] min-[120rem]:w-70"
             >
               <Image
                 src={dim ? badge.gray : badge.source}

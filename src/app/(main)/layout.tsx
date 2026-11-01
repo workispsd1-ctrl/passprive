@@ -6,6 +6,8 @@ import { PlanProvider } from '@/lib/context/PlanContext'
 import { getCurrentUser } from '@/lib/services/user'
 import { getUserPlan } from '@/lib/services/subscription'
 import { getHeaderLocation } from '@/lib/location'
+import { Suspense } from 'react'
+import { FloatingModeNav } from '@/components/layout/FloatingModeNav/FloatingModeNav'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
@@ -19,9 +21,13 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             <Header />
             {/* pt clears the category-nav pill, which overhangs the header by ~38px
                 (see translate-y / -mb in HeaderHeroNav) */}
-            <div className="flex-1 w-full mx-auto max-w-7xl pt-9.5">
+            <div className="flex-1 w-full mx-auto max-w-7xl pt-2 md:pt-9.5">
               {children}
             </div>
+            {/* useSearchParams needs a Suspense boundary to keep pages static-renderable */}
+            <Suspense fallback={null}>
+              <FloatingModeNav />
+            </Suspense>
           </PlanProvider>
         </SavedProvider>
       </AuthPromptProvider>

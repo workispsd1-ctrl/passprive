@@ -104,7 +104,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable} ${playfair.variable} ${inter.variable} ${libreBaskerville.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col overflow-x-clip font-sans">
         <PaymentRecovery />
         {children}
       </body>

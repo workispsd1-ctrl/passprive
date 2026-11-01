@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Gem, CreditCard, BadgePercent } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { DetailSection } from '@/components/shared/detail/DetailSection'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
 import type { ServiceOffer } from '@/lib/types/stores'
@@ -83,8 +84,7 @@ export function ServiceOffersSection({ inStoreOffers, bankOffers, merchant }: Pr
   if (!inStoreOffers.length && !bankOffers.length && cashbackPct <= 0) return null
 
   return (
-    <section id='offers' className='scroll-mt-14 pt-6'>
-      <h2 className='mb-4 text-[20px] font-bold text-gray-900'>Offers for today</h2>
+    <DetailSection id='offers' title='Offers for today'>
       <div className='scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-2 md:px-0 xl:grid-cols-3'>
         {inStoreOffers.length > 0 && (
           <PagerCard
@@ -100,7 +100,7 @@ export function ServiceOffersSection({ inStoreOffers, bankOffers, merchant }: Pr
               <BadgePercent className='h-4 w-4' /> PassPrivé cashback
             </div>
             <p className='mt-3 text-[15px] font-bold text-gray-900'>Get {cashbackPct}% cash back</p>
-            <p className='mt-0.5 text-[12px] text-gray-500'>credited as PrivéCredits instantly</p>
+            <p className='mt-0.5 text-[12px] text-gray-500'>credited as Privé Credits</p>
           </div>
         )}
         {bankOffers.length > 0 && (
@@ -112,6 +112,6 @@ export function ServiceOffersSection({ inStoreOffers, bankOffers, merchant }: Pr
           />
         )}
       </div>
-    </section>
+    </DetailSection>
   )
 }

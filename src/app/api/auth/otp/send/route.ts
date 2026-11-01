@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { fullPhone, normalizeLocalPhone } from '@/lib/phoneAuth'
-
-const API_BASE = (process.env.PAYMENTS_API_URL ?? 'https://nxxacdlmcc.execute-api.ap-south-1.amazonaws.com').replace(/\/+$/, '')
+import { AUTH_API_BASE } from '@/lib/otpSession'
 
 /** Texts a login code — app parity: otpApi.sendOtp → POST /api/auth/send-otp. */
 export async function POST(request: Request) {
@@ -10,7 +9,7 @@ export async function POST(request: Request) {
   if (!local) return NextResponse.json({ error: 'Enter a valid Mauritian mobile number.' }, { status: 400 })
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
+    const res = await fetch(`${AUTH_API_BASE}/api/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: fullPhone(local) }),

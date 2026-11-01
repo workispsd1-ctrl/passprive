@@ -5,7 +5,7 @@ import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { haversineKm, sortByMerchant } from '@/lib/utils'
 import type { StoreRow } from '@/lib/types/stores'
 import type { StorePromotionalCollection } from '@/lib/services/stores'
@@ -52,8 +52,9 @@ export function StorePromotionalCardsSection({
   return (
     <>
       {collections.map((c) => (
-        <section key={c.id} className="mx-auto max-w-7xl px-4 py-4 md:px-8 2xl:max-w-394">
-          <div className="relative flex min-h-[520px] flex-col justify-end overflow-hidden rounded-[20px] bg-linear-to-br from-[#1E2A5A] to-[#0D1533] md:min-h-[600px]">
+        <section key={c.id} className="mx-auto max-w-7xl px-4 py-4 md:px-8">
+          {/* phones need the extra height so the banner art shows above the card rail */}
+          <div className="relative flex min-h-[680px] flex-col justify-end overflow-hidden rounded-[20px] bg-linear-to-br from-[#1E2A5A] to-[#0D1533] md:min-h-[600px]">
             {c.hasBanner ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -110,7 +111,7 @@ export function StorePromotionalCardsSection({
                       meta={meta}
                       tagline={[store.category, store.subcategory].filter(Boolean).join(', ') || undefined}
                       offerLabel={offerLabel}
-                      cashbackArt={getCashbackBadgeArt(store, plan)}
+                      cardBadge={getCardBadge(store, plan)}
                       tags={tags}
                     />
                   )

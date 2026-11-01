@@ -3,7 +3,7 @@
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm } from '@/lib/utils'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { DiningMerchantCard } from './DiningMerchantCard'
 import type { FeaturedRestaurant } from '@/lib/types/dining'
 
@@ -28,7 +28,7 @@ export function FeedRestaurantCard({ r }: { r: FeaturedRestaurant }) {
       slug={r.slug}
       name={r.name}
       image={r.cover_image}
-      cashbackArt={getCashbackBadgeArt(r, plan)}
+      cardBadge={getCardBadge(r, plan)}
       offerLabel={r.offer_badge ?? undefined}
       trending={r.is_advertised}
       stampSheet={stampSheet}

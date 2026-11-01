@@ -112,7 +112,7 @@ function PaymentReturnInner() {
         {/* Voucher card */}
         <div className='rounded-3xl bg-gradient-to-br from-brand-dark to-brand p-6 text-white text-center mb-4'>
           <p className='text-white/80 text-[11px] font-semibold uppercase tracking-wider mb-3'>PassPrivé Gift Card</p>
-          <p className='text-[32px] font-black mb-1'>₨{result!.amount.toLocaleString()}</p>
+          <p className='text-[32px] font-black mb-1'>MUR {result!.amount.toLocaleString()}</p>
           <p className='text-white/80 text-[12px] mb-4'>Gift Card Value</p>
           <div className='bg-white/10 backdrop-blur rounded-2xl px-4 py-3'>
             <p className='font-mono text-[18px] font-bold tracking-widest'>{result!.gift_code}</p>

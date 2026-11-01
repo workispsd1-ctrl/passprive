@@ -14,7 +14,7 @@ interface Props {
   className?: string
   /** override the content column's max-width (default max-w-7xl) */
   maxWidthClassName?: string
-  /** override the card row's gap (default gap-4) */
+  /** override the card row's gap (default: 16 on phones → 44 at 1920, the Figma rows) */
   gapClassName?: string
   children: React.ReactNode
 }
@@ -29,7 +29,7 @@ export function HScroll({
   subtitle,
   className,
   maxWidthClassName = 'max-w-7xl',
-  gapClassName = 'gap-4',
+  gapClassName = 'gap-4 xl:gap-6 2xl:gap-8 min-[120rem]:gap-11',
   children,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -61,20 +61,20 @@ export function HScroll({
   }
 
   const arrowBase =
-    'absolute top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1F1F1F] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] transition-opacity hover:text-gray-900'
+    // phones swipe — the arrows only cover the cards there
+    'absolute top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1F1F1F] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] transition-opacity hover:text-gray-900 md:flex'
   const arrowIcon = 'h-[27.7px] w-[14.87px]'
 
   return (
-    <section className={cn('py-6 md:py-8', className)}>
+    <section className={cn('py-4 md:py-8', className)}>
       {/* Keep the header + rail aligned with the page's max-w-7xl content even
           when a caller makes the <section> full-bleed (e.g. a peach band). */}
       <div className={cn('mx-auto w-full', maxWidthClassName)}>
         {title && (
-          <div className="mb-4 px-4 md:px-8">
-            {/* DM Sans Bold, scaling from 19px up to 20px on large screens —
-                kept at 700 weight throughout; 900/Black and 32px both read too
-                heavy at full size. */}
-            <h3 className="font-(family-name:--font-dm-sans) text-[19px] font-bold leading-none tracking-normal text-[#0D141C] md:text-[20px]">
+          <div className="mb-4 px-4 md:px-8 2xl:mb-5 min-[120rem]:mb-7">
+            {/* DM Sans Bold — Figma's section titles are 32px on the 1920
+                frame (40 above the cards); laptops step down proportionally. */}
+            <h3 className="font-(family-name:--font-dm-sans) text-[19px] font-bold leading-none tracking-normal text-[#0D141C] md:text-[20px] xl:text-[22px] 2xl:text-[26px] min-[120rem]:text-[32px]">
               {title}
             </h3>
             {subtitle && (
@@ -106,7 +106,7 @@ export function HScroll({
             // pt/pb give the cards' drop shadow room — overflow-x:auto forces
             // overflow-y:auto, which would otherwise clip it top/bottom
             className={cn(
-              'flex overflow-x-auto scroll-smooth px-4 pt-3 pb-8 [scrollbar-width:none] md:px-8 [&::-webkit-scrollbar]:hidden',
+              'flex snap-x overflow-x-auto scroll-smooth scroll-px-4 px-4 pt-3 pb-5 [scrollbar-width:none] md:scroll-px-8 md:px-8 md:pb-8 [&::-webkit-scrollbar]:hidden',
               gapClassName,
             )}
           >

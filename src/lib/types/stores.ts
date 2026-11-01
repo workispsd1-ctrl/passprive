@@ -16,6 +16,9 @@ export type StoreRow = {
   pay_bill_enabled: boolean | null
   service_level: string | null
   on_boarded: boolean | null
+  booking_enabled?: boolean | null
+  cashback_enabled?: boolean | null
+  is_promoted?: boolean | null
   store_offers?: StoreOffer[]
 }
 
@@ -65,6 +68,17 @@ export type Store = {
   phone: string | null
   whatsapp: string | null
   website: string | null
+  lat?: number | null
+  lng?: number | null
+  /** merchant capability flags — drive the cashback / deal reveal blocks */
+  merchant_type?: 'preferred' | 'verified' | null
+  merchant_plan?: string | null
+  pay_bill_enabled?: boolean | null
+  service_level?: string | null
+  on_boarded?: boolean | null
+  booking_enabled?: boolean | null
+  cashback_enabled?: boolean | null
+  is_promoted?: boolean | null
 }
 
 export type MediaAsset = { file_url: string; sort_order: number }

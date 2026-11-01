@@ -44,7 +44,7 @@ export function formatBookingDateTime(dateStr: string, timeStr: string): string 
   return `${day} ${month} at ${formatTime(timeStr)}`
 }
 
-// number → '₨1,234.56'
+// number → 'MUR 1,234.56'
 export function formatMRU(amount: number): string {
-  return `₨${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `MUR ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }

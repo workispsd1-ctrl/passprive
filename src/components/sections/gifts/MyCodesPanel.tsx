@@ -34,7 +34,7 @@ function CodeCard({ code }: { code: GiftCode }) {
             {new Date(code.created_at).toLocaleDateString('en-MU', { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
           <span className='text-gray-300 mx-1'>·</span>
-          <span className='text-[11px] font-semibold text-gray-700'>₨{code.amount}</span>
+          <span className='text-[11px] font-semibold text-gray-700'>MUR {code.amount}</span>
         </div>
       </div>
       {code.status === 'active' && (

@@ -50,9 +50,9 @@ export function PPCoinsPayment({ restaurantId, ppBalance, onPaid }: Props) {
           <p className="font-bold text-sm">Payment successful</p>
         </div>
         <p className="text-sm text-gray-500">
-          <span className="font-semibold text-gray-800">₨{paid.toFixed(2)}</span> deducted from your PP Points.
+          <span className="font-semibold text-gray-800">MUR {paid.toFixed(2)}</span> deducted from your PP Points.
         </p>
-        <p className="text-xs text-gray-400 mt-1">Remaining: ₨{(ppBalance - paid).toFixed(2)}</p>
+        <p className="text-xs text-gray-400 mt-1">Remaining: MUR {(ppBalance - paid).toFixed(2)}</p>
       </div>
     )
   }
@@ -65,7 +65,7 @@ export function PPCoinsPayment({ restaurantId, ppBalance, onPaid }: Props) {
           <p className="text-sm font-bold text-gray-800">Pay with PP Points</p>
         </div>
         <span className="text-xs font-bold text-brand bg-brand-tint px-2.5 py-1 rounded-full">
-          ₨{ppBalance.toFixed(2)} available
+          MUR {ppBalance.toFixed(2)} available
         </span>
       </div>
 

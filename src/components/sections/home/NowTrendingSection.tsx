@@ -83,7 +83,7 @@ export function NowTrendingSection({
         <Link
           key={r.id}
           href={`/dining/${r.slug ?? r.id}`}
-          className="flex w-52 shrink-0 flex-col items-center text-center 2xl:w-72"
+          className="flex w-36 shrink-0 flex-col items-center text-center md:w-52 2xl:w-72"
         >
           <div className="relative aspect-square w-full">
             {/* Two same-size circles (spec: 288×288). The gradient one is
@@ -105,11 +105,11 @@ export function NowTrendingSection({
             </div>
           </div>
           {/* DM Sans 700 / 18 / 100% — #0D141C */}
-          <p className="mt-4 w-full truncate text-sm font-bold leading-none text-[#0D141C] 2xl:mt-6">
+          <p className="mt-4 w-full truncate text-sm font-bold leading-none text-[#0D141C] 2xl:mt-6 2xl:text-base min-[120rem]:text-[20px]">
             {r.name}
           </p>
           {/* DM Sans 500 — #717171 */}
-          <p className="mt-1.5 w-full truncate text-xs font-medium leading-none text-[#717171]">
+          <p className="mt-1.5 w-full truncate text-xs font-medium leading-none text-[#717171] 2xl:text-sm min-[120rem]:mt-2 min-[120rem]:text-base">
             {r.area ?? r.city}
           </p>
         </Link>

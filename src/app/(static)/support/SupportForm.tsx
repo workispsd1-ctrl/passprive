@@ -86,7 +86,7 @@ export function SupportForm() {
 
         {plan && (
           <div className="rounded-xl border border-brand/25 bg-brand-tint px-4 py-3 text-sm text-brand-dark font-medium">
-            Requesting: <span className="font-bold">{plan === 'premium' ? 'Privé Premium — ₨4,000/year' : 'Privé Black — ₨7,000/year'}</span>
+            Requesting: <span className="font-bold">{plan === 'premium' ? 'Privé Premium — MUR 4,000/year' : 'Privé Black — MUR 7,000/year'}</span>
           </div>
         )}
 

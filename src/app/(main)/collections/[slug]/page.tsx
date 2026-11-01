@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import { getEditorialCollectionBySlug } from '@/lib/services/stores'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { getCurrentUser } from '@/lib/services/user'
 import { getUserPlan } from '@/lib/services/subscription'
 import { FeedRestaurantCard } from '@/components/sections/dining/FeedRestaurantCard'
@@ -43,7 +43,7 @@ export default async function CollectionPage({
   const empty = restaurants.length === 0 && stores.length === 0
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:px-8 2xl:max-w-394">
+    <main className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:px-8">
       {collection.cover_image_url && (
         <div className="relative mb-6 aspect-21/9 w-full overflow-hidden rounded-[20px] bg-gray-100">
           <Image
@@ -86,7 +86,7 @@ export default async function CollectionPage({
               meta={[s.location_name, s.city].filter(Boolean).join(' • ') || undefined}
               tagline={s.description ?? undefined}
               offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
-              cashbackArt={getCashbackBadgeArt(s, plan)}
+              cardBadge={getCardBadge(s, plan)}
             />
           ))}
         </div>

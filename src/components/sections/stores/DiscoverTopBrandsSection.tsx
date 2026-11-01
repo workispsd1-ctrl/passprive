@@ -25,14 +25,15 @@ export function DiscoverTopBrandsSection({ stores }: { stores: StoreRow[] }) {
   return (
     <HScroll
       title="Discover top brands"
-      maxWidthClassName="max-w-7xl 2xl:max-w-394"
-      gapClassName="gap-6 2xl:gap-10"
+      maxWidthClassName="max-w-7xl"
+      gapClassName="gap-3 md:gap-6 2xl:gap-10"
     >
       {stores.map((store, i) => (
         <Link
           key={store.id}
           href={`/stores/${store.slug ?? store.id}`}
-          className="relative block aspect-420/548 w-[calc((100%-60px)/3.5)] shrink-0 overflow-hidden rounded-[20px] 2xl:w-[calc((100%-100px)/3.5)]"
+          // phones: ~2.3 tiles in view so "Explore Now" fits; desktop keeps 3.5
+          className="relative block aspect-420/548 w-[42%] shrink-0 overflow-hidden rounded-[20px] sm:w-[calc((100%-60px)/3.5)] 2xl:w-[calc((100%-100px)/3.5)]"
           style={{ backgroundColor: FALLBACK_COLORS[i % FALLBACK_COLORS.length] }}
         >
           {store.cover_image && (
@@ -58,7 +59,7 @@ export function DiscoverTopBrandsSection({ stores }: { stores: StoreRow[] }) {
             </div>
           )}
 
-          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap text-[#2247FF] shadow-[0_2px_6px_rgba(0,0,0,0.15)]">
+          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-[11.5px] font-semibold whitespace-nowrap text-[#2247FF] shadow-[0_2px_6px_rgba(0,0,0,0.15)] md:bottom-4 md:px-4 md:py-1.5 md:text-[13px]">
             Explore Now &rarr;
           </span>
         </Link>

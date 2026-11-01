@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { AUTH_API_BASE, establishOtpSession, type OtpSessionResult } from '@/lib/otpSession'
 import { CODE_LENGTH, fullPhone, normalizeLocalPhone } from '@/lib/phoneAuth'
 
-const API_BASE = (process.env.PAYMENTS_API_URL ?? 'https://nxxacdlmcc.execute-api.ap-south-1.amazonaws.com').replace(/\/+$/, '')
-
-type VerifyResult = {
+type VerifyResult = OtpSessionResult & {
   success?: boolean
   message?: string
   error?: string
   registered?: boolean
-  session?: { access_token?: string; refresh_token?: string }
-  session_token?: string
+  /** new numbers: single-use token for /api/auth/register-phone */
+  signup_token?: string
 }
 
 /**
@@ -29,7 +27,7 @@ export async function POST(request: Request) {
 
   let result: VerifyResult
   try {
-    const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+    const res = await fetch(`${AUTH_API_BASE}/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: fullPhone(local), code }),
@@ -41,27 +39,22 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.error('[auth/otp/verify]', err)
-    return NextResponse.json({ error: 'network error' }, { status: 503 })
+    return NextResponse.json({ error: 'Network request failed' }, { status: 503 })
   }
 
-  const supabase = await createClient()
-  let signedIn = false
-  if (result.session?.access_token && result.session.refresh_token) {
-    const { data, error } = await supabase.auth.setSession({
-      access_token: result.session.access_token,
-      refresh_token: result.session.refresh_token,
-    })
-    signedIn = !error && !!data.session
-  }
-  if (!signedIn && result.session_token) {
-    const { data, error } = await supabase.auth.verifyOtp({ token_hash: result.session_token, type: 'magiclink' })
-    signedIn = !error && !!data.session
-  }
+  const signedIn = await establishOtpSession(result)
 
   // A known number must end up signed in; the app treats that as a failure too.
   if (result.registered && !signedIn) {
     return NextResponse.json({ error: 'Could not sign you in. Please try again.' }, { status: 502 })
   }
 
-  return NextResponse.json({ registered: !!result.registered, signedIn })
+  // A new number gets no session yet — the details step trades this token
+  // for the account (app parity: Details.jsx → registerPhone).
+  return NextResponse.json({
+    registered: !!result.registered,
+    signedIn,
+    signupToken: result.registered ? null : (result.signup_token ?? null),
+  })
 }
+

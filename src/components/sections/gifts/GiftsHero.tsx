@@ -65,7 +65,7 @@ export function GiftsHero({ balance, eventsCount, brandsCount, onBuyClick, onRed
               </div>
             </div>
             <div className='flex items-center justify-between pt-4 border-t border-white/10'>
-              <span className='text-[12px] text-white/80'>1 Coin = ₨1</span>
+              <span className='text-[12px] text-white/80'>1 Coin = MUR 1</span>
               <span className='text-[11px] text-brand/70'>Redeemable at checkout</span>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function GiftsHero({ balance, eventsCount, brandsCount, onBuyClick, onRed
             {[
               { label: 'Occasions', value: eventsCount || '—' },
               { label: 'Brands',    value: brandsCount || '—' },
-              { label: '1 Coin',    value: '= ₨1' },
+              { label: '1 Coin',    value: '= MUR 1' },
             ].map(s => (
               <div key={s.label} className='rounded-2xl bg-white/5 border border-white/8 px-3 py-2.5 text-center'>
                 <p className='text-[16px] font-black text-white'>{s.value}</p>

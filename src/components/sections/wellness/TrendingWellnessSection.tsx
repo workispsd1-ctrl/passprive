@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm, scopeByLocation, sortByMerchant } from '@/lib/utils'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
 import type { StoreRow } from '@/lib/types/stores'
@@ -57,7 +57,7 @@ export function TrendingWellnessSection({ stores }: { stores: StoreRow[] }) {
             meta={meta || undefined}
             tagline={s.description ?? ([s.category, s.subcategory].filter(Boolean).join(', ') || undefined)}
             offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
-            cashbackArt={getCashbackBadgeArt(s, plan)}
+            cardBadge={getCardBadge(s, plan)}
             tags={tags}
           />
         )

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { TrendingWellnessSection } from '@/components/sections/wellness/TrendingWellnessSection'
+import { ContinueWhereLeftOff } from '@/components/sections/wellness/ContinueWhereLeftOff'
 import { SpaNearYouSection } from '@/components/sections/wellness/SpaNearYouSection'
 import { SalonVisitSection } from '@/components/sections/home/SalonVisitSection'
 import { WellnessGlowUpSection } from '@/components/sections/wellness/WellnessGlowUpSection'
@@ -32,6 +33,7 @@ export default async function Wellness() {
 
   return (
     <main className="min-h-screen pb-20 md:pb-0">
+      <ContinueWhereLeftOff stores={stores} />
       <TrendingWellnessSection stores={stores} />
       <SpaNearYouSection stores={stores} />
       <SalonVisitSection stores={stores} radiusKm={50} plain />

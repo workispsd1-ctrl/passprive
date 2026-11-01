@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { isRepeatRewardOffer } from '@/lib/deals'
 import { sortByMerchant } from '@/lib/utils'
 import { scopeStoresToRadius, scopeToRadius } from '@/lib/nearby'
 import type {
@@ -48,7 +49,7 @@ export async function getActiveStores(): Promise<StoreRow[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, store_offers(id, title, badge_text, discount_value, offer_type)')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_offers(id, title, badge_text, discount_value, offer_type)')
     .eq('is_active', true)
     .order('sort_order')
     .order('name')
@@ -65,7 +66,7 @@ export async function getTopBrandStores(limit = 12, coords?: { lat: number; lng:
   const supabase = await createClient()
   let query = supabase
     .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted')
     .eq('is_active', true)
     .eq('store_type', 'PRODUCT')
     .order('sort_order')
@@ -126,7 +127,7 @@ export async function getWellnessStores(): Promise<StoreRow[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, store_offers(id, title, badge_text, discount_value, offer_type)')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_offers(id, title, badge_text, discount_value, offer_type)')
     .eq('is_active', true)
     .eq('category', 'Salon & Wellness')
     .order('sort_order')
@@ -179,7 +180,7 @@ export async function getStoreMoodCategories(): Promise<StoreMoodCategory[]> {
 
 export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail | null> {
   const supabase = await createClient()
-  const SELECT = 'id,name,slug,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website'
+  const SELECT = 'id,name,slug,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted'
 
   let { data: store } = await supabase
     .from('stores')
@@ -205,7 +206,7 @@ export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail 
     supabase.from('store_opening_hours').select('day_of_week, open_time, close_time, is_closed').eq('store_id', store.id).order('day_of_week'),
     supabase.from('store_catalogue_items').select('id, category_id, title, price, description, image_url, is_available, updated_at').eq('store_id', store.id).eq('is_available', true).order('sort_order'),
     supabase.from('store_tags').select('tag_value').eq('store_id', store.id).eq('tag_type', 'tag'),
-    supabase.from('store_offers').select('id, title, description, code').eq('store_id', store.id),
+    supabase.from('store_offers').select('id, title, description, badge_text, offer_type, discount_value, start_at, end_at, metadata').eq('store_id', store.id).eq('is_active', true),
     supabase.from('store_social_links').select('platform, url').eq('store_id', store.id).order('sort_order'),
   ])
 
@@ -215,7 +216,11 @@ export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail 
     hours:    hoursRes.status    === 'fulfilled' ? (hoursRes.value.data    ?? []) as OpeningHour[]   : [],
     items:    itemsRes.status    === 'fulfilled' ? (itemsRes.value.data    ?? []) as CatalogueItem[] : [],
     tags:     tagsRes.status     === 'fulfilled' ? (tagsRes.value.data     ?? []) as StoreTag[]      : [],
-    offers:   offersRes.status   === 'fulfilled' ? (offersRes.value.data   ?? []) as StoreOffer[]    : [],
+    // live, and not a stamp-card "on 5th visit" reward (those belong to repeat rewards)
+    offers:   offersRes.status   === 'fulfilled'
+      ? ((offersRes.value.data ?? []) as (StoreOffer & { start_at?: string | null; end_at?: string | null; metadata?: Record<string, unknown> | null })[])
+          .filter(o => isActiveNow(o.start_at, o.end_at) && !isRepeatRewardOffer({ metadata: o.metadata ?? null, offer_type: o.offer_type ?? null, title: o.title ?? null }))
+      : [],
     socials:  socialRes.status   === 'fulfilled' ? (socialRes.value.data   ?? []) as SocialLink[]    : [],
   }
 }
@@ -237,7 +242,7 @@ function isActiveNow(start: string | null | undefined, end: string | null | unde
  */
 export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<ServiceStoreDetail | null> {
   const supabase = await createClient()
-  const SELECT = 'id,name,slug,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,top_items'
+  const SELECT = 'id,name,slug,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted,top_items'
 
   let { data: store } = await supabase
     .from('stores')
@@ -444,14 +449,14 @@ export async function getEditorialCollectionBySlug(slug: string): Promise<{
     restaurantIds.length
       ? supabase
           .from('restaurants')
-          .select('id, name, slug, area, city, cover_image, cost_for_two, is_pure_veg, is_advertised, ad_priority, ad_badge_text, merchant_type, merchant_plan, pay_bill_enabled, latitude, longitude, booking_enabled')
+          .select('id, name, slug, area, city, cover_image, cost_for_two, is_pure_veg, is_advertised, ad_priority, ad_badge_text, merchant_type, merchant_plan, pay_bill_enabled, latitude, longitude, booking_enabled, cashback_enabled, is_promoted')
           .in('id', restaurantIds)
           .eq('is_active', true)
       : Promise.resolve({ data: [] }),
     storeIds.length
       ? supabase
           .from('stores')
-          .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, store_offers(id, title, badge_text, discount_value, offer_type)')
+          .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_offers(id, title, badge_text, discount_value, offer_type)')
           .in('id', storeIds)
           .eq('is_active', true)
       : Promise.resolve({ data: [] }),

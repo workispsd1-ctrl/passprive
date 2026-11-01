@@ -19,8 +19,7 @@ export function CategoryBar({ moodCategories }: Props) {
   return (
     <HScroll
       title="What&rsquo;s on your mind?"
-      maxWidthClassName="max-w-7xl 2xl:max-w-394"
-      gapClassName="gap-2 2xl:gap-4"
+      gapClassName="gap-2 xl:gap-3 2xl:gap-5 min-[120rem]:gap-12"
     >
       {moodCategories.map((cat) => {
         const imgUrl = cat.light_theme_image_url ?? cat.image_url
@@ -30,9 +29,9 @@ export function CategoryBar({ moodCategories }: Props) {
             key={cat.slug}
             href={`/stores/category/${encodeURIComponent(cat.slug)}`}
             aria-label={cat.title}
-            className="w-32.75 shrink-0 transition-transform hover:-translate-y-0.5 2xl:w-45.75"
+            className="w-32.75 shrink-0 transition-transform hover:-translate-y-0.5 2xl:w-45.75 min-[120rem]:w-62"
           >
-            <div className="relative h-34.5 w-full overflow-hidden rounded-[17px] 2xl:h-47.5 2xl:rounded-[24px]">
+            <div className="relative h-34.5 w-full overflow-hidden rounded-[17px] 2xl:h-47.5 2xl:rounded-[24px] min-[120rem]:h-71">
               {imgUrl && (
                 <Image
                   src={imgUrl}

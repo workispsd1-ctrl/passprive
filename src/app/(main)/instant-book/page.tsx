@@ -15,7 +15,7 @@ export default async function InstantBookPage() {
   const rows = await getRestaurantFeed({ badge: 'instant' }, 0, FEED_PAGE_SIZE, coords)
   return (
     <main className="pb-16">
-      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-8 2xl:max-w-394">
+      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-8">
         <h1 className="font-(family-name:--font-dm-sans) text-2xl font-bold text-[#0D141C]">
           Instant Book
         </h1>

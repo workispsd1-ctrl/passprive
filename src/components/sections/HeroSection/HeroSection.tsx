@@ -20,11 +20,12 @@ export async function HeroSection() {
   return (
     <section
       aria-labelledby='hero-heading'
-      className='bg-white px-4 pt-10 pb-6 text-center md:px-6 md:pt-16 md:pb-10'
+      // phones open on the app's dining banner in the header instead
+      className='hidden bg-white px-4 pt-10 pb-6 text-center md:block md:px-6 md:pt-16 md:pb-10'
     >
       <h1
         id='hero-heading'
-        className='mx-auto max-w-3xl text-[26px] leading-none tracking-normal text-[#424242] md:text-[42px] 2xl:text-[60px]'
+        className='mx-auto max-w-3xl text-[26px] leading-none tracking-normal text-[#424242] md:text-[42px] 2xl:max-w-5xl 2xl:text-[60px]'
       >
         <span className='font-(family-name:--font-dm-sans) font-bold'>
           Discover Mauritius&apos;{' '}
@@ -39,7 +40,7 @@ export async function HeroSection() {
         </em>
       </h1>
 
-      <div className='relative mx-auto mt-8 w-full max-w-6xl overflow-hidden rounded-[28px] min-h-[320px] md:min-h-[420px] flex items-center justify-center 2xl:max-w-394 2xl:min-h-129 2xl:rounded-[40px]'>
+      <div className='relative mx-auto mt-8 w-full max-w-[min(1576px,calc(75.7vw+122.6px))] overflow-hidden rounded-[28px] min-h-[320px] md:min-h-[420px] flex items-center justify-center 2xl:min-h-129 2xl:rounded-[40px]'>
         {banners.length > 0 ? (
           <BannerCarousel banners={banners} fill />
         ) : (

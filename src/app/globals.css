@@ -16,6 +16,12 @@
   --color-brand-tint: var(--brand-tint);
   --color-brand-tint-strong: var(--brand-tint-strong);
   --font-heading: var(--font-sans);
+  /* The page column (max-w-7xl, used site-wide). Figma draws a 1920 screen with
+     1576px of content (172px margins); the column grows in a straight line
+     from the full width at 768 to 1640 at 1920 (1576 + the rows' 32px side
+     padding), so margins stay in proportion on every size: 1024 → ~962,
+     1280 → ~1156, 1440 → ~1277, 1920+ → 1640. Phones are always full width. */
+  --container-7xl: min(1640px, calc(75.7vw + 186.6px));
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

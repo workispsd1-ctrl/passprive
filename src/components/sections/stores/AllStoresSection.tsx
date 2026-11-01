@@ -5,7 +5,7 @@ import { SlidersHorizontal, ChevronDown, Percent } from 'lucide-react'
 import { cn, sortByMerchant, haversineKm } from '@/lib/utils'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
 import type { StoreRow, StoreMoodCategory } from '@/lib/types/stores'
@@ -102,7 +102,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
   return (
     <section className="py-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-4 md:px-8">
-        <h2 className="text-[18px] font-bold text-gray-900">{title}</h2>
+        <h2 className="font-(family-name:--font-dm-sans) text-[19px] leading-none font-bold text-[#0D141C] md:text-[20px] xl:text-[22px] 2xl:text-[26px] min-[120rem]:text-[32px]">{title}</h2>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -239,7 +239,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
                 meta={meta || undefined}
                 tagline={[store.category, store.subcategory].filter(Boolean).join(', ') || undefined}
                 offerLabel={offerLabel}
-                cashbackArt={getCashbackBadgeArt(store, plan)}
+                cardBadge={getCardBadge(store, plan)}
                 tags={tags}
               />
             )

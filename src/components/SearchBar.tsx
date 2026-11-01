@@ -274,16 +274,16 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
   if (variant === 'desktop-full') {
     return (
       <div ref={containerRef} className='relative w-full'>
-        <div className='flex h-10 items-center gap-2 rounded-full bg-[#F6F4F4] px-4 2xl:h-12 2xl:px-5'>
-          <Search className='h-4.5 w-4.5 shrink-0 text-brand-light 2xl:h-5 2xl:w-5' aria-hidden='true' />
-          <span className='h-5 w-px shrink-0 bg-[#E4E4E4] 2xl:h-6' aria-hidden='true' />
+        <div className='flex h-10 items-center gap-2 rounded-full bg-[#F6F4F4] px-4 2xl:h-12 2xl:px-5 min-[120rem]:h-16 min-[120rem]:gap-3 min-[120rem]:px-7'>
+          <Search className='h-4.5 w-4.5 shrink-0 text-brand-light 2xl:h-5 2xl:w-5 min-[120rem]:h-7 min-[120rem]:w-7' aria-hidden='true' />
+          <span className='h-5 w-px shrink-0 bg-[#E4E4E4] 2xl:h-6 min-[120rem]:h-7' aria-hidden='true' />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKey}
             placeholder={'Search for “Sneakers” around you'}
-            className='min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) text-[13px] leading-5 font-normal not-italic tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C] 2xl:text-[15px]'
+            className='min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) text-[13px] leading-5 font-normal not-italic tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C] 2xl:text-[15px] min-[120rem]:text-[20px]'
             autoComplete='off'
             aria-label='Search'
           />

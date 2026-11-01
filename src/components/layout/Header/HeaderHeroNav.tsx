@@ -27,12 +27,14 @@ export function HeaderHeroNav({ banners, wellnessBanners, touristBanners, pad }:
   const isHome = pathname === '/'
   const isWellness = pathname === '/wellness'
   const isTourist = pathname === '/tourist'
+  // the restaurant page opens straight on its own header (web design) — no category pills
+  if (/^\/dining\/(?!mood\/)[^/]+(\/book)?$/.test(pathname)) return null
 
   if (isHome) {
     return (
       <div className="relative">
         <HomeHero banners={banners} />
-        <div className={`relative z-20 -mb-9.5 pt-4 ${pad}`}>
+        <div className={`relative z-20 pt-4 md:-mb-9.5 ${pad}`}>
           <HeaderNav />
         </div>
       </div>
@@ -62,7 +64,7 @@ export function HeaderHeroNav({ banners, wellnessBanners, touristBanners, pad }:
   }
 
   return (
-    <div className={`relative z-20 -mb-9.5 pt-4 ${pad}`}>
+    <div className={`relative z-20 pt-1 md:-mb-9.5 md:pt-4 ${pad}`}>
       <HeaderNav />
     </div>
   )

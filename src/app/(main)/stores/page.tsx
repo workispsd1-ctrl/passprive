@@ -40,7 +40,8 @@ export default async function Stores() {
   return (
     <main className="min-h-screen pb-20 md:pb-0">
       {banners.length > 0 && (
-        <div className="mx-auto mb-8 max-w-350 px-4 pt-4 md:px-12">
+        // phones open on the app's store banner in the header instead
+        <div className="mx-auto mb-8 hidden max-w-350 px-4 pt-4 md:block md:px-12">
           <BannerCarousel banners={banners} className="aspect-1606/606" fit="contain" />
         </div>
       )}

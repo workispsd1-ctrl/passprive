@@ -161,7 +161,7 @@ export function PayCheckoutClient({ booking, cashbackRate, defaultAmount }: Prop
               <p className="text-xs text-brand/70">{cashbackRate}% cashback as PP Coins</p>
             </div>
           </div>
-          <p className="text-xl font-extrabold text-brand">₨{cashbackEarned.toFixed(2)}</p>
+          <p className="text-xl font-extrabold text-brand">MUR {cashbackEarned.toFixed(2)}</p>
         </div>
       )}
 
@@ -186,7 +186,7 @@ export function PayCheckoutClient({ booking, cashbackRate, defaultAmount }: Prop
       >
         {loading
           ? <><Loader2 className="w-5 h-5 animate-spin" /> Redirecting to payment…</>
-          : <><ShieldCheck className="w-5 h-5" /> Pay ₨{numAmount > 0 ? numAmount.toLocaleString() : '—'}</>}
+          : <><ShieldCheck className="w-5 h-5" /> Pay MUR {numAmount > 0 ? numAmount.toLocaleString() : '—'}</>}
       </button>
 
       <p className="mt-3 text-center text-xs text-gray-400">

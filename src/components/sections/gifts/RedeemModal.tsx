@@ -56,8 +56,8 @@ export function RedeemModal({ onClose, onRedeemed }: Props) {
             <p className='text-[13px] text-gray-500 mt-1'>{success.message}</p>
             <div className='mt-4 p-4 rounded-2xl bg-brand-tint border border-brand-tint-strong'>
               <p className='text-[13px] text-brand font-medium'>Amount credited</p>
-              <p className='text-[28px] font-black text-brand-dark mt-0.5'>₨{success.amount}</p>
-              <p className='text-[12px] text-gray-500 mt-1'>New balance: ₨{success.new_balance}</p>
+              <p className='text-[28px] font-black text-brand-dark mt-0.5'>MUR {success.amount}</p>
+              <p className='text-[12px] text-gray-500 mt-1'>New balance: MUR {success.new_balance}</p>
             </div>
             <button
               type='button'

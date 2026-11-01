@@ -9,8 +9,8 @@ export default function MainLoading() {
     <main className='min-h-screen bg-white pb-10' aria-busy='true'>
       <RailSkeleton>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
       {/* StampsGiftPromo */}
-      <section className='px-4 py-6 md:px-8' aria-hidden>
-        <div className='mx-auto max-w-394'>
+      <section className='mx-auto max-w-7xl px-4 py-6 md:px-8' aria-hidden>
+        <div>
           <Bone className='aspect-43/15 max-w-2xl rounded-[20px]' />
         </div>
       </section>

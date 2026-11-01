@@ -154,12 +154,12 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                       amount === a && !customAmount ? 'border-brand bg-brand-tint text-brand-dark' : 'border-gray-100 text-gray-700 hover:border-brand/25'
                     }`}
                   >
-                    ₨{a.toLocaleString()}
+                    MUR {a.toLocaleString()}
                   </button>
                 ))}
               </div>
               <div className='relative'>
-                <span className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold'>₨</span>
+                <span className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold'>MUR</span>
                 <input
                   type='number'
                   placeholder='Custom amount'
@@ -213,7 +213,7 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                   </div>
                   <div>
                     {selectedBrand && <p className='text-white/80 text-[12px]'>{selectedBrand.name}</p>}
-                    <p className='text-white font-black text-[28px]'>₨{effectiveAmount.toLocaleString()}</p>
+                    <p className='text-white font-black text-[28px]'>MUR {effectiveAmount.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -222,21 +222,21 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
               <div className='rounded-2xl border border-gray-100 divide-y divide-gray-50'>
                 <div className='flex justify-between px-4 py-3 text-[13px]'>
                   <span className='text-gray-500'>Gift value</span>
-                  <span className='font-semibold text-gray-900'>₨{effectiveAmount.toLocaleString()}</span>
+                  <span className='font-semibold text-gray-900'>MUR {effectiveAmount.toLocaleString()}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className='flex justify-between px-4 py-3 text-[13px]'>
                     <span className='text-green-600'>Discount ({discount}%)</span>
-                    <span className='font-semibold text-green-600'>−₨{discountAmount}</span>
+                    <span className='font-semibold text-green-600'>−MUR {discountAmount}</span>
                   </div>
                 )}
                 <div className='flex justify-between px-4 py-3 text-[13px]'>
                   <span className='text-gray-500'>Online gifting fee</span>
-                  <span className='font-semibold text-gray-900'>₨{ONLINE_GIFT_FEE}</span>
+                  <span className='font-semibold text-gray-900'>MUR {ONLINE_GIFT_FEE}</span>
                 </div>
                 <div className='flex justify-between px-4 py-3 text-[14px]'>
                   <span className='font-bold text-gray-900'>Total payable</span>
-                  <span className='font-black text-brand-dark'>₨{payable.toLocaleString()}</span>
+                  <span className='font-black text-brand-dark'>MUR {payable.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -256,7 +256,7 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                 className='w-full py-3.5 rounded-2xl bg-brand text-white font-bold text-[15px] flex items-center justify-center gap-2 disabled:opacity-60'
               >
                 {loading ? <Loader2 className='w-4 h-4 animate-spin' /> : null}
-                {loading ? 'Redirecting to payment…' : `Pay ₨${payable.toLocaleString()}`}
+                {loading ? 'Redirecting to payment…' : `Pay MUR ${payable.toLocaleString()}`}
               </button>
             ) : (
               <button

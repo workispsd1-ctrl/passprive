@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { DetailSection } from '@/components/shared/detail/DetailSection'
 import type { ServiceCategory } from '@/lib/types/stores'
 
 function formatDuration(mins: number | null): string | null {
@@ -30,8 +31,7 @@ export function ServiceMenuSection({ categories }: { categories: ServiceCategory
   const active = categories.find(c => c.id === activeId) ?? categories[0]
 
   return (
-    <section id='services' className='scroll-mt-14 pt-8'>
-      <h2 className='mb-4 text-[20px] font-bold text-gray-900'>Services</h2>
+    <DetailSection id='services' title='Services' subtitle='Prices and durations set by the salon'>
 
       <div className='scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0'>
         {categories.map(c => (
@@ -106,6 +106,6 @@ export function ServiceMenuSection({ categories }: { categories: ServiceCategory
           </ul>
         )}
       </div>
-    </section>
+    </DetailSection>
   )
 }

@@ -24,11 +24,13 @@ export function resolveGatewayUrl(payload: Record<string, unknown>): string {
   return String(candidates.find(v => typeof v === 'string' && (v as string).trim()) ?? '')
 }
 
-// Browser-only — submits a hidden POST form to redirect to the iVeri hosted page.
-export function submitGatewayForm(url: string, fields: Record<string, string>) {
+// Browser-only — submits a hidden POST form to redirect to the iVeri hosted page
+// (into a named window when `target` is given, e.g. a payment pop-up).
+export function submitGatewayForm(url: string, fields: Record<string, string>, target?: string) {
   const form = document.createElement('form')
   form.method = 'POST'
   form.action = url
+  if (target) form.target = target
   Object.entries(fields).forEach(([name, value]) => {
     const input = document.createElement('input')
     input.type = 'hidden'
@@ -38,6 +40,7 @@ export function submitGatewayForm(url: string, fields: Record<string, string>) {
   })
   document.body.appendChild(form)
   form.submit()
+  if (target) form.remove()
 }
 
 // ── Payment status classification ─────────────────────────────────────────────

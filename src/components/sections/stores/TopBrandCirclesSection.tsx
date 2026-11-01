@@ -9,7 +9,7 @@ const RING =
   'linear-gradient(253.56deg, rgba(255,72,0,0.29) 9.31%, rgba(0,68,255,0.29) 99.66%)'
 
 /**
- * "Discover top brands" (circular variant) — matches the "Foodie front row"
+ * "Trending now" (circular brand row — app parity: StoresHome/TrendingNow.jsx) — matches the "Foodie front row"
  * design: a gradient ring behind a circular photo, name below, area below
  * that.
  */
@@ -17,12 +17,12 @@ export function TopBrandCirclesSection({ stores }: { stores: StoreRow[] }) {
   if (!stores.length) return null
 
   return (
-    <HScroll title="Discover top brands">
+    <HScroll title="Trending now">
       {stores.map((store) => (
         <Link
           key={store.id}
           href={`/stores/${store.slug ?? store.id}`}
-          className="flex w-52 shrink-0 flex-col items-center text-center 2xl:w-72"
+          className="flex w-36 shrink-0 flex-col items-center text-center md:w-52 2xl:w-72"
         >
           <div className="relative aspect-square w-full">
             <div

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { SetPageTitle } from '@/components/layout/MinimalHeader/SetPageTitle'
-import { getWalletBalance, getWalletTransactions } from '@/lib/services/wallet'
+import { getNextPointsExpiry, getPointsLedger, getWalletBalance, getWalletTransactions } from '@/lib/services/wallet'
 import { getUserMembership } from '@/lib/services/subscription'
 import { WalletClient } from './WalletClient'
 
@@ -16,12 +16,14 @@ export default async function WalletPage() {
 
   if (!user) redirect('/')
 
-  const [balance, transactions, membership] = await Promise.all([
+  const [balance, ledger, nextExpiry, membership] = await Promise.all([
     getWalletBalance(user.id),
-    getWalletTransactions(user.id),
+    getPointsLedger(),
+    getNextPointsExpiry(),
     getUserMembership(user.id),
   ])
-
+  // The ledger RPC carries per-lot expiry; the raw history is the fallback.
+  const transactions = ledger ? [] : await getWalletTransactions(user.id)
 
   return (
     <main className="min-h-screen">
@@ -29,6 +31,8 @@ export default async function WalletPage() {
       <WalletClient
         balance={balance}
         transactions={transactions}
+        ledger={ledger}
+        nextExpiry={nextExpiry}
         membership={membership}
       />
     </main>

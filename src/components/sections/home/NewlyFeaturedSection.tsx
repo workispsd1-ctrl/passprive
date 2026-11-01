@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useLocation } from '@/lib/context/LocationContext';
 import { useUserPlan } from '@/lib/context/PlanContext';
 import { formatDistanceKm, haversineKm, scopeByLocation, sortByMerchant } from '@/lib/utils';
-import { getCashbackBadgeArt, type CashbackPlan } from '@/lib/cashback';
+import { getCardBadge, type CardBadge, type CashbackPlan } from '@/lib/cashback';
 import { HScroll } from './HScroll';
 import { MerchantCard } from './MerchantCard';
 import type { FeaturedRestaurant } from '@/lib/types/dining';
@@ -23,7 +23,7 @@ type FeedCard = {
   tagline?: string;
   offerLabel?: string;
   merchant_type: string | null;
-  cashbackArt: string | null;
+  cardBadge: CardBadge | null;
   city: string | null;
   lat: number | null;
   lng: number | null;
@@ -41,7 +41,7 @@ function restaurantToCard(r: FeaturedRestaurant, plan: CashbackPlan): FeedCard {
     tagline: r.cuisines.length ? r.cuisines.join(', ') : undefined,
     offerLabel: r.offer_badge ?? undefined,
     merchant_type: r.merchant_type,
-    cashbackArt: getCashbackBadgeArt(r, plan),
+    cardBadge: getCardBadge(r, plan),
     city: r.city,
     lat: r.latitude,
     lng: r.longitude,
@@ -60,7 +60,7 @@ function storeToCard(s: StoreRow, plan: CashbackPlan): FeedCard {
     tagline: s.description ?? undefined,
     offerLabel: s.store_offers?.[0]?.badge_text ?? undefined,
     merchant_type: s.merchant_type,
-    cashbackArt: getCashbackBadgeArt(s, plan),
+    cardBadge: getCardBadge(s, plan),
     city: s.city,
     lat: s.lat,
     lng: s.lng,
@@ -137,7 +137,7 @@ export function NewlyFeaturedSection({
             meta={meta || undefined}
             tagline={card.tagline}
             offerLabel={card.offerLabel}
-            cashbackArt={card.cashbackArt}
+            cardBadge={card.cardBadge}
           />
         );
       })}

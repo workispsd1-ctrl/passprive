@@ -73,7 +73,7 @@ export function TouristImageBanner({
         </div>
       )}
       {desktop && (
-        <div className="mx-auto hidden max-w-7xl px-8 md:block 2xl:max-w-394">
+        <div className="mx-auto hidden max-w-7xl px-8 md:block">
           <Image
             src={desktop.src}
             alt={alt}

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getUserCashbackInfo } from '@/lib/services/wallet'
+import { canPayBill, type MerchantCapabilityFields } from '@/lib/cashback'
 
 const PAYMENTS_API = (process.env.PAYMENTS_API_URL ?? 'https://nxxacdlmcc.execute-api.ap-south-1.amazonaws.com').replace(/\/+$/, '')
 
@@ -20,16 +20,23 @@ export async function POST(request: Request) {
       original_amount?: number
       discount_amount?: number
       cashback_amount?: number
+      /** Privé Credits spent on the bill */
+      wallet_spend_amount?: number
       selected_offer_ids?: string[]
       payment_instrument_type?: string
       currency_code: string
     }
   }
 
-  const cashbackInfo = await getUserCashbackInfo(session.user.id, body.dining_payload.restaurant_id)
-  if (cashbackInfo !== null && cashbackInfo.cashback_rate === 0) {
+  // app parity: canPayBill — only merchants that take in-app bill payments
+  const { data: merchant } = await supabase
+    .from('restaurants')
+    .select('merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded')
+    .eq('id', body.dining_payload.restaurant_id)
+    .maybeSingle()
+  if (!merchant || !canPayBill(merchant as MerchantCapabilityFields)) {
     return NextResponse.json(
-      { error: 'This restaurant is not a PassPrivé partner and does not accept PassPrivé payments.' },
+      { error: 'This restaurant does not take bill payments on PassPrivé yet.' },
       { status: 400 },
     )
   }
@@ -38,12 +45,18 @@ export async function POST(request: Request) {
   const proto = host.startsWith('localhost') ? 'http' : 'https'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `${proto}://${host}`
   const bookingId = body.dining_payload.booking_id ?? ''
-  const returnUrl = `${appUrl}/bookings/${bookingId}/payment-return`
+  // a booking's bill returns to the booking; a walk-in bill to the pay-bill receipt
+  const returnUrl = bookingId ? `${appUrl}/bookings/${bookingId}/payment-return` : `${appUrl}/pay-bill/payment-return`
 
   const amount = Number(body.dining_payload.amount)
+  const originalAmount = Number(body.dining_payload.original_amount ?? amount)
+  const walletSpend = Number(body.dining_payload.wallet_spend_amount ?? 0)
   const billPayload: Record<string, unknown> = {
-    bill_amount: amount,
-    original_amount: Number(body.dining_payload.original_amount ?? amount),
+    // app parity (CardPaymentScreen): bill_amount is the ORIGINAL amount — the
+    // backend applies the offers itself; sending the discounted amount makes it
+    // discount twice and fail finalize with "amount does not match session"
+    bill_amount: originalAmount,
+    original_amount: originalAmount,
     discount_amount: Number(body.dining_payload.discount_amount ?? 0),
     cashback_amount: Number(body.dining_payload.cashback_amount ?? 0),
     selected_offer_ids: body.dining_payload.selected_offer_ids ?? [],
@@ -53,6 +66,7 @@ export async function POST(request: Request) {
   if (body.dining_payload.booking_id) {
     billPayload.booking_id = body.dining_payload.booking_id
   }
+  if (walletSpend > 0) billPayload.wallet_spend_amount = walletSpend
 
   const payload = {
     payment_context: 'BILL_PAYMENT',

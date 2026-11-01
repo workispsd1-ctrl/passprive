@@ -1,31 +1,39 @@
 import type { Metadata } from 'next'
-import { RestaurantResults } from '@/components/sections/dining/RestaurantResults'
 import { getUserCoords } from '@/lib/location'
-import { getRestaurantFeed } from '@/lib/services/dining'
-import { FEED_PAGE_SIZE } from '@/lib/restaurantFilters'
+import { getDealsModeItems, type DealsCategory, type DealsMode } from '@/lib/services/dealsMode'
+import { DealsModeClient } from './DealsModeClient'
 
 export const metadata: Metadata = {
-  title: 'Deals & Offers',
-  description: 'Restaurants with live offers and deals on PassPrivé.',
+  title: 'Deals & Cashback',
+  description: 'Places near you with live deals, and places where Privé Credits pay the bill.',
 }
 
-/** Deals — app parity: DealsScreen (restaurant_feed with `in_has_offer`). */
-export default async function DealsPage() {
+const CATEGORIES: DealsCategory[] = ['dining', 'shopping', 'wellness']
+
+/**
+ * Deals Mode / Use Cashback — app parity: screens/DealsCashbackScreen.jsx.
+ * `?mode=cashback` lists merchants that take Privé Credits on the bill;
+ * the default lists merchants with a live deal or offer.
+ */
+export default async function DealsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string; category?: string }>
+}) {
+  const { mode: rawMode, category: rawCategory } = await searchParams
+  const mode: DealsMode = rawMode === 'cashback' ? 'cashback' : 'deals'
+  const category = CATEGORIES.includes(rawCategory as DealsCategory) ? (rawCategory as DealsCategory) : 'dining'
   const coords = await getUserCoords()
-  const rows = await getRestaurantFeed({ hasOffer: true }, 0, FEED_PAGE_SIZE, coords)
+  const items = await getDealsModeItems(mode, coords)
+
   return (
     <main className="pb-16">
-      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-8 2xl:max-w-394">
-        <h1 className="font-(family-name:--font-dm-sans) text-2xl font-bold text-[#0D141C]">
-          Deals &amp; Offers
-        </h1>
-      </div>
-      <RestaurantResults
-        // remount when the header location changes — the grid holds its own rows
-        key={`${coords?.lat ?? ''},${coords?.lng ?? ''}`}
-        initialRows={rows}
-        initialHasMore={rows.length >= FEED_PAGE_SIZE}
-        queryString="offer=1"
+      <DealsModeClient
+        // remount when the mode or header location changes — the list holds its own filters
+        key={`${mode}:${coords?.lat ?? ''},${coords?.lng ?? ''}`}
+        mode={mode}
+        initialCategory={category}
+        items={items}
       />
     </main>
   )

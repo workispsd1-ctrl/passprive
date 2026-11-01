@@ -13,12 +13,14 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CODE_LENGTH, COUNTRY_CODE, RESEND_SECONDS, friendlyOtpError, normalizeLocalPhone } from '@/lib/phoneAuth'
+import { GoogleSignInButton } from '@/components/GoogleSignInButton'
+import { CODE_LENGTH, COUNTRY_CODE, RESEND_SECONDS, describeOtpError, normalizeLocalPhone } from '@/lib/phoneAuth'
 
 /**
  * Login / sign-up by mobile number — app parity: screens/Login.jsx →
  * OtpVerification.jsx → Details.jsx. One flow for both: an existing number
  * is signed in after the code; a new one is asked for name + email.
+ * Google stays available as the alternative, like the app.
  */
 type Step = 'phone' | 'otp' | 'details'
 
@@ -51,8 +53,14 @@ export default function LoginDialog({
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
   const [resendIn, setResendIn] = useState(0)
+  // code expired / too many attempts: only a resend can continue
+  const [locked, setLocked] = useState(false)
+  const [notice, setNotice] = useState('')
+  // new number: verify-otp's single-use token, traded for the account on the details step
+  const [signupToken, setSignupToken] = useState<string | null>(null)
 
   // resend countdown
   useEffect(() => {
@@ -69,11 +77,15 @@ export default function LoginDialog({
     setEmail('')
     setError('')
     setLoading(false)
+    setGoogleLoading(false)
     setResendIn(0)
+    setLocked(false)
+    setNotice('')
+    setSignupToken(null)
   }
 
   function handleOpenChange(next: boolean) {
-    if (loading) return
+    if (loading || googleLoading) return
     setOpen(next)
     if (next) reset()
   }
@@ -90,16 +102,31 @@ export default function LoginDialog({
     if (!local) { setError('Please enter your mobile number.'); return }
     setLoading(true)
     setError('')
+    setNotice('')
     const res = await fetch('/api/auth/otp/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: local }),
-    })
-    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    }).catch(() => null)
+    const data = (await res?.json().catch(() => ({}))) as { error?: string } | undefined
     setLoading(false)
-    if (!res.ok) { setError(data.error ?? 'Failed to send OTP. Please try again.'); return }
+    if (!res?.ok) {
+      const info = describeOtpError(data?.error ?? 'network')
+      // app parity: a cooldown still lands on the code screen, timer running
+      if (info.kind === 'cooldown' && step === 'phone') {
+        setPhone(local)
+        setResendIn(info.seconds ?? RESEND_SECONDS)
+        setStep('otp')
+      } else if (info.kind === 'cooldown') {
+        setResendIn(info.seconds ?? RESEND_SECONDS)
+      }
+      setError(info.message)
+      return
+    }
+    if (step === 'otp') setNotice('A new code has been sent.')
     setPhone(local)
     setCode('')
+    setLocked(false)
     setResendIn(RESEND_SECONDS)
     setStep('otp')
   }
@@ -107,20 +134,29 @@ export default function LoginDialog({
   async function verify(fullCode: string) {
     setLoading(true)
     setError('')
+    setNotice('')
     const res = await fetch('/api/auth/otp/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, code: fullCode }),
-    })
-    const data = (await res.json().catch(() => ({}))) as { error?: string; registered?: boolean; signedIn?: boolean }
+    }).catch(() => null)
+    const data = (await res?.json().catch(() => ({}))) as
+      | { error?: string; registered?: boolean; signedIn?: boolean; signupToken?: string | null }
+      | undefined
     setLoading(false)
-    if (!res.ok) {
-      setError(friendlyOtpError(data.error ?? ''))
+    if (!res?.ok || !data) {
+      const info = describeOtpError(data?.error ?? 'network')
+      setError(info.message)
       setCode('')
+      if (info.kind === 'locked' || info.kind === 'session') {
+        setLocked(true)
+        setResendIn(0)
+      }
       return
     }
     if (data.registered) { finish(); return }
-    if (!data.signedIn) {
+    setSignupToken(data.signupToken ?? null)
+    if (!data.signedIn && !data.signupToken) {
       // The backend didn't create a session for this new number, so there is
       // no account to attach the profile to yet.
       setError('We couldn’t create your account right now. Please try again in a moment.')
@@ -134,14 +170,21 @@ export default function LoginDialog({
     if (!fullName.trim() || !email.trim()) { setError('Please fill all fields.'); return }
     setLoading(true)
     setError('')
-    const res = await fetch('/api/auth/profile', {
+    const details = { fullName: fullName.trim(), email: email.trim(), phone: `${COUNTRY_CODE}${phone}` }
+    // Already signed in (older backend) → just fill the profile; otherwise the
+    // signup token creates the account first (app parity: Details.jsx).
+    const res = await fetch(signupToken ? '/api/auth/otp/register' : '/api/auth/profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName: fullName.trim(), email: email.trim(), phone: `${COUNTRY_CODE}${phone}` }),
-    })
-    const data = (await res.json().catch(() => ({}))) as { error?: string }
+      body: JSON.stringify(signupToken ? { ...details, signupToken } : details),
+    }).catch(() => null)
+    const data = (await res?.json().catch(() => ({}))) as { error?: string } | undefined
     setLoading(false)
-    if (!res.ok) { setError(data.error ?? 'Failed to save. Please try again.'); return }
+    if (!res?.ok) {
+      const raw = data?.error ?? 'network'
+      setError(/network|timeout/i.test(raw) ? describeOtpError(raw).message : raw)
+      return
+    }
     finish()
   }
 
@@ -150,7 +193,7 @@ export default function LoginDialog({
     await sendCode()
   }
 
-  const busy = loading
+  const busy = loading || googleLoading
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -233,6 +276,19 @@ export default function LoginDialog({
                 {loading ? <Loader2 className="size-5 animate-spin" /> : 'Continue'}
               </button>
 
+              <div className="my-4.5 flex items-center">
+                <div className="h-px flex-1 bg-[#E5E5EA]" />
+                <span className="mx-3 text-[16px] font-bold tracking-[-0.32px] text-[#666666]">or continue with</span>
+                <div className="h-px flex-1 bg-[#E5E5EA]" />
+              </div>
+
+              <GoogleSignInButton
+                disabled={busy}
+                onBusyChange={setGoogleLoading}
+                onSuccess={finish}
+                onError={setError}
+              />
+
               <Terms />
             </>
           )}
@@ -249,8 +305,8 @@ export default function LoginDialog({
               <div className="mt-7 mb-5">
                 <OtpBoxes
                   value={code}
-                  disabled={loading}
-                  error={!!error}
+                  disabled={loading || locked}
+                  error={!!error && !locked}
                   onChange={v => {
                     setCode(v)
                     setError('')
@@ -265,6 +321,7 @@ export default function LoginDialog({
                 </p>
               )}
               {!loading && error && <p className="mt-3 text-center text-[13px] font-semibold text-[#E23B3B]">{error}</p>}
+              {!loading && !error && notice && <p className="mt-3 text-center text-[13px] font-semibold text-[#3AA456]">{notice}</p>}
 
               <p className="mt-3 text-center text-[12.5px] text-[#8E8E93]">
                 Didn’t receive the OTP?{' '}
@@ -279,7 +336,7 @@ export default function LoginDialog({
 
               <button
                 type="button"
-                onClick={() => { setStep('phone'); setCode(''); setError('') }}
+                onClick={() => { setStep('phone'); setCode(''); setError(''); setNotice(''); setLocked(false) }}
                 className="mt-4.5 h-12 w-full rounded-full bg-[#F2F2F5] text-[14px] font-semibold text-[#1A1325] transition-colors hover:bg-[#E9E9EE]"
               >
                 Try another way

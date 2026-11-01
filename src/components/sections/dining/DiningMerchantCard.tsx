@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
+import type { CardBadge } from '@/lib/cashback'
 import { Heart, Flame, Grid2x2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSaved } from '@/lib/context/SavedContext'
@@ -13,8 +15,8 @@ interface Props {
   slug: string | null
   name: string
   image: string | null
-  /** app parity: getEntityCashbackBadge / getCashbackBadgeArt — null hides the badge */
-  cashbackArt: string | null
+  /** app parity: CashbackBadge.jsx via getCardBadge — null hides it */
+  cardBadge: CardBadge | null
   offerLabel?: string
   trending: boolean
   /** repeat-rewards / "stamp" mood tag — app parity: RestaurantCard.jsx getTags() */
@@ -56,7 +58,7 @@ export function DiningMerchantCard({
   slug,
   name,
   image,
-  cashbackArt,
+  cardBadge,
   offerLabel,
   trending,
   stampSheet,
@@ -105,30 +107,7 @@ export function DiningMerchantCard({
             <div className="absolute inset-0 bg-linear-to-br from-gray-200 to-gray-300" />
           )}
 
-          {cashbackArt && (
-            <>
-              {/* White curved backdrop the badge sits on — app parity:
-                  CashbackBadge.jsx's CardBg.webp (736×224), rounded to match
-                  the card's own top-left corner. */}
-              <div className="pointer-events-none absolute top-0 left-0 aspect-736/224 w-60 overflow-hidden rounded-tl-[15px] 2xl:w-73">
-                <Image
-                  src="/cashback-badge-backdrop.webp"
-                  alt=""
-                  fill
-                  className="object-cover object-top-left"
-                  sizes="240px"
-                />
-              </div>
-              <Image
-                src={cashbackArt}
-                alt="Cashback"
-                width={492}
-                height={172}
-                className="pointer-events-none absolute left-1.5 top-1.5 w-30 2xl:w-36.25"
-                style={{ height: 'auto' }}
-              />
-            </>
-          )}
+          <CardBadgeArt badge={cardBadge} />
 
           <button
             type="button"
@@ -145,7 +124,7 @@ export function DiningMerchantCard({
         </div>
 
         {offerLabel ? (
-          <div className="px-3.5 py-1.5 text-[12px] leading-4 text-white">
+          <div className="px-3.5 py-1.5 text-[12px] leading-4 text-white 2xl:text-[13px] min-[120rem]:py-2 min-[120rem]:text-[16px] min-[120rem]:leading-5">
             <OfferText text={offerLabel} />
           </div>
         ) : (
@@ -155,11 +134,11 @@ export function DiningMerchantCard({
 
       <div className="px-5.25 pt-2.5 pb-3">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-bold leading-6 text-[#383838]">
+          <p className="truncate text-sm font-bold leading-6 text-[#383838] 2xl:text-base min-[120rem]:text-[20px] min-[120rem]:leading-7">
             {name}
           </p>
           {!!rating && rating > 0 && (
-            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-[#2C9F03] px-2 py-0.5 text-[11px] font-bold text-white">
+            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-[#2C9F03] px-2 py-0.5 text-[11px] font-bold text-white min-[120rem]:px-3 min-[120rem]:py-1 min-[120rem]:text-[14px]">
               {rating.toFixed(1)} <span aria-hidden="true">★</span>
               <span className="sr-only">
                 {ratingCount ? `(${ratingCount} reviews)` : ''}
@@ -168,12 +147,12 @@ export function DiningMerchantCard({
           )}
         </div>
         {meta && (
-          <p className="line-clamp-2 text-xs font-medium leading-5 text-[#383838]">
+          <p className="line-clamp-2 text-xs font-medium leading-5 text-[#383838] 2xl:text-[13px] min-[120rem]:text-[16px] min-[120rem]:leading-6">
             {meta}
           </p>
         )}
         {tagline && (
-          <p className="line-clamp-1 text-xs font-normal leading-5 text-[#878787]">
+          <p className="line-clamp-1 text-xs font-normal leading-5 text-[#878787] 2xl:text-[13px] min-[120rem]:text-[16px] min-[120rem]:leading-6">
             {tagline}
           </p>
         )}
@@ -181,12 +160,12 @@ export function DiningMerchantCard({
         {(stampSheet || trending) && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {stampSheet && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark">
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark min-[120rem]:text-[14px]">
                 <Grid2x2 className="h-3 w-3" /> Stamp sheet
               </span>
             )}
             {trending && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark">
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark min-[120rem]:text-[14px]">
                 <Flame className="h-3 w-3 fill-current" /> Trending
               </span>
             )}

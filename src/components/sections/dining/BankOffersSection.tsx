@@ -61,7 +61,7 @@ export function BankOffersSection({
             key={String(card.id)}
             type="button"
             onClick={() => open(card)}
-            className="relative aspect-256/196 w-64 shrink-0 overflow-hidden rounded-2xl bg-gray-100"
+            className="relative aspect-256/196 w-64 shrink-0 overflow-hidden rounded-2xl bg-gray-100 xl:w-72 2xl:w-80 min-[120rem]:w-96 min-[120rem]:rounded-3xl"
           >
             <Image
               src={card.image_url}

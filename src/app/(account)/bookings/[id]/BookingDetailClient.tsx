@@ -176,7 +176,7 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
                     <Coins className="w-4 h-4 text-brand" />
                     <p className="text-sm font-semibold text-gray-700">PP Coins credited</p>
                   </div>
-                  <p className="text-sm font-extrabold text-brand">₨{earnedFromUrl.toFixed(2)}</p>
+                  <p className="text-sm font-extrabold text-brand">MUR {earnedFromUrl.toFixed(2)}</p>
                 </div>
               )}
             </StatusBanner>
@@ -190,7 +190,7 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
                 <p className="text-sm font-bold">Pay Bill &amp; Earn PP Coins</p>
               </div>
               <p className="text-xs text-white/70 leading-relaxed mb-4">
-                Pay your bill securely via card and earn {cashbackRate}% back as PP Coins. 1 coin = ₨1.
+                Pay your bill securely via card and earn {cashbackRate}% back as PP Coins. 1 coin = MUR 1.
               </p>
               <Link
                 href={`/bookings/${booking.id}/pay${estimatedBill > 0 ? `?amount=${estimatedBill}` : ''}`}

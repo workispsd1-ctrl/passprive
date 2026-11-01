@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { formatDistanceKm, haversineKm } from '@/lib/utils'
 import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard } from '@/components/sections/home/MerchantCard'
@@ -32,7 +32,7 @@ function Rail({ title, stores }: { title: string; stores: WithDist[] }) {
             meta={[s.dist != null ? formatDistanceKm(s.dist) : null, s.location_name ?? s.city].filter(Boolean).join(' • ') || undefined}
             tagline={[s.category, s.subcategory].filter(Boolean).join(', ') || undefined}
             offerLabel={offer?.discount_value ? `Flat ${offer.discount_value}% OFF` : offer?.badge_text ?? undefined}
-            cashbackArt={getCashbackBadgeArt(s, plan)}
+            cardBadge={getCardBadge(s, plan)}
           />
         )
       })}

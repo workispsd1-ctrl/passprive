@@ -9,13 +9,16 @@ import { isPaymentSuccess } from '@/lib/utils/payment'
 import { SESSION_KEY_COVER_CHARGE as SESSION_KEY } from '@/lib/constants/sessionKeys'
 import { extractBooking } from '@/lib/booking/payload'
 import type { StoredBookingPayment } from '@/lib/booking/client'
-import { PaymentLoadingScreen } from '@/components/shared/PaymentLoadingScreen'
 import { PaymentErrorCard } from '@/components/shared/PaymentErrorCard'
+import { PaymentSuccessful, ProcessingScreen } from '@/components/sections/dining/PaymentScreens'
+import { DESIGN_UNIT, TYPE_SCALE } from '@/components/sections/dining/designUnit'
+import { cn } from '@/lib/utils'
 
 type Phase =
   | { status: 'loading'; message: string }
   | { status: 'error'; message: string }
   | { status: 'store-done'; storeName?: string; storeHref?: string }
+  | { status: 'paid' }
 
 /**
  * Return page for booking cover-charge payments (restaurants and service
@@ -80,6 +83,14 @@ function CoverChargeReturnInner() {
           return
         }
         const bookingId = extractBooking(finalData)?.id
+        // Figma "Flow Book Table": Payment successful! → the "Table booked" receipt on the booking page
+        if (bookingId && stored?.bookHref) {
+          setPhase({ status: 'paid' })
+          const qs = new URLSearchParams({ booked: String(bookingId), paid: '1' })
+          if (stored.offerLabel) qs.set('offer', stored.offerLabel)
+          setTimeout(() => router.replace(`${stored.bookHref}?${qs}`), 1600)
+          return
+        }
         router.replace(bookingId ? `/bookings/${bookingId}?cover_paid=1` : '/bookings')
       } catch (err) {
         clear()
@@ -91,8 +102,12 @@ function CoverChargeReturnInner() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-white">
-      {phase.status === 'loading' && <PaymentLoadingScreen message={phase.message} />}
+    <main
+      className={cn('min-h-screen flex flex-col items-center justify-center px-4 bg-white font-(family-name:--font-dm-sans) max-md:[--t:0.62px]', TYPE_SCALE)}
+      style={{ ['--u' as string]: DESIGN_UNIT }}
+    >
+      {phase.status === 'loading' && <ProcessingScreen sub={phase.message} />}
+      {phase.status === 'paid' && <PaymentSuccessful />}
 
       {phase.status === 'error' && (
         <PaymentErrorCard

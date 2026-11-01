@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm, scopeByLocation } from '@/lib/utils'
-import { getCashbackBadgeArt } from '@/lib/cashback'
+import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from './HScroll'
 import { MerchantCard } from './MerchantCard'
 import type { StoreRow } from '@/lib/types/stores'
@@ -92,7 +92,7 @@ export function SalonVisitSection({
             meta={meta || undefined}
             tagline={s.description ?? undefined}
             offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
-            cashbackArt={getCashbackBadgeArt(s, plan)}
+            cardBadge={getCardBadge(s, plan)}
           />
         )
       })}

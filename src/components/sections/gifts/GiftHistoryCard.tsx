@@ -81,7 +81,7 @@ export function GiftHistoryCard({ summary, onBuyClick }: Props) {
                       c.status === 'redeemed' ? 'bg-gray-200 text-gray-500' :
                       'bg-red-100 text-red-600'
                     }`}>{c.status}</span>
-                    <span className='text-[11px] font-bold text-gray-700'>₨{c.amount}</span>
+                    <span className='text-[11px] font-bold text-gray-700'>MUR {c.amount}</span>
                   </div>
                   <p className='font-mono text-[11px] font-bold text-gray-900 tracking-wider truncate'>{c.code}</p>
                   <div className='flex items-center gap-1 mt-0.5'>
@@ -129,7 +129,7 @@ export function GiftHistoryCard({ summary, onBuyClick }: Props) {
                   </p>
                 </div>
                 <span className={`text-[13px] font-black ${tx.type === 'spend' ? 'text-red-500' : 'text-green-600'}`}>
-                  {tx.type === 'spend' ? '−' : '+'}₨{tx.amount}
+                  {tx.type === 'spend' ? '−' : '+'}MUR {tx.amount}
                 </span>
               </div>
             ))}

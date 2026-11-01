@@ -4,6 +4,7 @@ import type { WalletBalance, WalletTransaction, UserCashbackInfo } from '@/lib/t
 import { getUserMembership } from '@/lib/services/subscription'
 import { PLAN_TIER } from '@/lib/types/subscription'
 import { PREFERRED_PARTNER_RATES, VERIFIED_PAY_RATE } from '@/lib/constants/cashback'
+import type { LedgerRow, NextExpiry } from '@/lib/pointsLedger'
 
 export async function getWalletBalance(userId: string): Promise<WalletBalance | null> {
   const supabase = await createClient()
@@ -35,6 +36,28 @@ export async function getWalletTransactions(userId: string): Promise<WalletTrans
       restaurant_name: (r.restaurants as { name?: string } | null)?.name ?? null,
     } satisfies WalletTransaction
   })
+}
+
+/**
+ * The Privé Credits ledger with per-lot expiry — app parity: WalletScreen /
+ * TransactionsScreen → fetchPointsLedger. Null when the RPC isn't reachable,
+ * so the page can fall back to the plain gift_transactions history.
+ */
+export async function getPointsLedger(limit = 200): Promise<LedgerRow[] | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('my_points_ledger', { p_limit: limit })
+  if (error || !Array.isArray(data)) return null
+  return data as LedgerRow[]
+}
+
+/** The soonest credits to expire — app parity: fetchPointsBurnQuote(null).next_expiry_*. */
+export async function getNextPointsExpiry(): Promise<NextExpiry | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('points_burn_quote', { p_bill_amount: null })
+  if (error) return null
+  const row = (Array.isArray(data) ? data[0] : data) as { next_expiry_at?: string | null; next_expiry_amount?: number | string | null } | null
+  const amount = Number(row?.next_expiry_amount)
+  return row?.next_expiry_at && Number.isFinite(amount) && amount > 0 ? { at: row.next_expiry_at, amount } : null
 }
 
 export async function getUserCashbackInfo(userId: string, restaurantId?: string): Promise<UserCashbackInfo | null> {

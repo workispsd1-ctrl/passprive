@@ -14,7 +14,7 @@ import type {
 } from '@/lib/types/dining';
 
 const SELECT_FIELDS =
-  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, cover_charge_enabled, cover_charge_amount, max_bookings_per_slot';
+  'id, name, slug, description, area, city, full_address, cover_image, cost_for_two, phone, is_pure_veg, booking_enabled, menu_json, latitude, longitude, is_advertised, ad_priority, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, cashback_enabled, is_promoted, cover_charge_enabled, cover_charge_amount, max_bookings_per_slot';
 
 /**
  * Newest restaurants via the `restaurant_feed` RPC — app parity:
@@ -36,6 +36,24 @@ export async function getNewRestaurants(
   });
   const rows = (data ?? []) as FeaturedRestaurant[];
   return coords ? nearbyOrAll(rows).slice(0, limit) : rows;
+}
+
+/**
+ * Restaurants with a live offer, best rated first — the "Offers You'll love"
+ * rail. Asked of the feed RPC directly (in_has_offer) rather than filtered out
+ * of the newest few, which rarely held one and left the rail empty.
+ */
+export async function getOfferRestaurants(limit = 10): Promise<FeaturedRestaurant[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('restaurant_feed', {
+    in_lat: null,
+    in_lng: null,
+    in_limit: limit,
+    in_offset: 0,
+    in_sort: 'rating_desc',
+    in_has_offer: true,
+  });
+  return (data ?? []) as FeaturedRestaurant[];
 }
 
 /** Curated rails: only restaurants within the shared 3–5 km radius (lib/nearby). */
@@ -288,7 +306,7 @@ export async function getRestaurantBySlugOrId(
       supabase
         .from('restaurant_offers')
         .select(
-          'id, title, description, badge_text, offer_type, discount_value, min_spend',
+          'id, title, description, badge_text, offer_type, discount_value, min_spend, metadata',
         )
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)

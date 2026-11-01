@@ -2,11 +2,11 @@
  * Cashback-badge eligibility, ported from the app
  * (`utils/merchantCapabilities.js` + `utils/cashbackBadge.js`).
  *
- * The app shows the cashback badge only for a merchant that `canPayBill` and
- * `isPaidMerchant`, then picks the art by membership plan (free → 0.5%,
- * premiere → verified 0.5% / preferred 1.5%, black → verified 0.5% / preferred
- * 3%) — see `getCashbackBadgeArt`. `showsCashbackBadge` is the plain
- * eligibility check kept for callers that only need a boolean.
+ * Bill cashback (`hasBillCashback`) needs a merchant that `canPayBill`, is
+ * `isPaidMerchant` and hasn't switched cashback off. The card badge is wider
+ * than that — receipt-upload cashback works anywhere cashback is on — and
+ * picks its art by membership plan (free → 0.5%, premiere → verified 0.5% /
+ * preferred 1.5%, black → verified 0.5% / preferred 3%) — see `getCardBadge`.
  */
 
 export type CashbackPlan = 'free' | 'premiere' | 'black';
@@ -27,12 +27,20 @@ const PLAN_BADGES: Record<CashbackPlan, { verified: string; preferred: string }>
   },
 };
 
+// App parity: cashbackBadge.js USE_CASHBACK_BADGE / DISCOVERABLE_CHIP
+const USE_CASHBACK_BADGE = '/membership/Use-Cashback-OnPayment.webp';
+export const PROMOTED_CHIP = '/membership/PassPrive-Promoted.webp';
+
 export type MerchantCapabilityFields = {
   merchant_type?: string | null;
   merchant_plan?: string | null;
   pay_bill_enabled?: boolean | null;
   service_level?: string | null;
   on_boarded?: boolean | null;
+  booking_enabled?: boolean | null;
+  /** superadmin switch — false turns every cashback surface off for the merchant */
+  cashback_enabled?: boolean | null;
+  is_promoted?: boolean | null;
 };
 
 const SERVICE_LEVELS: Record<string, number> = {
@@ -80,28 +88,57 @@ export function canPayBill(e: MerchantCapabilityFields): boolean {
   return level >= SERVICE_LEVELS.payments && !notOnboarded(e);
 }
 
+/** App parity: cashbackBadge.js isCashbackEnabled — only an explicit false switches it off. */
+export function isCashbackEnabled(e: MerchantCapabilityFields): boolean {
+  return e.cashback_enabled !== false;
+}
+
+export function isPromoted(e: MerchantCapabilityFields): boolean {
+  return e.is_promoted === true;
+}
+
+/** App parity: cashbackBadge.js hasBillCashback — cashback earned by paying the bill in-app. */
+export function hasBillCashback(e: MerchantCapabilityFields): boolean {
+  return isCashbackEnabled(e) && canPayBill(e) && isPaidMerchant(e);
+}
+
 function merchantTierOf(e: MerchantCapabilityFields): 'preferred' | 'verified' | null {
-  if (!canPayBill(e) || !isPaidMerchant(e)) return null;
+  if (!hasBillCashback(e)) return null;
   const type = String(e.merchant_type ?? '').trim().toLowerCase();
   return type === 'preferred' || type === 'verified' ? type : null;
 }
 
-/** Whether the cashback badge should show at all, regardless of which art. */
+/** Whether the merchant earns bill cashback (the Offers block's cashback row). */
 export function showsCashbackBadge(e: MerchantCapabilityFields): boolean {
   return merchantTierOf(e) !== null;
 }
 
-/** App parity: getEntityCashbackBadge — the actual badge art for this merchant + the viewer's plan. */
-export function getCashbackBadgeArt(
-  e: MerchantCapabilityFields,
-  plan: CashbackPlan,
-): string | null {
-  const tier = merchantTierOf(e);
-  return tier ? PLAN_BADGES[plan][tier] : null;
+export type CardBadge = {
+  /** earn badge first, then "use cashback on payment" for merchants that take bill payments */
+  arts: string[];
+  /** PassPrivé Promoted — a corner tag beside the cashback badge, or the promoted chip alone */
+  promoted: boolean;
+};
+
+/**
+ * App parity: CashbackBadge.jsx + getEntityCashbackBadges — the badge a card
+ * shows for this merchant and the viewer's plan, null for none. Booking-only
+ * merchants get no cashback art.
+ */
+export function getCardBadge(e: MerchantCapabilityFields, plan: CashbackPlan): CardBadge | null {
+  const promoted = isPromoted(e);
+  const arts: string[] = [];
+  if (isCashbackEnabled(e)) {
+    const type = String(e.merchant_type ?? '').trim().toLowerCase();
+    const earn = PLAN_BADGES[plan][type === 'verified' ? 'verified' : 'preferred'];
+    if (canPayBill(e)) arts.push(earn, USE_CASHBACK_BADGE);
+    else if (!canBook(e)) arts.push(earn);
+  }
+  return arts.length || promoted ? { arts, promoted } : null;
 }
 
 /** App parity: merchantCapabilities.js `canBook` (booking needs service level ≥ booking). */
-export function canBook(e: MerchantCapabilityFields & { booking_enabled?: boolean | null }): boolean {
+export function canBook(e: MerchantCapabilityFields): boolean {
   if (isFreeMerchant(e)) return false
 
   if (typeof e.booking_enabled === 'boolean') {

@@ -14,6 +14,7 @@ import {
   getCuisineFacets,
   getMoodCategories,
   getNewRestaurants,
+  getOfferRestaurants,
   getPromotionalCollections,
   getRestaurantFeed,
 } from '@/lib/services/dining'
@@ -79,7 +80,7 @@ export default async function Dining({
     )
   }
 
-  const [moodCategories, restaurants, bankOffers, editorialCollections, cuisineOptions, promoCollections] =
+  const [moodCategories, restaurants, bankOffers, editorialCollections, cuisineOptions, promoCollections, offersYoullLove] =
     await Promise.all([
       getMoodCategories(),
       getNewRestaurants(20, coords),
@@ -87,6 +88,7 @@ export default async function Dining({
       getEditorialCollections('RESTAURANT'),
       getCuisineFacets(),
       getPromotionalCollections('dinein', coords),
+      getOfferRestaurants(10),
     ])
 
   // "Football fanatics" is CMS-flagged for both 'home' and 'dinein', but it
@@ -97,11 +99,6 @@ export default async function Dining({
   )
 
   const featured = restaurants.slice(0, 10)
-
-  const offersYoullLove = [...restaurants]
-    .filter((r) => r.has_offer)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 10)
 
   const popularChains = [...restaurants]
     .sort((a, b) => (a.cost_for_two ?? 0) - (b.cost_for_two ?? 0))

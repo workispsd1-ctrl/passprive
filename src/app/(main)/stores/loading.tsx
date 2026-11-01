@@ -12,7 +12,7 @@ export default function StoresLoading() {
         {i => <PosterCardSkeleton key={i} size='w-[calc((100%-60px)/3.5)] 2xl:w-[calc((100%-100px)/3.5)]' />}
       </RailSkeleton>
       <RailSkeleton titleWidth='w-48'>{i => <CircleCardSkeleton key={i} />}</RailSkeleton>
-      <section className='mx-auto max-w-7xl px-4 py-4 md:px-8 2xl:max-w-394' aria-hidden>
+      <section className='mx-auto max-w-7xl px-4 py-4 md:px-8' aria-hidden>
         <Bone className='min-h-130 rounded-[20px] md:min-h-150' />
       </section>
       <RailSkeleton titleWidth='w-32'>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
