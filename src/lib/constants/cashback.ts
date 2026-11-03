@@ -4,8 +4,8 @@
 
 export const PREFERRED_PARTNER_RATES: Record<string, number> = {
   none: 0.5,
-  premium: 2,
-  black: 4,
+  premium: 1.5,
+  black: 3,
 }
 
 export const VERIFIED_PAY_RATE = 0.5

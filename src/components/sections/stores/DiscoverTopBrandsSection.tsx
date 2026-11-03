@@ -23,17 +23,14 @@ export function DiscoverTopBrandsSection({ stores }: { stores: StoreRow[] }) {
   if (!stores.length) return null
 
   return (
-    <HScroll
-      title="Discover top brands"
-      maxWidthClassName="max-w-7xl"
-      gapClassName="gap-3 md:gap-6 2xl:gap-10"
-    >
+    <HScroll title="Discover top brands">
       {stores.map((store, i) => (
         <Link
           key={store.id}
           href={`/stores/${store.slug ?? store.id}`}
-          // phones: ~2.3 tiles in view so "Explore Now" fits; desktop keeps 3.5
-          className="relative block aspect-420/548 w-[42%] shrink-0 overflow-hidden rounded-[20px] sm:w-[calc((100%-60px)/3.5)] 2xl:w-[calc((100%-100px)/3.5)]"
+          // phones: ~2.3 tiles in view so "Explore Now" fits; from md the same
+          // sizes as the home page's tile (StoresNearYouSection)
+          className="relative block aspect-420/548 w-[42%] shrink-0 overflow-hidden rounded-[20px] md:w-80 2xl:w-105"
           style={{ backgroundColor: FALLBACK_COLORS[i % FALLBACK_COLORS.length] }}
         >
           {store.cover_image && (
@@ -42,24 +39,24 @@ export function DiscoverTopBrandsSection({ stores }: { stores: StoreRow[] }) {
               alt={store.name}
               fill
               className="object-cover"
-              sizes="330px"
+              sizes="(min-width: 1536px) 420px, (min-width: 768px) 320px, 42vw"
             />
           )}
           <div className="absolute inset-0 bg-black/15" />
 
           {store.logo_url && (
-            <div className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-[0_2px_6px_rgba(0,0,0,0.1)]">
+            <div className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-[0_2px_6px_rgba(0,0,0,0.1)] md:top-7 md:right-7 md:h-15 md:w-15 2xl:top-9 2xl:right-9 2xl:h-20 2xl:w-20">
               <Image
                 src={store.logo_url}
                 alt=""
-                width={32}
-                height={32}
-                className="h-8 w-8 object-contain"
+                width={64}
+                height={64}
+                className="h-8 w-8 object-contain md:h-11 md:w-11 2xl:h-15 2xl:w-15"
               />
             </div>
           )}
 
-          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-[11.5px] font-semibold whitespace-nowrap text-[#2247FF] shadow-[0_2px_6px_rgba(0,0,0,0.15)] md:bottom-4 md:px-4 md:py-1.5 md:text-[13px]">
+          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-[11.5px] font-semibold whitespace-nowrap text-[#2247FF] shadow-[0_2px_6px_rgba(0,0,0,0.15)] md:bottom-5 md:flex md:h-8 md:w-33 md:items-center md:justify-center md:px-0 md:py-0 md:font-(family-name:--font-dm-sans) md:text-[15px] md:leading-7 md:font-medium 2xl:h-10 2xl:w-43 2xl:text-[19.6px]">
             Explore Now &rarr;
           </span>
         </Link>

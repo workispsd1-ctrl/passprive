@@ -171,8 +171,8 @@ export function UpsellBannerPager({
             aria-label={`Earn ${Math.round(quote.blackPct / quote.pct)}x more with Black`}
             className='relative flex aspect-358/73 w-full shrink-0 snap-start items-center justify-between overflow-hidden rounded-xl bg-[linear-gradient(135deg,#E46A12,#B5370A_60%,#A52E06)] pr-3.5 pl-4 text-left text-white'
           >
-            <Image src='/deals/deal-coin.png' alt='' width={18} height={18} className='absolute -top-1.5 -left-1.5' />
-            <Image src='/deals/deal-coin.png' alt='' width={18} height={18} className='absolute -right-1.5 -bottom-1.5' />
+            <Image src='/assets/deals/deal-coin.png' alt='' width={18} height={18} className='absolute -top-1.5 -left-1.5' />
+            <Image src='/assets/deals/deal-coin.png' alt='' width={18} height={18} className='absolute -right-1.5 -bottom-1.5' />
             <span className='min-w-0'>
               <span className='block truncate text-[17px] leading-5 font-bold'>
                 Earn {Math.round(quote.blackPct / quote.pct)}x more with Black
@@ -193,7 +193,7 @@ export function UpsellBannerPager({
           className='relative aspect-1436/296 w-full shrink-0 snap-start overflow-hidden rounded-xl text-left @container'
         >
           {/* the artwork carries the card, its shines and the Know More CTA */}
-          <Image src='/deals/Merchant-Cap.webp' alt='' fill sizes='(min-width: 768px) 560px, 100vw' className='object-fill' />
+          <Image src='/assets/merchant-detail/Merchant-Cap.webp' alt='' fill sizes='(min-width: 768px) 560px, 100vw' className='object-fill' />
           <span className='absolute inset-y-0 left-[6.1%] flex w-[58%] flex-col justify-center'>
             {/* sized to the card (app: figmaPx 14 / 12 on a 358pt-wide banner) so the headline fits on one line */}
             <span className='truncate text-[min(3.6cqw,15px)] leading-tight font-bold text-white'>{copy.headline}</span>

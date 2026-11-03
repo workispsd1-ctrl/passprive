@@ -41,10 +41,10 @@ export function TopBrandCirclesSection({ stores }: { stores: StoreRow[] }) {
               )}
             </div>
           </div>
-          <p className="mt-4 w-full truncate text-sm font-bold leading-none text-[#0D141C] 2xl:mt-6">
+          <p className="mt-4 w-full truncate text-sm font-bold leading-none text-[#0D141C] 2xl:mt-6 2xl:text-base min-[120rem]:text-[20px]">
             {store.name}
           </p>
-          <p className="mt-1.5 w-full truncate text-xs font-medium leading-none text-[#717171]">
+          <p className="mt-1.5 w-full truncate text-xs font-medium leading-none text-[#717171] 2xl:text-sm min-[120rem]:mt-2 min-[120rem]:text-base">
             {store.location_name ?? store.city}
           </p>
         </Link>

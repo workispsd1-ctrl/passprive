@@ -16,7 +16,7 @@ import { OfferCard, OfferText } from './OfferCard'
 import { useGallery } from './PhotoGalleryClient'
 import { t, u } from './designUnit'
 
-const A = '/figma/detail'
+const A = '/assets/merchant-detail'
 const INTER = 'font-(family-name:--font-inter)'
 const SERIF = 'font-(family-name:--font-libre-baskerville)'
 

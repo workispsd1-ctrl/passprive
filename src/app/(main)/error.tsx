@@ -46,7 +46,7 @@ export default function MainError({
         </div>
 
         <Link href="/" className="mt-2 opacity-50 hover:opacity-80 transition-opacity">
-          <Image src="/logo-dark.png" alt="PassPrivé" width={142} height={34} className="h-8 w-auto object-contain" />
+          <Image src="/assets/brand/passprive-logo-orange.png" alt="PassPrivé" width={142} height={34} className="h-8 w-auto object-contain" />
         </Link>
       </div>
     </div>

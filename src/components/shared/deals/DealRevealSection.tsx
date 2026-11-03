@@ -27,10 +27,10 @@ import { OfferAction, OfferCard, OfferHead, OfferText } from '@/components/secti
 import { t } from '@/components/sections/dining/designUnit'
 
 const PLAN_BADGES: Record<string, string> = {
-  free: '/membership/FreeBadge.webp',
-  plus: '/membership/PlusBadge.webp',
-  premiere: '/membership/PlusBadge.webp',
-  black: '/membership/BlackBadge.webp',
+  free: '/assets/membership/FreeBadge.webp',
+  plus: '/assets/membership/PlusBadge.webp',
+  premiere: '/assets/membership/PlusBadge.webp',
+  black: '/assets/membership/BlackBadge.webp',
 }
 
 /** Monthly unlocks left — app parity: components/DealRevealsCard.jsx. */
@@ -259,7 +259,7 @@ export function DealRevealSection({
   )
 
   if (variant === 'figma') {
-    const coin = <Image src="/deals/deal-coin.png" alt="" width={36} height={36} style={{ width: t(36), height: t(36) }} />
+    const coin = <Image src="/assets/deals/deal-coin.png" alt="" width={36} height={36} style={{ width: t(36), height: t(36) }} />
     const badge = PLAN_BADGES[String(quota?.tier ?? '').trim().toLowerCase()]
     const locked = isQuotaExhausted(quota)
     return (

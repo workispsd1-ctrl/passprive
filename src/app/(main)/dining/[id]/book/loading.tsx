@@ -1,5 +1,5 @@
-import { BookingPageSkeleton } from '@/components/shared/Skeletons'
+import { MerchantFlowSkeleton } from '@/components/shared/Skeletons'
 
 export default function Loading() {
-  return <BookingPageSkeleton />
+  return <MerchantFlowSkeleton variant='book' breakout />
 }

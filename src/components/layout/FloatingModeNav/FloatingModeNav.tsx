@@ -55,7 +55,7 @@ export function FloatingModeNav() {
         aria-label='Home'
         className='flex size-14 items-center justify-center rounded-full border-[1.5px] border-[#B3A660] bg-[linear-gradient(100deg,#1D1E20_7%,#404049_85%)] shadow-[0_4px_7px_rgba(0,0,0,0.45)] transition-transform hover:scale-105'
       >
-        <Image src='/nav/HomeNavIcon.webp' alt='' width={29} height={27} />
+        <Image src='/assets/nav/HomeNavIcon.webp' alt='' width={29} height={27} />
       </Link>
       <div className='flex h-15.75 items-center gap-1 rounded-full border border-white bg-white px-0.75 shadow-[0_4px_7px_rgba(0,0,0,0.35)]'>
         <Link

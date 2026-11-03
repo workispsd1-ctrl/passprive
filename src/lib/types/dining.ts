@@ -67,6 +67,8 @@ export type DiningOffer = {
   offer_type: string | null;
   discount_value: number | null;
   min_spend: number | null;
+  start_at?: string | null;
+  end_at?: string | null;
   /** admin offer builder — offerKind TIME_SLOT / VISIT / …, slot window */
   metadata?: { offerKind?: string | null; slotStart?: string | null; slotEnd?: string | null } | null;
 };

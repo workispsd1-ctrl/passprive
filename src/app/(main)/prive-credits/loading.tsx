@@ -1,5 +1,5 @@
-import { SimplePageSkeleton } from '@/components/shared/Skeletons'
+import { PriveCreditsSkeleton } from '@/components/shared/Skeletons'
 
 export default function Loading() {
-  return <SimplePageSkeleton />
+  return <PriveCreditsSkeleton />
 }

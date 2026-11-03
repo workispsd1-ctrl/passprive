@@ -20,13 +20,13 @@ type NavItem = {
 // TODO(design): Services / Healthcare have no routes yet — pointing
 // to '#' as placeholders (Figma marks Healthcare COMING SOON).
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Home', href: '/', icon: '/nav/home.webp', activeBg: '#FFEDC8' },
-  { label: 'Shopping', href: '/stores', icon: '/nav/shopping.webp', activeBg: '#D7FEDB' },
-  { label: 'Wellness', href: '/wellness', icon: '/nav/wellness.webp', activeBg: '#D3F6F9' },
-  { label: 'Dining', href: '/dining', icon: '/nav/dining.webp', activeBg: '#FFEAE1' },
-  { label: 'Tourists', href: '/tourist', icon: '/nav/tourist.webp', activeBg: '#FFEDC8' },
-  { label: 'Services', href: '#', icon: '/nav/services.webp', activeBg: '#FFEDC8', badge: 'NEW' },
-  { label: 'Healthcare', href: '#', icon: '/nav/healthcare.webp', activeBg: '#FFEDC8', badge: 'COMING SOON' },
+  { label: 'Home', href: '/', icon: '/assets/nav/home.webp', activeBg: '#FFEDC8' },
+  { label: 'Shopping', href: '/stores', icon: '/assets/nav/shopping.webp', activeBg: '#D7FEDB' },
+  { label: 'Wellness', href: '/wellness', icon: '/assets/nav/wellness.webp', activeBg: '#D3F6F9' },
+  { label: 'Dining', href: '/dining', icon: '/assets/nav/dining.webp', activeBg: '#FFEAE1' },
+  { label: 'Tourists', href: '/tourist', icon: '/assets/nav/tourist.webp', activeBg: '#FFEDC8' },
+  { label: 'Services', href: '#', icon: '/assets/nav/services.webp', activeBg: '#FFEDC8', badge: 'NEW' },
+  { label: 'Healthcare', href: '#', icon: '/assets/nav/healthcare.webp', activeBg: '#FFEDC8', badge: 'COMING SOON' },
 ]
 
 /**

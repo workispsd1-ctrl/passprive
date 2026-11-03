@@ -9,7 +9,7 @@ export default function WellnessLoading() {
     <main className='min-h-screen pb-20 md:pb-0' aria-busy='true'>
       <RailSkeleton titleWidth='w-36'>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton titleWidth='w-36' count={7}>
-        {i => <CircleCardSkeleton key={i} size='w-40 2xl:w-52' />}
+        {i => <CircleCardSkeleton key={i} size='w-36 md:w-52 2xl:w-72' />}
       </RailSkeleton>
       <RailSkeleton titleWidth='w-52'>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
       {/* WellnessGlowUpSection — full-bleed peach banner with a card rail */}

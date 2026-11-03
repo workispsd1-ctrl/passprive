@@ -17,19 +17,19 @@ type Visual = {
 
 const PLAN_VISUAL: Record<string, Visual> = {
   black: {
-    bg: '/membership/hero-black.webp', badge: '/membership/BlackBadge.webp',
+    bg: '/assets/membership/hero-black.webp', badge: '/assets/membership/BlackBadge.webp',
     baseColor: '#0B0B0C', borderColor: 'rgba(230,100,0,0.55)', shadowColor: '#FF5500',
     textColor: '#FFFFFF', mutedColor: 'rgba(255,255,255,0.62)', checkColor: '#FFD060',
     ctaBg: '#FF5200', ctaColor: '#FFFFFF', ctaLabel: 'Upgrade to Black',
   },
   plus: {
-    bg: '/membership/hero-plus.webp', badge: '/membership/PlusBadge.webp',
+    bg: '/assets/membership/hero-plus.webp', badge: '/assets/membership/PlusBadge.webp',
     baseColor: '#0C1A3A', borderColor: 'rgba(59,130,246,0.22)', shadowColor: '#1E40AF',
     textColor: '#FFFFFF', mutedColor: 'rgba(255,255,255,0.58)', checkColor: '#93C5FD',
     ctaBg: '#1E40AF', ctaColor: '#FFFFFF', ctaLabel: 'Upgrade to Plus',
   },
   free: {
-    bg: null, badge: '/membership/FreeBadge.webp',
+    bg: null, badge: '/assets/membership/FreeBadge.webp',
     baseColor: '#FFFFFF', borderColor: 'rgba(76,175,80,0.45)', shadowColor: '#000000',
     textColor: '#1A1A1A', mutedColor: '#888888', checkColor: '#4CAF50',
     ctaBg: null, ctaColor: null, ctaLabel: null,

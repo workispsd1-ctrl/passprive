@@ -101,7 +101,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
 
   return (
     <section className="py-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-4 md:px-8">
+      <div className={cn('mb-4 flex flex-wrap items-center justify-between gap-3 px-4 md:px-8', layout === 'rail' && 'mx-auto max-w-7xl')}>
         <h2 className="font-(family-name:--font-dm-sans) text-[19px] leading-none font-bold text-[#0D141C] md:text-[20px] xl:text-[22px] 2xl:text-[26px] min-[120rem]:text-[32px]">{title}</h2>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -196,7 +196,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
       </div>
 
       {isFiltered && (
-        <p className="mb-3 px-4 text-[12px] text-gray-400 md:px-8">{filtered.length} store{filtered.length !== 1 ? 's' : ''}</p>
+        <p className={cn('mb-3 px-4 text-[12px] text-gray-400 md:px-8', layout === 'rail' && 'mx-auto max-w-7xl')}>{filtered.length} store{filtered.length !== 1 ? 's' : ''}</p>
       )}
 
       {filtered.length === 0 ? (
@@ -255,7 +255,7 @@ function StoreList({ layout, children }: { layout: 'rail' | 'grid'; children: Re
     return <div className="flex flex-wrap justify-center gap-4 px-4 md:justify-start md:px-8 2xl:gap-6">{children}</div>
   }
   return (
-    <HScroll maxWidthClassName="w-full max-w-none" gapClassName="gap-4 2xl:gap-6" className="py-0">
+    <HScroll className="py-0">
       {children}
     </HScroll>
   )

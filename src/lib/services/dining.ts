@@ -306,7 +306,7 @@ export async function getRestaurantBySlugOrId(
       supabase
         .from('restaurant_offers')
         .select(
-          'id, title, description, badge_text, offer_type, discount_value, min_spend, metadata',
+          'id, title, description, badge_text, offer_type, discount_value, min_spend, start_at, end_at, metadata',
         )
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
@@ -345,7 +345,13 @@ export async function getRestaurantBySlugOrId(
     ]);
 
   const offers: DiningOffer[] =
-    offersRes.status === 'fulfilled' ? (offersRes.value.data ?? []) : [];
+    // app parity: isOfferCurrentlyActive — only offers inside their dates
+    offersRes.status === 'fulfilled'
+      ? (offersRes.value.data ?? []).filter((o) => {
+          const now = Date.now();
+          return !(o.start_at && Date.parse(o.start_at) > now) && !(o.end_at && Date.parse(o.end_at) < now);
+        })
+      : [];
   const tags: RestaurantTag[] =
     tagsRes.status === 'fulfilled' ? (tagsRes.value.data ?? []) : [];
   const reviews: Review[] =

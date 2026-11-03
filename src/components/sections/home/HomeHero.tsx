@@ -70,7 +70,7 @@ export function HomeHero({ banners }: { banners: WebsiteBanner[] }) {
               Privé Credits
             </p>
             <span className="mt-3 inline-block rounded-md bg-[#2C55D4] px-2 py-1 text-[11px] font-semibold">
-              Get 8x cashback of up to 4% with every bill payment
+              Get 6x cashback of up to 3% with every bill payment
             </span>
             <p className="mt-4 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold text-[#B4652F]">
               Learn more <ArrowRight className="h-3.5 w-3.5" />

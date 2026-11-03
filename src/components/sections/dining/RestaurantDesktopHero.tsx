@@ -13,7 +13,7 @@ import { findSection } from '@/components/shared/detail/DetailSectionTabs'
 import { useGallery } from './PhotoGalleryClient'
 import { t, u } from './designUnit'
 
-const A = '/figma/detail'
+const A = '/assets/merchant-detail'
 const INTER = 'font-(family-name:--font-inter)'
 
 function Tag({ icon, label, color, iconW, iconH }: { icon: string; label: string; color: string; iconW: number; iconH: number }) {

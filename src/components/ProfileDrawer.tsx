@@ -13,9 +13,9 @@ import type { ProfileSummary, ProfileTier } from '@/lib/services/profileSummary'
 
 // app parity: Profile.jsx TIER_VISUAL
 const TIER: Record<ProfileTier, { bg: string; badge: string; text: string; muted: string }> = {
-  black: { bg: '/membership/hero-black.webp', badge: '/membership/BlackBadge.webp', text: '#FFFFFF', muted: 'rgba(255,255,255,0.75)' },
-  plus: { bg: '/membership/hero-plus.webp', badge: '/membership/PlusBadge.webp', text: '#FFFFFF', muted: 'rgba(255,255,255,0.75)' },
-  free: { bg: '/membership/hero-free.webp', badge: '/membership/FreeBadge.webp', text: '#1A1A1A', muted: 'rgba(26,26,26,0.65)' },
+  black: { bg: '/assets/membership/hero-black.webp', badge: '/assets/membership/BlackBadge.webp', text: '#FFFFFF', muted: 'rgba(255,255,255,0.75)' },
+  plus: { bg: '/assets/membership/hero-plus.webp', badge: '/assets/membership/PlusBadge.webp', text: '#FFFFFF', muted: 'rgba(255,255,255,0.75)' },
+  free: { bg: '/assets/membership/hero-free.webp', badge: '/assets/membership/FreeBadge.webp', text: '#1A1A1A', muted: 'rgba(26,26,26,0.65)' },
 }
 
 // app parity: Profile.jsx menu groups
@@ -157,7 +157,7 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
 
           {/* Reward cards */}
           <Link href='/prive-credits' onClick={onClose} className='relative mt-4 block aspect-[1290/596] overflow-hidden rounded-3xl'>
-            <Image src='/profile/card-cashback.webp' alt='' fill className='object-cover' sizes='420px' />
+            <Image src='/assets/profile/card-cashback.webp' alt='' fill className='object-cover' sizes='420px' />
             <div className='relative flex h-full flex-col justify-center p-5 text-white'>
               <span className='w-fit rounded-full bg-white/20 px-2.5 py-1 text-[9px] font-bold tracking-wider backdrop-blur'>TOTAL CASH BACK</span>
               {data ? (
@@ -174,7 +174,7 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
           </Link>
           <div className='mt-3 grid grid-cols-2 gap-3'>
             <div className='relative aspect-[692/532] overflow-hidden rounded-3xl'>
-              <Image src='/profile/card-savings.webp' alt='' fill className='object-cover' sizes='210px' />
+              <Image src='/assets/profile/card-savings.webp' alt='' fill className='object-cover' sizes='210px' />
               <div className='relative p-3.5'>
                 <span className='rounded-full bg-black/10 px-2 py-0.5 text-[8.5px] font-bold tracking-wider text-[#1A1A1A]'>TOTAL SAVINGS</span>
                 {/* The app shows a placeholder "Rs 0"; savings aren't tracked yet. */}
@@ -182,7 +182,7 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
               </div>
             </div>
             <Link href='/visit-rewards' onClick={onClose} className='relative block aspect-[692/532] overflow-hidden rounded-3xl'>
-              <Image src='/profile/card-stamps.webp' alt='' fill className='object-cover' sizes='210px' />
+              <Image src='/assets/profile/card-stamps.webp' alt='' fill className='object-cover' sizes='210px' />
               <div className='relative p-3.5'>
                 <span className='rounded-full bg-black/10 px-2 py-0.5 text-[8.5px] font-bold tracking-wider text-[#1A1A1A]'>STAMP REWARDS</span>
                 {data ? (

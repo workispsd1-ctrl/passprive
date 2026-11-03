@@ -73,7 +73,7 @@ export function MobileHeaderClient({ user, banners, wellnessBanners, touristBann
       <div className='flex items-center justify-between px-4 pt-3 pb-1'>
         {minimal ? (
           <Link href='/' aria-label='PassPrive home'>
-            <Image src='/logo-orange.png' alt='PassPrive' width={218} height={52} className='h-8 w-auto object-contain' priority />
+            <Image src='/assets/brand/passprive-logo-orange.png' alt='PassPrive' width={218} height={52} className='h-5.5 w-auto object-contain' priority />
           </Link>
         ) : (
           <LocationButton variant='mobile' theme={isHome ? 'light' : 'default'} />

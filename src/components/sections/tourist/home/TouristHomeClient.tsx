@@ -193,7 +193,6 @@ export function TouristHomeClient({
         <HScroll
           title="Plan one full day"
           subtitle="Stops close together • Top-rated in each region • Low travel friction"
-          gapClassName="gap-5 2xl:gap-8 min-[120rem]:gap-12"
         >
           {plans.map((plan, i) => (
             <DayPlanCard

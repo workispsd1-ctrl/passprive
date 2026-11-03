@@ -4,7 +4,6 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PaymentErrorCard } from '@/components/shared/PaymentErrorCard'
 import { DESIGN_UNIT, TYPE_SCALE } from '@/components/sections/dining/designUnit'
-import { isPaymentSuccess } from '@/lib/utils/payment'
 import { PENDING_BILL_KEY, fmtMur, type PendingBillPayment } from '@/lib/payBill'
 import { cn } from '@/lib/utils'
 import { BillCleared, PaymentSuccessful, ProcessingScreen } from '@/components/sections/dining/PaymentScreens'
@@ -15,11 +14,28 @@ type Phase =
   | { status: 'done'; bill: PendingBillPayment; earned: number }
   | { status: 'error'; message: string; retryTo: string | null }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+/** app parity: waitForMipsPayment — payment_sessions.status until paid, failed or out of time. */
+async function waitForPayment(sessionId: string, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const status = await fetch(`/api/pay-bill/status?session_id=${encodeURIComponent(sessionId)}`, { cache: 'no-store' })
+      .then(res => res.json() as Promise<{ status?: string }>)
+      .then(d => String(d.status ?? ''))
+      .catch(() => '')
+    if (status === 'VERIFIED_SUCCESS' || status === 'FINALIZED') return true
+    if (status === 'VERIFIED_FAILED' || status === 'FAILED') return false
+    await sleep(2500)
+  }
+  return false
+}
+
 /**
- * Back from the bank's card page — app parity: PaymentReturnScreen (verify +
- * finalize-bill, both in /api/payments/dining/verify) then
- * BillPaymentSuccessScreen. UI from the Figma frames: "Processing…", then
- * "Payment successful!", then the "Bill cleared" receipt.
+ * After the payment page — app parity: PaymentReturnScreen's MIPS branch: wait
+ * for the session (45s after a success, 8s otherwise), "Payment successful!"
+ * for 1.8s, then BillPaymentSuccessScreen. The backend has finalized the bill
+ * and credited the cashback; this page only reads the outcome.
  */
 function ReturnInner() {
   const params = useSearchParams()
@@ -36,36 +52,22 @@ function ReturnInner() {
         const raw = sessionStorage.getItem(PENDING_BILL_KEY)
         if (raw) pending = JSON.parse(raw) as PendingBillPayment
       } catch { /* ignore */ }
-      const sessionId = params.get('session_id') ?? params.get('sessionId') ?? pending?.sessionId ?? ''
-      const merchantTrace = params.get('merchant_trace') ?? params.get('merchantTrace') ?? pending?.merchantTrace ?? ''
-      const outcome = params.get('outcome') ?? params.get('status') ?? params.get('payment_status') ?? ''
+      const sessionId = params.get('session_id') ?? pending?.sessionId ?? ''
       const retryTo = pending ? `/pay-bill?restaurant_id=${pending.restaurantId}` : null
 
       if (!sessionId) {
-        setPhase({ status: 'error', message: 'We couldn’t find this payment. If you were charged, contact support.', retryTo })
+        setPhase({ status: 'error', message: 'We could not find the payment session to resume.', retryTo })
         return
       }
-      try {
-        const res = await fetch('/api/payments/dining/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId, merchant_trace: merchantTrace, status: outcome }),
-        })
-        const data = (await res.json()) as Record<string, unknown>
-        if (!res.ok) throw new Error((data.error as string) ?? 'Payment verification failed')
-        if (!isPaymentSuccess(data)) {
-          setPhase({ status: 'error', message: String(data.message ?? data.error ?? 'The payment didn’t go through. You were not charged.'), retryTo })
-          return
-        }
-        try { sessionStorage.removeItem(PENDING_BILL_KEY) } catch { /* ignore */ }
-        const earned = Number(data.cashback_credited) || pending?.cashback || 0
-        const bill = pending ?? { sessionId, merchantTrace, restaurantId: '', restaurantName: 'Your bill', location: '', originalAmount: 0, discount: 0, paidAmount: 0, cashback: earned }
-        setPhase({ status: 'success', bill, earned })
-        // Figma: "Payment successful!" for a moment, then the receipt
-        setTimeout(() => setPhase({ status: 'done', bill, earned }), 1600)
-      } catch (err) {
-        setPhase({ status: 'error', message: err instanceof Error ? err.message : 'Could not verify the payment. Please contact support.', retryTo: null })
+      const paid = await waitForPayment(sessionId, params.get('outcome') === 'success' ? 45000 : 8000)
+      if (!paid) {
+        setPhase({ status: 'error', message: 'Your payment was not completed successfully.', retryTo })
+        return
       }
+      try { sessionStorage.removeItem(PENDING_BILL_KEY) } catch { /* ignore */ }
+      const bill = pending ?? { sessionId, merchantTrace: '', restaurantId: '', restaurantName: 'Your bill', location: '', originalAmount: 0, discount: 0, paidAmount: 0, cashback: 0 }
+      setPhase({ status: 'success', bill, earned: bill.cashback })
+      setTimeout(() => setPhase({ status: 'done', bill, earned: bill.cashback }), 1800)
     })()
   }, [params])
 

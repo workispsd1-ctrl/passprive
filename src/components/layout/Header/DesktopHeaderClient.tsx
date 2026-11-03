@@ -24,8 +24,8 @@ interface Props {
 }
 
 const MEMBERSHIP_BADGE: Record<string, string> = {
-  black: '/membership/BlackBadge.webp',
-  premium: '/membership/PlusBadge.webp',
+  black: '/assets/membership/BlackBadge.webp',
+  premium: '/assets/membership/PlusBadge.webp',
 }
 
 // The Figma spec is drawn for a 16" MacBook (~1728pt wide). The full-size values
@@ -37,7 +37,7 @@ const MEMBERSHIP_BADGE: Record<string, string> = {
 // page now, just restyled to a light-grey pill off the orange home theme.
 export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBanners, membershipTier, minimal = false }: Props) {
   const isHome = usePathname() === '/'
-  const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/membership/FreeBadge.webp'
+  const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/assets/membership/FreeBadge.webp'
 
   // Privé credits = cashback balance, fetched the same way as the app.
   const [credits, setCredits] = useState<number | null>(null)
@@ -61,18 +61,12 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
           className="flex shrink-0 items-center"
         >
           <Image
-            src={isHome ? '/logo.webp' : '/logo-orange.png'}
+            src={isHome ? '/assets/brand/passprive-logo-white.png' : '/assets/brand/passprive-logo-orange.png'}
             alt="PassPrive"
             width={218}
             height={52}
             priority
-            className={cn(
-              'w-auto object-contain',
-              // logo.webp and logo-orange.png have different intrinsic aspect
-              // ratios (4.19 vs 2.96) — different heights keep the rendered
-              // width (and wordmark size) the same on every page.
-              isHome ? 'h-6.25 2xl:h-9.25' : 'h-9 2xl:h-13',
-            )}
+            className='h-6.25 w-auto object-contain 2xl:h-9.25'
           />
         </Link>
 
@@ -118,7 +112,7 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
             title="Privé credits"
           >
             <Image
-              src="/membership/Wallet.webp"
+              src="/assets/membership/Wallet.webp"
               alt=""
               width={129}
               height={129}

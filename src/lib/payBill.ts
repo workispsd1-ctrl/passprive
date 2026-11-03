@@ -23,8 +23,6 @@ export type BillOffer = {
   priority: number
   /** from the `offers` table — only these ids are sent as selected_offer_ids */
   fromOffersTable: boolean
-  /** scoped to this restaurant (its own offer, or a platform-funded one for it) */
-  ownedHere: boolean
 }
 
 export type AppliedOffer = { id: string; title: string; amount: number; cashbackAmount: number }
@@ -63,6 +61,7 @@ export type RestaurantOfferRow = {
   offer_type: string | null
   discount_value: number | null
   min_spend: number | null
+  metadata?: Record<string, unknown> | null
 }
 
 const num = (v: unknown) => {
@@ -90,7 +89,7 @@ function benefitFromText(value: string, fallback: BillOffer['benefitType']): { t
 }
 
 /** app: normalizeUnifiedBillOffer + extractNumericBenefit */
-function fromOffersTable(o: OffersTableRow, restaurantId: string): BillOffer {
+function fromOffersTable(o: OffersTableRow): BillOffer {
   const kind = upper(o.offer_type)
   let benefit: { type: BillOffer['benefitType']; value: number }
   if (num(o.benefit_percent) > 0) benefit = { type: 'percent', value: num(o.benefit_percent) }
@@ -115,7 +114,6 @@ function fromOffersTable(o: OffersTableRow, restaurantId: string): BillOffer {
     maxDiscount: num(o.max_discount_amount) || undefined,
     priority: o.priority == null ? 100 : Number(o.priority),
     fromOffersTable: true,
-    ownedHere: text(o.owner_entity_id) === restaurantId,
   }
 }
 
@@ -140,7 +138,6 @@ function fromRestaurantOffer(o: RestaurantOfferRow): BillOffer {
     maxBillAmount: 0,
     priority: 100,
     fromOffersTable: false,
-    ownedHere: true,
   }
 }
 
@@ -159,16 +156,15 @@ export function billOffers(restaurantId: string, own: RestaurantOfferRow[], tabl
   const scoped = table.filter(o => {
     if (!activeNow(o, now)) return false
     const mod = upper(o.module)
-    // the admin tags restaurant offers DINEIN — the app's list misses it
-    if (mod && !['BOTH', 'ALL', 'ANY', 'RESTAURANT', 'DINING', 'DINEIN', 'DINE_IN'].includes(mod)) return false
+    if (mod && !['BOTH', 'ALL', 'ANY', 'RESTAURANT', 'DINING'].includes(mod)) return false
     const flow = upper(o.payment_flow)
     if (flow && flow !== 'ANY' && flow !== 'BILL_PAYMENT' && flow !== 'PAY_BILL') return false
     if (isBankSource(o.source_type) || isPlatformSource(o.source_type)) return true
     return upper(o.source_type) === 'MERCHANT' && upper(o.owner_entity_type) === 'RESTAURANT' && text(o.owner_entity_id) === restaurantId
   })
-  // deduped on title too — the admin can save the same offer many times (BillSummaryScreen does the same)
+  // deduped on title too, as BillSummaryScreen does
   const seen = new Set<string>()
-  return [...own.map(fromRestaurantOffer), ...scoped.map(o => fromOffersTable(o, restaurantId))]
+  return [...own.map(fromRestaurantOffer), ...scoped.map(fromOffersTable)]
     .filter(o => o.value > 0)
     .filter(o => {
       const key = o.title.toLowerCase()
@@ -180,30 +176,36 @@ export function billOffers(restaurantId: string, own: RestaurantOfferRow[], tabl
     .sort((a, b) => a.priority - b.priority)
 }
 
-/**
- * Offers the bill applies by itself: the restaurant's own, and platform-funded
- * ones made for this restaurant. Bank / card offers and platform offers for
- * everywhere are the bank's or checkout's to apply, so they're only shown.
- */
-export function isAutoApplicable(o: BillOffer) {
-  return o.benefitType !== 'cashback' && (o.source === 'MERCHANT' || (o.source === 'PLATFORM' && o.ownedHere))
+/** PayBillScreen primaryOfferCard — the first merchant offer, else the first of any kind. */
+export function primaryOffer(offers: BillOffer[]): BillOffer | null {
+  return offers.find(o => o.source === 'MERCHANT') ?? offers[0] ?? null
+}
+
+/** "Min bill MUR 1,000" / "Up to MUR 2,000" when this amount is outside the offer's range, else ''. */
+export function offerRangeNote(o: BillOffer, amount: number): string {
+  if (o.minBillAmount > 0 && amount < o.minBillAmount) return `Min bill MUR ${fmtMur(o.minBillAmount)}`
+  if (o.maxBillAmount > 0 && amount > o.maxBillAmount) return `Up to MUR ${fmtMur(o.maxBillAmount)}`
+  return ''
 }
 
 /**
- * PayBillScreen autoSelectedStoreOffers — one offer per bill, the one this
- * amount qualifies for that saves the member the most (after their tier's share).
+ * BillSummaryScreen offerState — only a merchant offer in range can be applied;
+ * bank and platform offers are applied at payment.
  */
-export function autoMerchantOffer(offers: BillOffer[], amount: number, sharePct = 100): BillOffer | null {
-  let best: BillOffer | null = null
-  let bestSaving = 0
-  for (const o of offers) {
-    if (!isAutoApplicable(o)) continue
-    if (o.minBillAmount > 0 && amount < o.minBillAmount) continue
-    if (o.maxBillAmount > 0 && amount > o.maxBillAmount) continue
-    const saving = applyOffers(amount, [shareOffer(o, sharePct)]).discount
-    if (!best || saving > bestSaving) { best = o; bestSaving = saving }
-  }
-  return best
+export function couponState(o: BillOffer, amount: number): { state: 'apply' | 'locked'; note: string } {
+  if (o.source !== 'MERCHANT') return { state: 'locked', note: 'Applied at payment' }
+  const note = offerRangeNote(o, amount)
+  return note ? { state: 'locked', note } : { state: 'apply', note: '' }
+}
+
+/**
+ * BillSummaryScreen selectedOfferId — the member's choice (`null` = none); with
+ * no choice made yet, the offer is picked only when exactly one can apply.
+ */
+export function selectedCoupon(offers: BillOffer[], amount: number, choice: string | null | undefined): BillOffer | null {
+  const applicable = offers.filter(o => couponState(o, amount).state === 'apply')
+  const id = choice === undefined ? (applicable.length === 1 ? applicable[0].id : null) : choice
+  return applicable.find(o => o.id === id) ?? null
 }
 
 /**
@@ -245,9 +247,36 @@ export function applyOffers(billAmount: number, offers: BillOffer[]) {
   return { finalAmount: running, discount, cashback, applied }
 }
 
-/** The headline of an offer card — "20% OFF", "Flat MUR 100 OFF", or its title. */
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+/**
+ * What the member pays — app parity: BillSummaryScreen. Privé Credits can't
+ * cover the whole bill (at least MUR 1 goes on the card), and are capped by
+ * the balance and by what the burn rules allow now (`burnCap`).
+ */
+export function billTotals({ amount, discount, balance, burnCap, useCredits, upgradeAmount = 0 }: {
+  amount: number
+  discount: number
+  balance: number
+  burnCap: number
+  useCredits: boolean
+  /** a membership added to the bill (paid first, then the member returns to the bill) */
+  upgradeAmount?: number
+}) {
+  const payableBeforeCredits = Math.max(0, amount - discount + upgradeAmount)
+  const maxCreditSpend = Math.max(0, round2(payableBeforeCredits - 1))
+  const creditsUsable = balance > 0 && maxCreditSpend > 0 && burnCap > 0
+  const creditsApplied = useCredits && creditsUsable ? round2(Math.max(0, Math.min(balance, maxCreditSpend, burnCap))) : 0
+  return { payableBeforeCredits, creditsUsable, creditsApplied, toPay: round2(payableBeforeCredits - creditsApplied) }
+}
+
+/** app: BillSummaryScreen offerHeadline — the badge, else the benefit. */
 export function offerHeadline(o: BillOffer) {
-  return o.badgeText || o.title
+  if (o.badgeText) return o.badgeText
+  if (!(o.value > 0)) return 'Offer'
+  if (o.benefitType === 'percent') return `${o.value}% OFF`
+  if (o.benefitType === 'cashback') return `${o.value}% CASHBACK`
+  return `MUR ${fmtMur(o.value)} OFF`
 }
 
 export const MAX_BILL_DIGITS = 7
@@ -283,3 +312,5 @@ export type PendingBillPayment = {
   cashback: number
 }
 export const PENDING_BILL_KEY = 'pp_bill_payment_session'
+/** sessionStorage — the bill to reopen after buying a membership from its summary */
+export const PAY_BILL_RESUME_KEY = 'pp_bill_resume'

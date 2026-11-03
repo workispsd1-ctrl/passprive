@@ -11,8 +11,8 @@ import { t, u } from './designUnit'
  * option. Sized in `t` units like the restaurant detail page.
  */
 
-const D = '/figma/detail'
-const P = '/figma/paybill'
+const D = '/assets/merchant-detail'
+const P = '/assets/pay-bill'
 const INTER = 'font-(family-name:--font-inter)'
 
 export type MerchantPanelData = {

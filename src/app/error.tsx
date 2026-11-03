@@ -5,7 +5,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { AlertCircle, RotateCcw } from 'lucide-react'
 
-export default function GlobalError({
+// Renders inside the root layout, so no <html>/<body> here.
+export default function RootError({
   error,
   reset,
 }: {
@@ -15,53 +16,51 @@ export default function GlobalError({
   useEffect(() => { console.error(error) }, [error])
 
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-[#1A0E07] flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[#1A0E07] flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
 
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-brand-dark/25 blur-[120px]" />
-          <div className="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full bg-brand-light/15 blur-[100px]" />
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-brand-dark/25 blur-[120px]" />
+        <div className="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full bg-brand-light/15 blur-[100px]" />
+      </div>
+
+      <div className="relative flex flex-col items-center gap-6 max-w-sm">
+        <Link href="/">
+          <Image
+            src="/assets/brand/passprive-logo-white.png"
+            alt="PassPrivé"
+            width={904}
+            height={208}
+            className="h-12 w-auto object-contain opacity-80"
+          />
+        </Link>
+
+        <div className="w-16 h-16 rounded-3xl bg-white/10 border border-white/20 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-white/80" />
         </div>
 
-        <div className="relative flex flex-col items-center gap-6 max-w-sm">
-          <Link href="/">
-            <Image
-              src="/logo.webp"
-              alt="PassPrivé"
-              width={201}
-              height={48}
-              className="h-12 w-auto object-contain opacity-80"
-            />
+        <div>
+          <p className="text-xl font-extrabold text-white">Something went wrong</p>
+          <p className="text-sm text-white/70 mt-2 leading-relaxed">
+            An unexpected error occurred. Please try again or return home.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <button
+            type="button"
+            onClick={reset}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-white text-[#B83800] font-bold text-sm hover:bg-brand-tint transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" /> Try again
+          </button>
+          <Link
+            href="/"
+            className="flex-1 flex items-center justify-center py-3 rounded-2xl border border-white/20 text-white font-semibold text-sm hover:bg-white/5 transition-colors"
+          >
+            Go home
           </Link>
-
-          <div className="w-16 h-16 rounded-3xl bg-white/10 border border-white/20 flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-white/80" />
-          </div>
-
-          <div>
-            <p className="text-xl font-extrabold text-white">Something went wrong</p>
-            <p className="text-sm text-white/70 mt-2 leading-relaxed">
-              An unexpected error occurred. Please try again or return home.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <button
-              type="button"
-              onClick={reset}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-white text-[#B83800] font-bold text-sm hover:bg-brand-tint transition-colors"
-            >
-              <RotateCcw className="w-4 h-4" /> Try again
-            </button>
-            <Link
-              href="/"
-              className="flex-1 flex items-center justify-center py-3 rounded-2xl border border-white/20 text-white font-semibold text-sm hover:bg-white/5 transition-colors"
-            >
-              Go home
-            </Link>
-          </div>
         </div>
-      </body>
-    </html>
+      </div>
+    </div>
   )
 }

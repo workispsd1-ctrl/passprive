@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { WalletBalance, WalletTransaction } from '@/lib/types/wallet'
 import type { UserMembership } from '@/lib/types/subscription'
 import { PLAN_TIER } from '@/lib/types/subscription'
+import { PREFERRED_PARTNER_RATES } from '@/lib/constants/cashback'
 import { formatMRU, formatISODate } from '@/lib/utils/format'
 import { EmptyStateCard } from '@/components/shared/EmptyStateCard'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -248,8 +249,8 @@ export function WalletClient({ balance, transactions, ledger, nextExpiry, member
               className="rounded-2xl bg-linear-to-br from-brand to-brand-dark p-5 text-white shadow-md flex items-center justify-between gap-3 hover:opacity-95 transition-opacity"
             >
               <div>
-                <p className="text-sm font-bold">Upgrade to Privé Premium</p>
-                <p className="text-xs opacity-80 mt-1">Earn up to 4% at partner restaurants</p>
+                <p className="text-sm font-bold">Upgrade your membership</p>
+                <p className="text-xs opacity-80 mt-1">Earn up to {PREFERRED_PARTNER_RATES.black}% at Preferred Partners</p>
               </div>
               <ChevronRight className="w-5 h-5 opacity-70 shrink-0" />
             </Link>
@@ -317,9 +318,9 @@ export function WalletClient({ balance, transactions, ledger, nextExpiry, member
 
           <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm">
             {[
-              { label: 'Basic', rate: 0.5, tier: 'none', desc: 'All restaurants' },
-              { label: 'Privé Premium', rate: 2, tier: 'premium', desc: 'Preferred Partners' },
-              { label: 'Privé Black', rate: 4, tier: 'black', desc: 'Preferred Partners' },
+              { label: 'Basic', rate: PREFERRED_PARTNER_RATES.none, tier: 'none', desc: 'All restaurants' },
+              { label: 'Privé Premium', rate: PREFERRED_PARTNER_RATES.premium, tier: 'premium', desc: 'Preferred Partners' },
+              { label: 'Privé Black', rate: PREFERRED_PARTNER_RATES.black, tier: 'black', desc: 'Preferred Partners' },
             ].map((item, i) => (
               <div
                 key={item.tier}

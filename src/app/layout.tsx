@@ -78,9 +78,9 @@ export const metadata: Metadata = {
     url: SITE_URL,
     images: [
       {
-        url: "/passpriveLogo.png",
-        width: 1200,
-        height: 630,
+        url: "/assets/brand/passprive-logo-orange.png",
+        width: 885,
+        height: 208,
         alt: "PassPrivé",
       },
     ],
@@ -90,10 +90,7 @@ export const metadata: Metadata = {
     title: "PassPrivé — Exclusive Deals on Dining & Stores",
     description:
       "Discover exclusive deals on dining and stores near you with PassPrivé.",
-    images: ["/passpriveLogo.png"],
-  },
-  icons: {
-    icon: "/favicon.ico",
+    images: ["/assets/brand/passprive-logo-orange.png"],
   },
 };
 

@@ -14,22 +14,22 @@ export type CashbackPlan = 'free' | 'premiere' | 'black';
 // App parity: utils/cashbackBadge.js PLAN_BADGES
 const PLAN_BADGES: Record<CashbackPlan, { verified: string; preferred: string }> = {
   free: {
-    verified: '/membership/Lite_theme_free_0.5.webp',
-    preferred: '/membership/Lite_theme_free_0.5.webp',
+    verified: '/assets/cashback/Lite_theme_free_0.5.webp',
+    preferred: '/assets/cashback/Lite_theme_free_0.5.webp',
   },
   premiere: {
-    verified: '/membership/Lite_Theme_Plus_0.5.webp',
-    preferred: '/membership/Lite_Theme_Plus_1.5.webp',
+    verified: '/assets/cashback/Lite_Theme_Plus_0.5.webp',
+    preferred: '/assets/cashback/Lite_Theme_Plus_1.5.webp',
   },
   black: {
-    verified: '/membership/Lite_Theme_Black_0.5.webp',
-    preferred: '/membership/Lite_Theme_Black_3.webp',
+    verified: '/assets/cashback/Lite_Theme_Black_0.5.webp',
+    preferred: '/assets/cashback/Lite_Theme_Black_3.webp',
   },
 };
 
 // App parity: cashbackBadge.js USE_CASHBACK_BADGE / DISCOVERABLE_CHIP
-const USE_CASHBACK_BADGE = '/membership/Use-Cashback-OnPayment.webp';
-export const PROMOTED_CHIP = '/membership/PassPrive-Promoted.webp';
+const USE_CASHBACK_BADGE = '/assets/cashback/Use-Cashback-OnPayment.webp';
+export const PROMOTED_CHIP = '/assets/cashback/PassPrive-Promoted.webp';
 
 export type MerchantCapabilityFields = {
   merchant_type?: string | null;

@@ -399,7 +399,7 @@ function Terms() {
 }
 
 // app parity: components/BannerCarousel.jsx SLIDES + 3.5s auto-advance
-const SLIDES = [1, 2, 3, 4, 5].map(i => `/auth/onboarding-${i}.webp`)
+const SLIDES = [1, 2, 3, 4, 5].map(i => `/assets/auth/onboarding-${i}.webp`)
 
 /**
  * Login banner — app parity: the onboarding carousel on a blue→peach

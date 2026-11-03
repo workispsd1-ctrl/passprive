@@ -20,7 +20,7 @@ export function AppCTASection() {
           <div className="md:hidden relative z-10 flex flex-col items-center text-center gap-5">
             <div className="flex flex-col items-center gap-1">
               <Image
-                src="/logo.webp"
+                src="/assets/brand/passprive-logo-white.png"
                 alt="PassPrive"
                 width={140}
                 height={33}

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { canPayBill, getCashbackPct } from '@/lib/cashback'
 import { getRestaurantBySlugOrId } from '@/lib/services/dining'
-import { getUserPlan } from '@/lib/services/subscription'
+import { getSubscriptionPlans, getUserPlan } from '@/lib/services/subscription'
 import { getDiscountCaps } from '@/lib/services/membershipCaps'
 import { billOffers, type OffersTableRow, type RestaurantOfferRow } from '@/lib/payBill'
 import { SetPageTitle } from '@/components/layout/MinimalHeader/SetPageTitle'
@@ -18,8 +18,8 @@ export const metadata: Metadata = { title: 'Pay Bill | PassPrivé' }
  * → payment → BillPaymentSuccessScreen), drawn as the Figma "Flow Pay Bill"
  * frames: the restaurant on the left, the current step in a card on the right.
  */
-export default async function PayBillPage({ searchParams }: { searchParams: Promise<{ restaurant_id?: string }> }) {
-  const { restaurant_id } = await searchParams
+export default async function PayBillPage({ searchParams }: { searchParams: Promise<{ restaurant_id?: string; amount?: string; offer?: string }> }) {
+  const { restaurant_id, amount, offer } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -43,7 +43,7 @@ export default async function PayBillPage({ searchParams }: { searchParams: Prom
     )
   }
 
-  const [tableRes, plan, caps] = await Promise.all([
+  const [tableRes, plan, caps, plans, platformRes] = await Promise.all([
     supabase
       .from('offers')
       .select('id, source_type, owner_entity_type, owner_entity_id, module, payment_flow, title, subtitle, description, badge_text, logo_url, offer_type, benefit_value, benefit_percent, max_discount_amount, min_bill_amount, max_bill_amount, priority, starts_at, ends_at, sponsor_name')
@@ -51,11 +51,25 @@ export default async function PayBillPage({ searchParams }: { searchParams: Prom
       .order('priority', { ascending: true }),
     getUserPlan(user?.id),
     getDiscountCaps(),
+    getSubscriptionPlans(),
+    // app parity: platformFlags — superadmin earn / burn switches; only an explicit false turns one off
+    supabase.from('platform_settings').select('cashback_earn_enabled, cashback_burn_enabled').maybeSingle(),
   ])
+  const earnOn = platformRes.data?.cashback_earn_enabled !== false
+  const burnOn = platformRes.data?.cashback_burn_enabled !== false
 
   const tagsOf = (type: string) => detail.tags.filter(t => t.tag_type === type).map(t => t.tag_value)
   const offers = billOffers(restaurant.id, detail.offers as RestaurantOfferRow[], (tableRes.data ?? []) as OffersTableRow[])
+  // app parity: BillSummaryScreen — the upgrade is always one tier up
   const nextPlan = plan === 'free' ? 'premiere' : plan === 'premiere' ? 'black' : null
+  const nextRow = nextPlan
+    ? plans.find(row => {
+        const name = row.plan_name.toLowerCase()
+        return nextPlan === 'black' ? name.includes('black') : name.includes('plus') || name.includes('premium')
+      })
+    : undefined
+  const ratio = nextPlan && caps[plan] > 0 ? caps[nextPlan] / caps[plan] : null
+  const resumeAmount = Number(amount)
 
   return (
     <main
@@ -81,8 +95,21 @@ export default async function PayBillPage({ searchParams }: { searchParams: Prom
         offers={offers}
         plan={plan}
         sharePct={caps[plan]}
-        cashbackPct={getCashbackPct(restaurant, plan)}
-        upsell={nextPlan ? { plan: nextPlan, pct: getCashbackPct(restaurant, nextPlan) } : null}
+        cashbackPct={earnOn ? getCashbackPct(restaurant, plan) : 0}
+        burnEnabled={burnOn}
+        upsell={
+          nextPlan && nextRow
+            ? {
+                plan: nextPlan,
+                pct: earnOn ? getCashbackPct(restaurant, nextPlan) : 0,
+                planId: nextRow.id,
+                amount: Number(nextRow.amount) || 0,
+                multiplier: ratio == null ? null : Number.isInteger(ratio) ? `${ratio}x` : `${ratio.toFixed(1)}x`,
+              }
+            : null
+        }
+        initialAmount={resumeAmount > 0 ? resumeAmount : null}
+        initialOffer={offer === undefined ? undefined : offer === 'none' ? null : offer}
       />
     </main>
   )

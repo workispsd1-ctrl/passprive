@@ -10,7 +10,7 @@ import { t } from '@/components/sections/dining/designUnit'
 import { CheckRings } from '@/components/sections/dining/PaymentScreens'
 import { cancelDeadline } from './bookingTimes'
 
-const P = '/figma/paybill'
+const P = '/assets/pay-bill'
 
 export type BookingResultData = {
   id: string

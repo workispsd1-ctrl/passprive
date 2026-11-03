@@ -49,7 +49,7 @@ export async function HeroSection() {
             {COINS.map((c, i) => (
               <Image
                 key={i}
-                src='/membership/Wallet.webp'
+                src='/assets/membership/Wallet.webp'
                 alt=''
                 width={129}
                 height={129}

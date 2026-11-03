@@ -1,5 +1,5 @@
-import { CardGridPageSkeleton } from '@/components/shared/Skeletons'
+import { DealsPageSkeleton } from '@/components/shared/Skeletons'
 
 export default function Loading() {
-  return <CardGridPageSkeleton />
+  return <DealsPageSkeleton />
 }

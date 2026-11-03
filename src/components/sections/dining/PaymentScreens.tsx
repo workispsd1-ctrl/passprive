@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { t } from '@/components/sections/dining/designUnit'
 import { fmtMur } from '@/lib/payBill'
 
-const P = '/figma/paybill'
+const P = '/assets/pay-bill'
 
 /** The frames' peach wash across the top of a full-screen state. */
 function PeachTop() {
@@ -129,7 +129,7 @@ export function BillCleared({
         {earned > 0 && (
           <StatTile label='Earned'>
             {fmtMur(earned)}
-            <Image src='/figma/detail/earn-coin.png' alt='Privé Credits' width={47} height={47} style={{ width: t(47), height: t(47) }} />
+            <Image src='/assets/merchant-detail/earn-coin.png' alt='Privé Credits' width={47} height={47} style={{ width: t(47), height: t(47) }} />
           </StatTile>
         )}
       </div>

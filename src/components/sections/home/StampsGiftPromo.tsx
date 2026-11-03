@@ -17,7 +17,7 @@ export function StampsGiftPromo() {
           className="relative block aspect-43/15 max-w-2xl overflow-hidden rounded-[20px] min-[120rem]:max-w-3xl shadow-[0_2px_6px_rgba(0,0,0,0.06)] transition-opacity hover:opacity-95"
         >
           <Image
-            src="/CollectStamp-Single.webp"
+            src="/assets/home/CollectStamp-Single.webp"
             alt="Collect Stamps"
             fill
             className="object-cover"

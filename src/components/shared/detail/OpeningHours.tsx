@@ -103,7 +103,7 @@ export function OpeningHoursPill({ hours, variant = 'web' }: { hours: HoursRow[]
             </span>
           </span>
           <Image
-            src='/figma/detail/chevron-down.svg'
+            src='/assets/merchant-detail/chevron-down.svg'
             alt=''
             width={8}
             height={15}

@@ -181,7 +181,7 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-[13px] text-gray-400">No salons match your filters.</p>
       ) : (
-        <HScroll maxWidthClassName="w-full max-w-none" gapClassName="gap-4 2xl:gap-6" className="py-0">
+        <HScroll className="py-0">
           {filtered.map((store) => {
             const meta = [
               store.dist != null ? (store.dist < 1 ? `${Math.round(store.dist * 1000)}m` : `${store.dist.toFixed(1)}km`) : null,

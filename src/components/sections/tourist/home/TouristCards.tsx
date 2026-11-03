@@ -66,10 +66,10 @@ export function CuratedCard({ place }: { place: PlaceWithDistance }) {
   return (
     <Link
       href={placeHref(place)}
-      className="flex w-62.5 shrink-0 flex-col overflow-hidden rounded-[18px] bg-white p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md xl:w-70 2xl:w-80 min-[120rem]:w-[377px]"
+      className="flex w-75 shrink-0 flex-col overflow-hidden rounded-[18px] bg-white p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md 2xl:w-95"
     >
-      <div className="relative h-44 overflow-hidden rounded-xl xl:h-48 2xl:h-56 min-[120rem]:h-[254px]">
-        <Photo src={placeImageUrl(place)} alt={place.place_name} sizes="(min-width: 1920px) 377px, 320px" />
+      <div className="relative aspect-361/254 overflow-hidden rounded-xl">
+        <Photo src={placeImageUrl(place)} alt={place.place_name} sizes="(min-width: 1536px) 380px, 300px" />
         {place.ad_badge_text && <TagPill>{place.ad_badge_text}</TagPill>}
         <span className="absolute bottom-2.5 left-2.5 z-10 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-[#1E8A3E]">
           <ShieldCheck className="h-3 w-3" />
@@ -118,10 +118,10 @@ export function CompactPlaceCard({ place, category }: { place: PlaceWithDistance
   return (
     <Link
       href={placeHref(place)}
-      className="flex w-62.5 shrink-0 flex-col overflow-hidden rounded-[18px] bg-white p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md xl:w-70 2xl:w-80 min-[120rem]:w-[377px]"
+      className="flex w-75 shrink-0 flex-col overflow-hidden rounded-[18px] bg-white p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md 2xl:w-95"
     >
-      <div className="relative h-44 overflow-hidden rounded-xl xl:h-48 2xl:h-56 min-[120rem]:h-[254px]">
-        <Photo src={placeImageUrl(place)} alt={place.place_name} sizes="(min-width: 1920px) 377px, 320px" />
+      <div className="relative aspect-361/254 overflow-hidden rounded-xl">
+        <Photo src={placeImageUrl(place)} alt={place.place_name} sizes="(min-width: 1536px) 380px, 300px" />
         {place.ad_badge_text && <TagPill>{place.ad_badge_text}</TagPill>}
       </div>
       <div className="px-1.5 pt-2.5 pb-1">
@@ -164,17 +164,17 @@ export function DayPlanCard({
       type="button"
       onClick={() => onSelect(plan)}
       aria-pressed={selected}
-      className="flex w-40 shrink-0 flex-col items-center text-center md:w-44 xl:w-48 2xl:w-60 min-[120rem]:w-72"
+      className="flex w-36 shrink-0 flex-col items-center text-center md:w-52 2xl:w-72"
     >
       <div
-        className={`relative h-40 w-40 overflow-hidden rounded-full border-4 shadow-[0_4px_10px_rgba(0,0,0,0.12)] md:h-44 md:w-44 xl:h-48 xl:w-48 2xl:h-60 2xl:w-60 min-[120rem]:h-72 min-[120rem]:w-72 ${
+        className={`relative aspect-square w-full overflow-hidden rounded-full border-4 shadow-[0_4px_10px_rgba(0,0,0,0.12)] ${
           selected ? 'border-[#F0592A]' : 'border-white'
         }`}
       >
-        <Photo src={plan.coverImage} alt={plan.title} sizes="(min-width: 1920px) 288px, 240px" />
+        <Photo src={plan.coverImage} alt={plan.title} sizes="(min-width: 1536px) 288px, 208px" />
       </div>
       <p className="mt-3 w-full truncate text-[14px] font-bold text-[#0D141C] 2xl:text-[16px] min-[120rem]:text-[20px]">{plan.title}</p>
-      <p className="mt-0.5 w-full truncate text-[12px] text-gray-500">
+      <p className="mt-0.5 w-full truncate text-[12px] text-gray-500 2xl:text-sm min-[120rem]:text-base">
         {plan.entryTotal > 0 ? `From ${formatRs(plan.entryTotal)} / guest` : 'Free entry at every stop'}
       </p>
       <p className="mt-0.5 line-clamp-2 w-full text-[11px] text-gray-400">{plan.stopNames.join(', ')}</p>

@@ -26,7 +26,7 @@ const MEALS: Meal[] = ['Lunch', 'Dinner']
 const DATE_COUNT = 14
 const NEXT_PLAN: Partial<Record<CashbackPlan, CashbackPlan>> = { free: 'premiere', premiere: 'black' }
 const PLAN_LABEL: Record<CashbackPlan, string> = { free: 'Free', premiere: 'Plus', black: 'Black' }
-const P = '/figma/paybill'
+const P = '/assets/pay-bill'
 
 // app parity: ReviewRestaurantBooking.jsx default terms
 const TERMS = [

@@ -91,7 +91,7 @@ function Hero({ mode, category, total }: { mode: DealsMode; category: DealsCateg
       <span className='pointer-events-none absolute -bottom-28 left-1/3 size-72 rounded-full bg-black/10 blur-2xl' />
       {mode === 'deals' ? (
         <Image
-          src='/deals/deal-ticket.png'
+          src='/assets/deals/deal-ticket.png'
           alt=''
           width={420}
           height={168}
@@ -99,7 +99,7 @@ function Hero({ mode, category, total }: { mode: DealsMode; category: DealsCateg
         />
       ) : (
         <Image
-          src='/membership/Wallet.webp'
+          src='/assets/membership/Wallet.webp'
           alt=''
           width={220}
           height={220}

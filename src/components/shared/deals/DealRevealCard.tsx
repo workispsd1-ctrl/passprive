@@ -51,8 +51,8 @@ export function DealRevealCard({
       <div className="pointer-events-none absolute -bottom-40 -left-36 size-86 rounded-full bg-[radial-gradient(circle,rgba(238,67,0,0.5),transparent_65%)]" />
       <div className="pointer-events-none absolute top-10 left-1/2 size-47 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,236,148,0.22),transparent_65%)]" />
 
-      <Image src="/deals/deal-coin.png" alt="" width={22} height={22} className="pointer-events-none absolute top-[8%] left-[30%] -rotate-20" />
-      <Image src="/deals/deal-coin.png" alt="" width={20} height={20} className="pointer-events-none absolute top-[26%] right-[22%] -rotate-42 blur-[1px]" />
+      <Image src="/assets/deals/deal-coin.png" alt="" width={22} height={22} className="pointer-events-none absolute top-[8%] left-[30%] -rotate-20" />
+      <Image src="/assets/deals/deal-coin.png" alt="" width={20} height={20} className="pointer-events-none absolute top-[26%] right-[22%] -rotate-42 blur-[1px]" />
 
       <p className="absolute top-[7%] left-0 right-0 text-center leading-none">
         <span className="block pl-[8%] text-[38px] font-medium text-[#FFEC8B] italic">Deal</span>
@@ -60,7 +60,7 @@ export function DealRevealCard({
       </p>
 
       <div className="absolute inset-x-[7%] top-[36%] h-[37%]">
-        <Image src="/deals/deal-ticket.png" alt="" fill className="pointer-events-none object-fill" sizes="280px" />
+        <Image src="/assets/deals/deal-ticket.png" alt="" fill className="pointer-events-none object-fill" sizes="280px" />
         {revealed ? (
           <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
             {kicker && <span className="text-[10px] leading-3 font-bold tracking-[3px] text-[#FFEC8B]">{kicker}</span>}
@@ -98,7 +98,7 @@ export function DealRevealCard({
           )
         : reset && (
             <span className="absolute top-[75%] left-1/2 flex h-6 -translate-x-1/2 items-center gap-1 rounded-full border border-[#FFAC8B] px-2 text-[10px] font-semibold whitespace-nowrap">
-              <Image src="/deals/deal-calendar.png" alt="" width={18} height={15} />
+              <Image src="/assets/deals/deal-calendar.png" alt="" width={18} height={15} />
               {reset}
             </span>
           )}

@@ -9,6 +9,7 @@ import { classifyPaymentResponse } from '@/lib/utils/payment'
 import { PaymentLoadingScreen } from '@/components/shared/PaymentLoadingScreen'
 import { PaymentErrorCard } from '@/components/shared/PaymentErrorCard'
 import { SESSION_KEY_MEMBERSHIP as SESSION_KEY } from '@/lib/constants/sessionKeys'
+import { PAY_BILL_RESUME_KEY } from '@/lib/payBill'
 
 type Phase =
   | { status: 'loading'; message: string }
@@ -81,7 +82,13 @@ function PaymentReturnInner() {
     try { sessionStorage.removeItem(SESSION_KEY) } catch { /* ignore */ }
 
     setPhase({ status: 'success' })
-    setTimeout(() => router.replace('/membership'), 2500)
+    // app parity: returnToResumeRoute — bought from a bill's summary, go back to that bill
+    let resume: string | null = null
+    try {
+      resume = sessionStorage.getItem(PAY_BILL_RESUME_KEY)
+      sessionStorage.removeItem(PAY_BILL_RESUME_KEY)
+    } catch { /* ignore */ }
+    setTimeout(() => router.replace(resume ?? '/membership'), 2500)
   }, [router])
 
   useEffect(() => {

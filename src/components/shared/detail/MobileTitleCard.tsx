@@ -105,11 +105,11 @@ export function MobileTitleCard({
         </div>
         <div className='flex shrink-0 items-center gap-1.5'>
           <a href={directionsUrl(lat, lng, address || name)} target='_blank' rel='noopener noreferrer' aria-label='Get directions'>
-            <Image src='/deals/Direction.webp' alt='' width={32} height={31} />
+            <Image src='/assets/merchant-detail/Direction.webp' alt='' width={32} height={31} />
           </a>
           {phone && (
             <a href={`tel:${phone}`} aria-label={`Call ${name}`}>
-              <Image src='/deals/Call.webp' alt='' width={32} height={31} />
+              <Image src='/assets/merchant-detail/Call.webp' alt='' width={32} height={31} />
             </a>
           )}
         </div>

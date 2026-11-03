@@ -103,7 +103,7 @@ function BlackUpgradeDialog({
             <span className="rounded-xl bg-[#F6F6F6] px-5 py-2 text-[28px] font-black text-[#2C2D32]">
               {price}<span className="text-[16px] font-bold"> MUR</span>
             </span>
-            <Image src="/membership/BlackBadge.webp" alt="Privé Black" width={91} height={39} className="mt-1 h-auto w-22" />
+            <Image src="/assets/membership/BlackBadge.webp" alt="Privé Black" width={91} height={39} className="mt-1 h-auto w-22" />
             {period && <span className="text-[12px] font-medium text-[#666666]">{period}</span>}
           </div>
         )}
@@ -136,7 +136,7 @@ function ReceiptArtCard({ children, className }: { children: React.ReactNode; cl
       <span className="pointer-events-none absolute top-[-37.4cqw] left-[-21.9cqw] size-[80.7cqw] rounded-full bg-[radial-gradient(closest-side,#20094C,rgba(32,9,76,0.75)_55%,transparent)]" />
       <span className="pointer-events-none absolute top-[-7.3cqw] left-[44.4cqw] h-[45cqw] w-[26.3cqw] rounded-full bg-[radial-gradient(closest-side,#38117D,rgba(56,17,125,0.75)_55%,transparent)]" />
       <Image
-        src="/receipts/cashback-upload-receipt.png"
+        src="/assets/receipts/cashback-upload-receipt.png"
         alt=""
         width={340}
         height={340}
@@ -201,7 +201,7 @@ export function ReceiptCashbackBanner({
   const figma = variant === 'figma'
   const receiptHead = (
     <OfferHead
-      icon={<Image src="/receipts/cashback-upload-receipt.png" alt="" width={40} height={40} style={{ width: t(40), height: t(40) }} />}
+      icon={<Image src="/assets/receipts/cashback-upload-receipt.png" alt="" width={40} height={40} style={{ width: t(40), height: t(40) }} />}
       label="Receipt cashback"
       color="#38107c"
     />

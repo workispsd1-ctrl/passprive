@@ -109,11 +109,11 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
           style={{ width: t(726), height: t(70), borderWidth: t(2), borderRadius: t(39.4), paddingLeft: t(12), paddingRight: t(20), gap: t(15), fontSize: t(24), letterSpacing: t(0.41) }}
         >
           <span className="flex shrink-0 items-center justify-center rounded-full bg-[#e5e5e5]" style={{ width: t(49), height: t(48) }}>
-            <Image src="/figma/detail/pencil.svg" alt="" width={24} height={24} style={{ width: t(24), height: t(24) }} />
+            <Image src="/assets/merchant-detail/pencil.svg" alt="" width={24} height={24} style={{ width: t(24), height: t(24) }} />
           </span>
           <span className="flex-1">Leave a review</span>
           {/* the frame's vector is a "<" turned 180° */}
-          <Image src="/figma/detail/chevron-right.svg" alt="" width={12} height={24} className="rotate-180" style={{ width: t(12), height: t(24) }} />
+          <Image src="/assets/merchant-detail/chevron-right.svg" alt="" width={12} height={24} className="rotate-180" style={{ width: t(12), height: t(24) }} />
         </button>
       ) : variant === 'field' ? (
         <button

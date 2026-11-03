@@ -9,7 +9,7 @@ export default function StoresLoading() {
       </div>
       <RailSkeleton titleWidth={null} count={8} gap='gap-3'>{i => <TileSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton count={4}>
-        {i => <PosterCardSkeleton key={i} size='w-[calc((100%-60px)/3.5)] 2xl:w-[calc((100%-100px)/3.5)]' />}
+        {i => <PosterCardSkeleton key={i} size='w-[42%] md:w-80 2xl:w-105' />}
       </RailSkeleton>
       <RailSkeleton titleWidth='w-48'>{i => <CircleCardSkeleton key={i} />}</RailSkeleton>
       <section className='mx-auto max-w-7xl px-4 py-4 md:px-8' aria-hidden>

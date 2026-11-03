@@ -27,15 +27,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 // app parity: PriveCreditsScreen.jsx HERO_CONFIG (hero art) — CMS hero/badge override it
 const HERO_BG: Record<string, string> = {
-  black: '/membership/hero-black.webp',
-  plus: '/membership/hero-plus.webp',
-  free: '/membership/hero-free.webp',
+  black: '/assets/membership/hero-black.webp',
+  plus: '/assets/membership/hero-plus.webp',
+  free: '/assets/membership/hero-free.webp',
 }
 
 const EXPLORE = [
-  { key: 'dining', title: 'Explore Restaurants', icon: '/nav/dining.webp', prefix: 'Explore all in', bold: 'Dining', href: '/dining' },
-  { key: 'stores', title: 'Explore stores near you', icon: '/nav/shopping.webp', prefix: 'Checkout stuff in', bold: 'Shopping', href: '/stores' },
-  { key: 'wellness', title: 'Explore salons near you', icon: '/nav/wellness.webp', prefix: 'See all salons in', bold: 'Wellness', href: '/wellness' },
+  { key: 'dining', title: 'Explore Restaurants', icon: '/assets/nav/dining.webp', prefix: 'Explore all in', bold: 'Dining', href: '/dining' },
+  { key: 'stores', title: 'Explore stores near you', icon: '/assets/nav/shopping.webp', prefix: 'Checkout stuff in', bold: 'Shopping', href: '/stores' },
+  { key: 'wellness', title: 'Explore salons near you', icon: '/assets/nav/wellness.webp', prefix: 'See all salons in', bold: 'Wellness', href: '/wellness' },
 ] as const
 
 /**

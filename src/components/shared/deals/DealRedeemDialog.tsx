@@ -67,7 +67,7 @@ function RedeemHeader() {
         Deal<span className="text-[#FEEC93]"> Now</span>
       </p>
       <p className="text-[11px]">Get your exclusive discount at the merchant.</p>
-      <Image src="/deals/redeem-gift.webp" alt="" width={133} height={121} className="pointer-events-none absolute -right-2 top-2" />
+      <Image src="/assets/deals/redeem-gift.webp" alt="" width={133} height={121} className="pointer-events-none absolute -right-2 top-2" />
     </div>
   )
 }
@@ -192,7 +192,7 @@ function PinBody({
 
   return (
     <div className="px-6 pt-4 pb-6 text-center">
-      <Image src="/deals/redeem-pin-phone.webp" alt="" width={112} height={102} className="mx-auto" />
+      <Image src="/assets/deals/redeem-pin-phone.webp" alt="" width={112} height={102} className="mx-auto" />
       <DialogTitle className="mt-3 text-[20px] font-bold text-[#2C2D32]">
         {error?.title ?? (status === 'locked' ? 'PIN entry paused' : 'Enter Merchant PIN')}
       </DialogTitle>
@@ -326,7 +326,7 @@ function NfcBody({
       {phase === 'tap' ? (
         <>
           <button type="button" onClick={startReading} aria-label="Tap to redeem with NFC" className="mx-auto block">
-            <Image src="/deals/redeem-tap-finger.webp" alt="" width={119} height={124} />
+            <Image src="/assets/deals/redeem-tap-finger.webp" alt="" width={119} height={124} />
           </button>
           <DialogTitle className="mt-2 text-[24px] font-bold text-[#2C2D32]">Tap here</DialogTitle>
           <DialogDescription className={cn('mt-3 text-[12px] leading-4 font-medium', note ? 'text-[#FD2E38]' : 'text-[#666666]')}>
@@ -335,7 +335,7 @@ function NfcBody({
         </>
       ) : (
         <>
-          <Image src="/deals/redeem-nfc-phone.webp" alt="" width={135} height={124} className="mx-auto" />
+          <Image src="/assets/deals/redeem-nfc-phone.webp" alt="" width={135} height={124} className="mx-auto" />
           <DialogTitle className="mt-3 text-[20px] font-bold text-[#2C2D32]">Hold Near Merchant’s Device</DialogTitle>
           <DialogDescription className="mt-2 text-[14px] leading-4.5 font-semibold text-[#666666]">
             Keep your phone close to the merchant’s NFC device until we confirm.

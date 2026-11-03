@@ -16,15 +16,15 @@ export const metadata: Metadata = {
 
 // app parity: PriveCreditsScreen.jsx HERO_CONFIG + buildHowItWorks
 const HERO = {
-  black: { bg: '/membership/hero-black.webp', badge: '/membership/BlackBadge.webp', cashback: '3%' },
-  plus: { bg: '/membership/hero-plus.webp', badge: '/membership/PlusBadge.webp', cashback: '1.5%' },
-  free: { bg: '/membership/hero-free.webp', badge: '/membership/FreeBadge.webp', cashback: '0.5%' },
+  black: { bg: '/assets/membership/hero-black.webp', badge: '/assets/membership/BlackBadge.webp', cashback: '3%' },
+  plus: { bg: '/assets/membership/hero-plus.webp', badge: '/assets/membership/PlusBadge.webp', cashback: '1.5%' },
+  free: { bg: '/assets/membership/hero-free.webp', badge: '/assets/membership/FreeBadge.webp', cashback: '0.5%' },
 } as const
 
 const EXPLORE = [
-  { href: '/dining', icon: '/nav/dining.webp', prefix: 'Explore', bold: 'Restaurants' },
-  { href: '/stores', icon: '/nav/shopping.webp', prefix: 'Explore stores', bold: 'near you' },
-  { href: '/wellness', icon: '/nav/wellness.webp', prefix: 'Explore salons', bold: 'near you' },
+  { href: '/dining', icon: '/assets/nav/dining.webp', prefix: 'Explore', bold: 'Restaurants' },
+  { href: '/stores', icon: '/assets/nav/shopping.webp', prefix: 'Explore stores', bold: 'near you' },
+  { href: '/wellness', icon: '/assets/nav/wellness.webp', prefix: 'Explore salons', bold: 'near you' },
 ]
 
 /** Privé Credits explainer + the member's credit history — app parity: PriveCreditsScreen.jsx. */

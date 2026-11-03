@@ -14,7 +14,7 @@ export function TouristHero({ totalPlaces, freeEntryCount, searchQuery, setSearc
   return (
     <div className="relative overflow-hidden rounded-3xl px-6 py-12 md:px-14 md:py-20 mb-6">
       <Image
-        src="/tourist-beach-hero.jpg"
+        src="/assets/tourist/tourist-beach-hero.jpg"
         alt="Tropical beach in Mauritius"
         fill
         priority

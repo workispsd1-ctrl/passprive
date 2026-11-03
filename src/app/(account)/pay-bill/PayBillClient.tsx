@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 import { useLocation } from '@/lib/context/LocationContext'
 import { MEMBERSHIP_BADGE } from '@/lib/cashbackBadge'
@@ -12,15 +11,18 @@ import type { CashbackPlan } from '@/lib/cashback'
 import { fetchCashbackBalance } from '@/lib/services/cashbackBalance'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
 import { resolveMerchantTrace, resolveSessionId } from '@/lib/utils/payment'
-import { usePaymentWindow } from '@/lib/hooks/usePaymentWindow'
 import {
   MAX_BILL_DIGITS,
+  PAY_BILL_RESUME_KEY,
   PENDING_BILL_KEY,
   applyOffers,
-  autoMerchantOffer,
+  billTotals,
+  couponState,
   fmtMur,
-  isAutoApplicable,
   offerHeadline,
+  offerRangeNote,
+  primaryOffer,
+  selectedCoupon,
   shareOffer,
   type BillOffer,
   type BillQuote,
@@ -31,9 +33,8 @@ import { ProcessingScreen } from '@/components/sections/dining/PaymentScreens'
 import { CardButton, Capsule, Radio, RestaurantPanel, type MerchantPanelData } from '@/components/sections/dining/MerchantFlowParts'
 
 const PLAN_LABEL: Record<CashbackPlan, string> = { free: 'Free', premiere: 'Plus', black: 'Black' }
-const D = '/figma/detail'
-const P = '/figma/paybill'
-const INTER = 'font-(family-name:--font-inter)'
+const D = '/assets/merchant-detail'
+const P = '/assets/pay-bill'
 
 type Step = 'amount' | 'summary' | 'method'
 
@@ -49,12 +50,64 @@ function Row({ label, value, accent = false, strong = false }: { label: React.Re
   )
 }
 
+/** One coupon on the Bill summary — app parity: BillSummaryScreen CouponCard. */
+function CouponCard({ offer, amount, applied, onToggle }: { offer: BillOffer; amount: number; applied: boolean; onToggle: () => void }) {
+  const { state, note } = couponState(offer, amount)
+  const enabled = state === 'apply'
+  return (
+    <button
+      type='button'
+      role='radio'
+      aria-checked={applied}
+      disabled={!enabled}
+      onClick={onToggle}
+      className={cn('flex shrink-0 flex-col border-dashed bg-[#fff6f2] text-left', applied ? 'border-[#ff4800]' : 'border-[#ff4800]/40')}
+      style={{ width: t(290), borderWidth: t(1.5), borderRadius: t(22), padding: t(18), gap: t(4) }}
+    >
+      {offer.logo ? (
+        <Image src={offer.logo} alt='' width={80} height={32} className='w-auto object-contain' style={{ height: t(32) }} />
+      ) : (
+        <span className='truncate font-bold text-[#ff4800]' style={{ fontSize: t(22) }}>{offerHeadline(offer)}</span>
+      )}
+      <span className='truncate font-semibold text-[#2c2d32]' style={{ fontSize: t(18) }}>{offer.title}</span>
+      {offer.sub && <span className='truncate text-[#767677]' style={{ fontSize: t(16) }}>{offer.sub}</span>}
+      <span className='flex items-center border-t border-dashed border-[#ff4800]/40' style={{ marginTop: t(10), paddingTop: t(10), gap: t(8), fontSize: t(17) }}>
+        {enabled ? (
+          <>
+            <Radio on={applied} />
+            <span className='font-semibold text-[#ff4800]'>{applied ? 'Applied' : 'Apply'}</span>
+          </>
+        ) : (
+          <span className='truncate text-[#8e8e93]'>{note}</span>
+        )}
+      </span>
+    </button>
+  )
+}
+
+/** The payment gateway's page, embedded as the app's WebView does; the page follows the session. */
+function PaymentFrame({ src, srcDoc, onCancel }: { src: string; srcDoc: string; onCancel: () => void }) {
+  return (
+    <div className='fixed inset-0 z-50 flex flex-col bg-white'>
+      <div className='flex items-center justify-between border-b border-[#efefef]' style={{ padding: `${t(16)} ${t(32)}` }}>
+        <span className='font-semibold text-[#2c2d32]' style={{ fontSize: t(24) }}>Secure payment</span>
+        <button type='button' onClick={onCancel} className='font-semibold text-[#ff4800]' style={{ fontSize: t(22) }}>Cancel</button>
+      </div>
+      {src ? (
+        <iframe title='Secure payment' src={src} className='w-full flex-1 border-0' />
+      ) : (
+        <iframe title='Secure payment' srcDoc={srcDoc} sandbox='allow-scripts allow-forms allow-popups allow-top-navigation-by-user-activation' className='w-full flex-1 border-0' />
+      )}
+    </div>
+  )
+}
+
 /**
- * Pay a restaurant bill. Flow from the app — PayBillScreen (amount; the best
- * restaurant offer is applied for you) → BillSummaryScreen (savings, Privé
- * Credits, what's paid) → payment method → the bank's secure card page (card
- * details + OTP / 3-D Secure) → /pay-bill/payment-return. UI from the Figma
- * "Flow Pay Bill" frames: the restaurant on the left, the step in a card.
+ * Pay a restaurant bill. Flow from the app — PayBillScreen (amount; the first
+ * restaurant offer can be ticked) → BillSummaryScreen (coupons, membership
+ * upgrade, Privé Credits, what's paid) → payment method → the MIPS payment
+ * page → /pay-bill/payment-return. UI from the Figma "Flow Pay Bill" frames:
+ * the restaurant on the left, the step in a card.
  */
 export function PayBillClient({
   restaurant: r,
@@ -62,7 +115,10 @@ export function PayBillClient({
   plan,
   sharePct,
   cashbackPct,
+  burnEnabled,
   upsell,
+  initialAmount,
+  initialOffer,
 }: {
   restaurant: PayBillRestaurant
   offers: BillOffer[]
@@ -70,15 +126,27 @@ export function PayBillClient({
   /** the member's share of a merchant's upfront discount (membership_discount_caps) */
   sharePct: number
   cashbackPct: number
-  upsell: { plan: CashbackPlan; pct: number } | null
+  /** platform_settings.cashback_burn_enabled */
+  burnEnabled: boolean
+  /** app parity: one tier up, payable before the bill (startMembershipPayment) */
+  upsell: { plan: CashbackPlan; pct: number; planId: string; amount: number; multiplier: string | null } | null
+  /** back from buying a membership: reopen the bill's summary */
+  initialAmount: number | null
+  initialOffer: string | null | undefined
 }) {
   const router = useRouter()
   const { promptLogin } = useAuthPrompt()
   const { location } = useLocation()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const [step, setStep] = useState<Step>('amount')
-  const [digits, setDigits] = useState('')
+  const [step, setStep] = useState<Step>(initialAmount ? 'summary' : 'amount')
+  const [digits, setDigits] = useState(initialAmount ? String(initialAmount) : '')
+  // amount screen: the first offer's tick
+  const [offerTicked, setOfferTicked] = useState(true)
+  // summary: the coupon picked (undefined = no choice yet, null = none)
+  const [couponChoice, setCouponChoice] = useState<string | null | undefined>(initialOffer)
+  const [upgradeApplied, setUpgradeApplied] = useState(false)
+  const [frame, setFrame] = useState<{ sessionId: string; merchantTrace: string; src: string; srcDoc: string } | null>(null)
   const [quote, setQuote] = useState<{ amount: number; data: BillQuote } | null>(null)
   const [balance, setBalance] = useState(0)
   const [useCredits, setUseCredits] = useState(false)
@@ -136,25 +204,25 @@ export function PayBillClient({
 
   const q = quote && quote.amount === amount ? quote.data : null
 
-  // ── offers (PayBillScreen) ──
-  const merchantOffers = offers.filter(isAutoApplicable)
-  const extraOffers = offers.filter(o => !isAutoApplicable(o))
-  const autoOffer = autoMerchantOffer(offers, amount, sharePct)
-  const primary = autoOffer ?? merchantOffers[0] ?? null
-  const application = useMemo(() => applyOffers(amount, autoOffer ? [shareOffer(autoOffer, sharePct)] : []), [amount, autoOffer, sharePct])
-  const repeatDiscount = q?.repeatReward?.discount ?? 0
-  const discount = Math.round((application.discount + repeatDiscount) * 100) / 100
-  const cashback = Math.round((application.cashback + (q?.cashback ?? 0)) * 100) / 100
-  const unlockGap = primary && !autoOffer && primary.minBillAmount > amount ? primary.minBillAmount - amount : 0
+  // ── amount screen offers (PayBillScreen) ──
+  const primary = primaryOffer(offers)
+  const primaryIsMerchant = primary?.source === 'MERCHANT'
+  const extraOffers = offers.filter(o => o.source !== 'MERCHANT')
+  const rangeNote = primary && amount > 0 ? offerRangeNote(primary, amount) : ''
+  const offerApplied = primaryIsMerchant && offerTicked && !rangeNote
 
-  // ── credits + total (BillSummaryScreen) ──
-  const payableBeforeCredits = Math.max(0, amount - discount)
-  const maxCreditSpend = Math.max(0, Math.round((payableBeforeCredits - 1) * 100) / 100)
+  // ── coupon + totals (BillSummaryScreen) ──
+  const selected = selectedCoupon(offers, amount, couponChoice)
+  const application = useMemo(() => applyOffers(amount, selected ? [shareOffer(selected, sharePct)] : []), [amount, selected, sharePct])
+  const offerDiscount = Math.round(application.discount * 100) / 100
+  const rewardDiscount = q?.repeatReward?.discount ?? 0
+  const discount = Math.round((offerDiscount + rewardDiscount) * 100) / 100
+  const cashback = Math.round((application.cashback + (q?.cashback ?? 0)) * 100) / 100
+  const upgradeAmount = upgradeApplied && upsell ? upsell.amount : 0
   const burnCap = q?.burn ? q.burn.burnableNow : balance
-  const creditsUsable = balance > 0 && maxCreditSpend > 0 && burnCap > 0
-  const creditsApplied = useCredits && creditsUsable ? Math.round(Math.max(0, Math.min(balance, maxCreditSpend, burnCap)) * 100) / 100 : 0
-  const toPay = Math.round((payableBeforeCredits - creditsApplied) * 100) / 100
+  const { creditsUsable, creditsApplied, toPay } = billTotals({ amount, discount, balance, burnCap, useCredits: useCredits && burnEnabled, upgradeAmount })
   const creditsBlocked = q?.burn && !(q.burn.burnableNow > 0) ? q.burn.blockMessage : ''
+  const earnCredits = (Math.max(0, toPay - upgradeAmount) * cashbackPct) / 100
 
   const distanceKm =
     location.lat != null && location.lng != null && r.lat != null && r.lng != null
@@ -178,6 +246,7 @@ export function PayBillClient({
   function toSummary() {
     if (!(amount > 0)) return
     if (q && !q.loggedIn) { promptLogin(); return }
+    setCouponChoice(primaryIsMerchant && primary ? (offerApplied ? primary.id : null) : undefined)
     go('summary')
   }
 
@@ -187,36 +256,56 @@ export function PayBillClient({
     else router.push(`/dining/${r.id}`)
   }
 
-  // the bank's page opens in its own window; this page follows the session and
-  // moves on to the receipt page — which verifies it — however the window ends
-  const bank = usePaymentWindow(({ sessionId, merchantTrace, outcome }) => {
-    const qs = new URLSearchParams({ session_id: sessionId, merchant_trace: merchantTrace })
-    if (outcome) qs.set('outcome', outcome)
-    router.replace(`/pay-bill/payment-return?${qs}`)
-  })
+  // Follow the session as the app does (waitForMipsPayment: payment_sessions.status
+  // every 2.5s, up to 15 minutes); the backend finalizes the bill and credits the cashback.
+  useEffect(() => {
+    if (!frame) return
+    let live = true
+    let timer: ReturnType<typeof setTimeout>
+    const started = Date.now()
+    const end = (outcome: string) => {
+      const qs = new URLSearchParams({ session_id: frame.sessionId, outcome })
+      router.replace(`/pay-bill/payment-return?${qs}`)
+    }
+    const tick = async () => {
+      const status = await fetch(`/api/pay-bill/status?session_id=${encodeURIComponent(frame.sessionId)}`, { cache: 'no-store' })
+        .then(res => res.json() as Promise<{ status?: string }>)
+        .then(d => String(d.status ?? ''))
+        .catch(() => '')
+      if (!live) return
+      if (status === 'VERIFIED_SUCCESS' || status === 'FINALIZED') return end('success')
+      if (status === 'VERIFIED_FAILED' || status === 'FAILED') return end('failed')
+      if (Date.now() - started > 15 * 60 * 1000) return end('failed')
+      timer = setTimeout(tick, 2500)
+    }
+    timer = setTimeout(tick, 2500)
+    return () => { live = false; clearTimeout(timer) }
+  }, [frame, router])
+
+  function proceedFromSummary() {
+    // app parity: startMembershipPayment — buy the plan first, then come back to this bill
+    if (upgradeApplied && upsell) {
+      const qs = new URLSearchParams({ restaurant_id: r.id, amount: String(amount), offer: selected?.id ?? 'none' })
+      try { sessionStorage.setItem(PAY_BILL_RESUME_KEY, `/pay-bill?${qs}`) } catch { /* private mode — they land on the membership page */ }
+      router.push(`/membership/checkout?plan=${encodeURIComponent(upsell.planId)}`)
+      return
+    }
+    go('method')
+  }
 
   async function pay() {
     if (paying || method !== 'card' || !(toPay > 0)) return
-    bank.open() // inside the click, so pop-up blockers allow it
     setPaying(true)
     setError('')
     try {
-      const res = await fetch('/api/payments/dining/initiate', {
+      const res = await fetch('/api/payments/bill/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // app parity: buildPayload — the amount before credits, and the credits used
         body: JSON.stringify({
-          dining_payload: {
-            restaurant_id: r.id,
-            amount: toPay,
-            original_amount: amount,
-            discount_amount: discount,
-            cashback_amount: cashback,
-            wallet_spend_amount: creditsApplied,
-            // app parity: only `offers`-table ids are sent; the backend re-applies them
-            selected_offer_ids: autoOffer?.fromOffersTable ? [autoOffer.id] : [],
-            payment_instrument_type: 'CARD',
-            currency_code: 'MUR',
-          },
+          restaurant_id: r.id,
+          total_amount: Math.round((toPay + creditsApplied) * 100) / 100,
+          coins_amount: creditsApplied,
         }),
       })
       const data = (await res.json()) as Record<string, unknown>
@@ -224,7 +313,7 @@ export function PayBillClient({
       if (!res.ok) throw new Error((data.error as string) ?? 'Payment could not be started')
 
       const sessionId = resolveSessionId(data)
-      if (!sessionId) throw new Error('No payment session was returned. Please try again.')
+      if (!sessionId) throw new Error('Payment session id was not returned.')
       const pending: PendingBillPayment = {
         sessionId,
         merchantTrace: resolveMerchantTrace(data),
@@ -236,13 +325,17 @@ export function PayBillClient({
         paidAmount: toPay,
         cashback,
       }
-      try { sessionStorage.setItem(PENDING_BILL_KEY, JSON.stringify(pending)) } catch { /* private mode — the return page falls back to the gateway's numbers */ }
+      try { sessionStorage.setItem(PENDING_BILL_KEY, JSON.stringify(pending)) } catch { /* private mode — the receipt shows less */ }
 
-      // the bank's secure page takes the card details and the OTP / 3-D Secure check
-      bank.launch(data, { sessionId, merchantTrace: pending.merchantTrace })
+      // app parity: payment_zone_html is an iframe to its page, a URL, or HTML to show as is
+      const rawZone = String(data.payment_zone_html ?? '').trim()
+      const frameSrc = rawZone.match(/<iframe[^>]+src=["'](https?:\/\/[^"']+)["']/i)?.[1]?.replace(/&amp;/g, '&')
+      const zone = frameSrc || rawZone
+      if (!zone) throw new Error('Payment launch URL not returned.')
+      const isUrl = /^https?:\/\//i.test(zone)
+      setFrame({ sessionId, merchantTrace: pending.merchantTrace, src: isUrl ? zone : '', srcDoc: isUrl ? '' : zone })
     } catch (err) {
-      bank.close()
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setError(err instanceof Error ? err.message : 'Please try again.')
       setPaying(false)
     }
   }
@@ -290,7 +383,7 @@ export function PayBillClient({
 
             {step === 'amount' && (
               <>
-                {distanceKm != null && distanceKm >= 1 && (
+                {distanceKm != null && (
                   <p
                     className='flex items-center self-start rounded-full bg-linear-to-b from-[#ffd46e] to-[#d7a634] text-[#fffbff]'
                     style={{ marginTop: t(21), height: t(54), padding: `0 ${t(28)} 0 ${t(14)}`, gap: t(16), fontSize: t(22) }}
@@ -323,48 +416,53 @@ export function PayBillClient({
                 </label>
                 <p className='text-[#8e8e93]' style={{ marginTop: t(30), fontSize: t(24), letterSpacing: t(0.4) }}>Enter total amount as shown on the bill</p>
 
-                {/* the restaurant's best offer is applied for you — app parity: PayBillScreen offer cards */}
+                {/* app parity: PayBillScreen offer cards — the first merchant offer has a tick */}
                 {(primary || extraOffers.length > 0) && (
-                  <div className='flex flex-wrap' style={{ marginTop: t(28), gap: t(12) }}>
-                    {primary && (
-                      <span
-                        className={cn('flex items-center rounded-full border-solid font-semibold', autoOffer && amount > 0 ? 'border-[#3aa456]/40 bg-[#effaf1] text-[#2c7b44]' : 'border-[#fecdc4] bg-[#fff1ee] text-[#ff4800]')}
-                        style={{ minHeight: t(52), padding: `${t(8)} ${t(22)}`, gap: t(10), borderWidth: t(1.5), fontSize: t(20) }}
+                  <div className='flex flex-col' style={{ marginTop: t(28), gap: t(12) }}>
+                    {primary && primaryIsMerchant ? (
+                      <button
+                        type='button'
+                        role='radio'
+                        aria-checked={offerApplied}
+                        disabled={!!rangeNote}
+                        onClick={() => setOfferTicked(v => !v)}
+                        className='flex items-center self-start rounded-full border-solid border-[#fecdc4] bg-[#fff1ee] text-left disabled:opacity-70'
+                        style={{ minHeight: t(64), padding: `${t(8)} ${t(26)} ${t(8)} ${t(16)}`, gap: t(12), borderWidth: t(1.5) }}
                       >
-                        {autoOffer && amount > 0 && <Check style={{ width: t(22), height: t(22) }} strokeWidth={3} />}
+                        <Radio on={offerApplied} />
                         <span>
-                          {offerHeadline(primary)}
-                          <span className='font-normal text-[#5b5a5a]'>
-                            {' · '}
-                            {autoOffer && amount > 0
-                              ? application.discount > 0
-                                ? `you save MUR ${fmtMur(application.discount)}`
-                                : 'applied'
-                              : unlockGap > 0
-                                ? `add MUR ${fmtMur(unlockGap)} more to unlock`
-                                : 'applied automatically'}
-                          </span>
+                          <span className='block font-semibold text-[#ff4800]' style={{ fontSize: t(20) }}>{primary.badgeText || primary.title}</span>
+                          {rangeNote && <span className='block text-[#5b5a5a]' style={{ fontSize: t(16) }}>{rangeNote}</span>}
                         </span>
+                      </button>
+                    ) : primary ? (
+                      <span className='self-start rounded-full border-solid border-[#fecdc4] bg-[#fff1ee] font-semibold text-[#ff4800]' style={{ padding: `${t(14)} ${t(24)}`, borderWidth: t(1.5), fontSize: t(20) }}>
+                        {primary.badgeText || primary.title}
                       </span>
+                    ) : null}
+                    {extraOffers.length > 0 && (
+                      <div className='flex flex-wrap' style={{ gap: t(12) }}>
+                        {extraOffers.slice(0, 2).map(o => (
+                          <span key={o.id} className='rounded-full border-solid border-[#fecdc4] bg-[#fff1ee] font-semibold text-[#ff4800]' style={{ padding: `${t(10)} ${t(22)}`, borderWidth: t(1.5), fontSize: t(18) }}>
+                            {o.badgeText || o.title}
+                          </span>
+                        ))}
+                      </div>
                     )}
-                    {extraOffers.slice(0, 2).map(o => (
-                      <span key={o.id} className='flex items-center rounded-full border-solid border-[#fecdc4] bg-[#fff1ee] font-semibold text-[#ff4800]' style={{ minHeight: t(52), padding: `${t(8)} ${t(22)}`, borderWidth: t(1.5), fontSize: t(20) }}>
-                        {offerHeadline(o)}
-                      </span>
-                    ))}
                   </div>
                 )}
 
                 <div className='mt-auto' style={{ paddingTop: t(48) }}>
-                  <CardButton onClick={toSummary} disabled={!(amount > 0)}>Apply offers &amp; pay</CardButton>
+                  <CardButton onClick={toSummary} disabled={!(amount > 0)}>{offerApplied ? 'Apply offer and continue' : 'Continue'}</CardButton>
                 </div>
               </>
             )}
 
             {step === 'summary' && (
               <>
-                <div className='flex flex-wrap items-end' style={{ marginTop: t(24), gap: `${t(8)} ${t(18)}` }}>
-                  <p className='font-semibold text-[#2a2a2a]' style={{ fontSize: t(60), lineHeight: t(65), letterSpacing: t(-2) }}>MUR {fmtMur(payableBeforeCredits)}</p>
+                <p className='text-[#8e8e93]' style={{ marginTop: t(20), fontSize: t(22) }}>Your bill</p>
+                <div className='flex flex-wrap items-end' style={{ marginTop: t(4), gap: `${t(8)} ${t(18)}` }}>
+                  <p className='font-semibold text-[#2a2a2a]' style={{ fontSize: t(60), lineHeight: t(65), letterSpacing: t(-2) }}>MUR {fmtMur(amount - discount)}</p>
                   {discount > 0 && <p className='text-[#8e8e93] line-through' style={{ fontSize: t(28), paddingBottom: t(6) }}>MUR {fmtMur(amount)}</p>}
                 </div>
                 {discount > 0 && (
@@ -374,12 +472,12 @@ export function PayBillClient({
                 )}
 
                 <div className='grid lg:grid-cols-2' style={{ marginTop: t(32), gap: t(28) }}>
-                  {/* left — earning + options */}
-                  <div className='flex min-w-0 flex-col' style={{ gap: t(16) }}>
+                  {/* left — what this bill earns, and the coupons */}
+                  <div className='flex min-w-0 flex-col' style={{ gap: t(20) }}>
                     {cashbackPct > 0 && (
-                      // app parity: BillSummaryScreen CashbackPromo
+                      // app parity: BillSummaryScreen CashbackPromo — the credits this bill earns
                       <div className='relative w-full overflow-hidden text-white' style={{ aspectRatio: '1290 / 596', borderRadius: t(28) }}>
-                        <Image src='/paybill/total-cashback.webp' alt='' fill sizes='(min-width: 1920px) 440px, 30vw' className='object-cover' />
+                        <Image src='/assets/pay-bill/total-cashback.webp' alt='' fill sizes='(min-width: 1920px) 440px, 30vw' className='object-cover' />
                         <div className='relative flex h-full flex-col justify-between' style={{ padding: t(22) }}>
                           <span className='self-start rounded-full bg-white/20 font-bold backdrop-blur-sm' style={{ padding: `${t(6)} ${t(14)}`, fontSize: t(15), letterSpacing: t(1) }}>
                             YOU WILL EARN {cashbackPct}% CASH BACK
@@ -387,7 +485,7 @@ export function PayBillClient({
                           <div>
                             {plan !== 'free' && <Image src={MEMBERSHIP_BADGE[plan]} alt={`Privé ${PLAN_LABEL[plan]}`} width={102} height={44} className='h-auto' style={{ width: t(110), marginBottom: t(4) }} />}
                             <p className='flex items-baseline' style={{ gap: t(8) }}>
-                              <span className='leading-none font-bold' style={{ fontSize: t(44) }}>{Math.round(balance).toLocaleString('en-US')}</span>
+                              <span className='leading-none font-bold' style={{ fontSize: t(44) }}>{fmtMur(earnCredits)}</span>
                               <span className='font-(family-name:--font-libre-baskerville) font-bold italic' style={{ fontSize: t(20) }}>Privé</span>
                               <span className='font-semibold' style={{ fontSize: t(20) }}>Credits</span>
                             </p>
@@ -399,65 +497,85 @@ export function PayBillClient({
                       </div>
                     )}
 
-                    <Capsule
-                      role='switch'
-                      selected={creditsApplied > 0}
-                      disabled={!creditsUsable}
-                      onClick={() => setUseCredits(v => !v)}
-                      icon={<Image src='/membership/Wallet.webp' alt='' width={40} height={40} style={{ width: t(40), height: t(40) }} />}
-                      title='Use Privé Credits'
-                      sub={
-                        creditsApplied > 0
-                          ? `MUR ${fmtMur(creditsApplied)} applied`
-                          : creditsBlocked || (burnCap < balance ? `Use up to MUR ${fmtMur(burnCap)} of MUR ${fmtMur(balance)}` : `MUR ${fmtMur(balance)} is available`)
-                      }
-                      trailing={<Radio on={creditsApplied > 0} />}
-                    />
-
-                    {upsell && upsell.pct > cashbackPct && (
-                      <Link
-                        href='/membership'
-                        className='flex w-full items-center border-solid border-[#d5d5d5] bg-white transition-colors hover:border-[#bdbdbd]'
-                        style={{ maxWidth: t(513), minHeight: t(81), borderWidth: t(1.5), borderRadius: t(40.5), padding: `${t(10)} ${t(30)} ${t(10)} ${t(16)}`, gap: t(16) }}
-                      >
-                        <Image src={MEMBERSHIP_BADGE[upsell.plan]} alt='' width={92} height={40} className='w-auto' style={{ height: t(44) }} />
-                        <span className='min-w-0 flex-1'>
-                          <span className='block truncate font-bold text-[#2c2d32]' style={{ fontSize: t(22) }}>{upsell.pct}% cashback with {PLAN_LABEL[upsell.plan]}</span>
-                          <span className='block truncate text-[#8e8e93]' style={{ fontSize: t(18) }}>See membership plans</span>
-                        </span>
-                        <ChevronRight className='text-[#8e8e93]' style={{ width: t(24), height: t(24) }} />
-                      </Link>
-                    )}
-
-                    {extraOffers.length > 0 && (
-                      <p className='text-[#8e8e93]' style={{ fontSize: t(18) }}>
-                        Card offers ({extraOffers.slice(0, 2).map(offerHeadline).join(', ')}) are applied by your bank when you pay with an eligible card.
-                      </p>
+                    {offers.length > 0 && (
+                      <div>
+                        <p className='font-semibold text-[#2c2d32]' style={{ fontSize: t(22), marginBottom: t(12) }}>Apply coupons and offers</p>
+                        <div className='scrollbar-hide flex overflow-x-auto' style={{ gap: t(14) }}>
+                          {offers.map(o => (
+                            <CouponCard
+                              key={o.id}
+                              offer={o}
+                              amount={amount}
+                              applied={selected?.id === o.id}
+                              onToggle={() => setCouponChoice(selected?.id === o.id ? null : o.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
 
-                  {/* right — the breakdown */}
-                  <div className='min-w-0'>
+                  {/* right — the bill summary */}
+                  <div className='flex min-w-0 flex-col' style={{ gap: t(14) }}>
+                    {upsell && upsell.amount > 0 && (
+                      <Capsule
+                        role='switch'
+                        selected={upgradeApplied}
+                        onClick={() => setUpgradeApplied(v => !v)}
+                        icon={<Image src={MEMBERSHIP_BADGE[upsell.plan]} alt='' width={92} height={40} className='w-auto' style={{ height: t(44) }} />}
+                        title={`Add ${PLAN_LABEL[upsell.plan]} at MUR ${fmtMur(upsell.amount)}`}
+                        sub={
+                          upgradeApplied
+                            ? `Upgrade first, then pay your bill with ${PLAN_LABEL[upsell.plan]} benefits`
+                            : [upsell.multiplier && `Get ${upsell.multiplier} OFF`, upsell.pct > 0 && `${upsell.pct}% cashback`].filter(Boolean).join(' and ')
+                        }
+                        trailing={<Radio on={upgradeApplied} />}
+                      />
+                    )}
+                    {burnEnabled && (
+                      <Capsule
+                        role='switch'
+                        selected={creditsApplied > 0}
+                        disabled={!creditsUsable}
+                        onClick={() => setUseCredits(v => !v)}
+                        icon={<Image src='/assets/membership/Wallet.webp' alt='' width={40} height={40} style={{ width: t(40), height: t(40) }} />}
+                        title='Use Privé Credits'
+                        sub={
+                          creditsApplied > 0
+                            ? `MUR ${fmtMur(creditsApplied)} applied`
+                            : creditsBlocked || (burnCap < balance ? `Use up to MUR ${fmtMur(burnCap)} of MUR ${fmtMur(balance)}` : `MUR ${fmtMur(balance)} is available`)
+                        }
+                        trailing={<Radio on={creditsApplied > 0} />}
+                      />
+                    )}
                     <div className='overflow-hidden border border-[#f6dccf] bg-linear-to-b from-white to-[#ffe8de]' style={{ borderRadius: t(24) }}>
                       <Row label='Total bill amount' value={`MUR ${fmtMur(amount)}`} />
-                      {application.discount > 0 && autoOffer && <Row label={`Offer “${offerHeadline(autoOffer)}”`} value={`-MUR ${fmtMur(application.discount)}`} accent />}
-                      {repeatDiscount > 0 && <Row label={q?.repeatReward?.label} value={`-MUR ${fmtMur(repeatDiscount)}`} accent />}
+                      {upgradeAmount > 0 && upsell && <Row label={`${PLAN_LABEL[upsell.plan]} membership`} value={`+MUR ${fmtMur(upgradeAmount)}`} />}
+                      {selected && offerDiscount > 0 && (
+                        <Row
+                          label={
+                            <>
+                              Offer · {selected.title}
+                              <button type='button' onClick={() => setCouponChoice(null)} className='block font-semibold text-[#ff4800]' style={{ fontSize: t(16) }}>Remove</button>
+                            </>
+                          }
+                          value={`-MUR ${fmtMur(offerDiscount)}`}
+                          accent
+                        />
+                      )}
+                      {rewardDiscount > 0 && <Row label='Visit reward' value={`-MUR ${fmtMur(rewardDiscount)}`} accent />}
                       {creditsApplied > 0 && <Row label='Privé Credits' value={`-MUR ${fmtMur(creditsApplied)}`} accent />}
                       <div className='bg-linear-to-r from-[#fff3ee] to-[#ffe8de]'>
                         <Row label='To be paid' value={`MUR ${fmtMur(toPay)}`} strong />
                       </div>
                     </div>
-                    {cashback > 0 && (
-                      <p className={`flex items-center font-semibold text-[#424144] ${INTER}`} style={{ marginTop: t(16), gap: t(6), fontSize: t(16) }}>
-                        <Image src={`${D}/earn-coin.png`} alt='' width={40} height={40} style={{ width: t(40), height: t(40) }} />
-                        You&rsquo;ll earn <span className='text-[#0248f6]'>MUR {fmtMur(cashback)} in Privé Credits</span>
-                      </p>
-                    )}
                   </div>
                 </div>
 
                 <div className='mt-auto' style={{ paddingTop: t(40) }}>
-                  <CardButton onClick={() => go('method')} disabled={!(toPay > 0)}>Proceed to pay MUR {fmtMur(toPay)}</CardButton>
+                  <CardButton onClick={proceedFromSummary} disabled={!(toPay > 0)}>
+                    {upgradeApplied && upsell ? `Upgrade to ${PLAN_LABEL[upsell.plan]} • MUR ${fmtMur(upgradeAmount)}` : `Proceed to pay MUR ${fmtMur(toPay)}`}
+                  </CardButton>
                 </div>
               </>
             )}
@@ -482,7 +600,7 @@ export function PayBillClient({
                   />
                 </div>
                 <p className='text-[#8e8e93]' style={{ marginTop: t(20), fontSize: t(18) }}>
-                  You&rsquo;ll enter your card details and the OTP from your bank on its secure page.
+                  You&rsquo;ll enter your card details and the OTP on the secure payment page.
                 </p>
                 {error && (
                   <p role='alert' className='self-start rounded-2xl bg-[#fdecec] font-medium text-[#c62828]' style={{ marginTop: t(20), padding: `${t(12)} ${t(18)}`, fontSize: t(18) }}>
@@ -498,28 +616,13 @@ export function PayBillClient({
         </div>
       </div>
 
-      {paying && !bank.waiting && <ProcessingScreen sub='Opening your bank’s secure page — please do not close this window' />}
-      {bank.waiting && (
-        <ProcessingScreen title='Waiting for your payment…' sub='Enter your card details and the OTP in the bank’s secure window. We’ll bring you to your receipt as soon as it’s done.'>
-          <div className='flex flex-wrap justify-center' style={{ marginTop: t(12), gap: t(16) }}>
-            <button
-              type='button'
-              onClick={bank.focus}
-              className='rounded-full bg-[#ff4800] font-semibold text-white hover:bg-brand-dark'
-              style={{ height: t(64), padding: `0 ${t(36)}`, fontSize: t(22) }}
-            >
-              Show payment window
-            </button>
-            <button
-              type='button'
-              onClick={bank.cancel}
-              className='rounded-full border border-[#d5d5d5] font-semibold text-[#5b5a5a] hover:border-[#bdbdbd]'
-              style={{ height: t(64), padding: `0 ${t(36)}`, fontSize: t(22) }}
-            >
-              Cancel
-            </button>
-          </div>
-        </ProcessingScreen>
+      {paying && !frame && <ProcessingScreen />}
+      {frame && (
+        <PaymentFrame
+          src={frame.src}
+          srcDoc={frame.srcDoc}
+          onCancel={() => router.replace(`/pay-bill/payment-return?${new URLSearchParams({ session_id: frame.sessionId })}`)}
+        />
       )}
     </div>
   )

@@ -47,7 +47,7 @@ export function CardBadgeArt({ badge }: { badge: CardBadge | null | undefined })
               (736×224), rounded to match the card's own top-left corner. */}
           <div className="pointer-events-none absolute top-0 left-0 aspect-736/224 w-60 overflow-hidden rounded-tl-[15px] 2xl:w-73">
             <Image
-              src="/cashback-badge-backdrop.webp"
+              src="/assets/cashback/cashback-badge-backdrop.webp"
               alt=""
               fill
               className="object-cover object-top-left"

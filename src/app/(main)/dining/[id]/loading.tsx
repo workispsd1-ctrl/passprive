@@ -1,5 +1,5 @@
-import { DetailPageSkeleton } from '@/components/shared/Skeletons'
+import { RestaurantDetailSkeleton } from '@/components/shared/Skeletons'
 
 export default function Loading() {
-  return <DetailPageSkeleton />
+  return <RestaurantDetailSkeleton />
 }

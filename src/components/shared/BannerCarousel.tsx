@@ -48,7 +48,9 @@ export function BannerCarousel({ banners, className = '', intervalMs = 5000, fil
 
   if (banners.length === 0) return null
 
-  const banner = banners[active]
+  // The reset above only applies on the next pass, so this render can still see
+  // an `active` from a longer set (the mobile header swaps sets between routes).
+  const banner = banners[active] ?? banners[0]
   const href = resolveHref(banner)
   const isExternal = href ? /^https?:\/\//.test(href) : false
 

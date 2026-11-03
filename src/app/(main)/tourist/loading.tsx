@@ -13,7 +13,7 @@ export default function TouristLoading() {
       <RailSkeleton titleWidth='w-60' subtitle>{i => <PlaceCardSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton titleWidth='w-36'>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton titleWidth='w-56' subtitle>{i => <PlaceCardSkeleton key={i} />}</RailSkeleton>
-      <RailSkeleton titleWidth='w-48' count={6}>{i => <CircleCardSkeleton key={i} size='w-40 md:w-44' />}</RailSkeleton>
+      <RailSkeleton titleWidth='w-48' count={6}>{i => <CircleCardSkeleton key={i} size='w-36 md:w-52 2xl:w-72' />}</RailSkeleton>
       <BannerSkeleton aspect='aspect-[1432/500] md:aspect-[6304/656]' className='max-w-3xl md:max-w-7xl' />
       <RailSkeleton titleWidth='w-44'>{i => <PlaceCardSkeleton key={i} />}</RailSkeleton>
     </main>
