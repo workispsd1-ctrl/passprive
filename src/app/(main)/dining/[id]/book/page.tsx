@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getRestaurantBySlugOrId } from '@/lib/services/dining'
-import { getBookingById } from '@/lib/services/bookings'
+import { getBookingById, getBookingRewardAmount } from '@/lib/services/bookings'
 import { createClient } from '@/lib/supabase/server'
 import { cn } from '@/lib/utils'
 import { DiningBookingFlow } from '@/components/sections/dining/booking/DiningBookingFlow'
@@ -52,6 +52,7 @@ export default async function BookTablePage({
   // the receipt, after a booking is made
   const booking = sp.booked && user ? await getBookingById(sp.booked, user.id) : null
   if (booking) {
+    const rewardAmount = await getBookingRewardAmount(booking.id)
     return (
       <main className={wrapper} style={style}>
         <div className='relative overflow-x-clip bg-linear-to-b from-[#fff3ee] to-white to-40% px-4' style={{ paddingTop: 'calc(72 * var(--t))', paddingBottom: 'calc(120 * var(--t))' }}>
@@ -68,6 +69,13 @@ export default async function BookTablePage({
               offer: sp.offer ?? null,
               paid: sp.paid === '1',
               cancellation,
+              proposal: {
+                status: booking.status,
+                proposed_at: booking.proposed_at,
+                proposed_date: booking.proposed_date,
+                proposed_time: booking.proposed_time,
+              },
+              rewardAmount,
             }}
           />
         </div>

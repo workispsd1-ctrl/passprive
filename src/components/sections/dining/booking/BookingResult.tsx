@@ -3,12 +3,16 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, Clock } from 'lucide-react'
+import { useEffect } from 'react'
+import { ChevronRight, Clock, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { longDate } from '@/lib/booking/slots'
 import { t } from '@/components/sections/dining/designUnit'
 import { CheckRings } from '@/components/sections/dining/PaymentScreens'
 import { cancelDeadline } from './bookingTimes'
+import { hasLiveProposal, isBookingConfirmed, isBookingRejected, type ProposalRow } from '@/lib/booking/status'
+import { BookingProposalBanner } from '@/components/shared/BookingProposalBanner'
+import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
 
 const P = '/assets/pay-bill'
 
@@ -24,6 +28,9 @@ export type BookingResultData = {
   offer: string | null
   paid: boolean
   cancellation: { available: boolean; cutoffMinutes: number | null }
+  /** the restaurant's counter-offer, when it made one */
+  proposal: ProposalRow
+  rewardAmount: number
 }
 
 function to12(time24: string) {
@@ -57,7 +64,19 @@ function Line({ label, value }: { label: string; value: string }) {
  */
 export function BookingResult({ b }: { b: BookingResultData }) {
   const router = useRouter()
-  const confirmed = b.status.toLowerCase() === 'confirmed'
+  const { earn } = usePlatformFlags()
+  const confirmed = isBookingConfirmed(b)
+  const cancelled = isBookingRejected(b)
+  const proposal = { ...b.proposal, id: b.id }
+  const proposed = hasLiveProposal(proposal)
+
+  // app parity: PaymentSuccessScreen re-reads the booking every 15s, so the restaurant's answer shows up here
+  useEffect(() => {
+    if (confirmed || cancelled) return
+    const timer = setInterval(() => router.refresh(), 15000)
+    return () => clearInterval(timer)
+  }, [confirmed, cancelled, router])
+
   const meal = Number(b.time24.slice(0, 2)) >= 17 ? 'Dinner' : 'Lunch'
   const deadline = b.cancellation.available ? cancelDeadline(b.date, b.time24, b.cancellation.cutoffMinutes) : null
 
@@ -76,6 +95,12 @@ export function BookingResult({ b }: { b: BookingResultData }) {
       <span className='relative'>
         {confirmed ? (
           <CheckRings />
+        ) : cancelled ? (
+          <span className='flex items-center justify-center rounded-full bg-[#f2f2f2]' style={{ width: t(110), height: t(110) }}>
+            <span className='flex items-center justify-center rounded-full bg-[#e2e2e2]' style={{ width: t(80), height: t(80) }}>
+              <X className='text-[#5b5a5a]' style={{ width: t(40), height: t(40) }} />
+            </span>
+          </span>
         ) : (
           <span className='flex items-center justify-center rounded-full bg-[#fff1eb]' style={{ width: t(110), height: t(110) }}>
             <span className='flex items-center justify-center rounded-full bg-[#ffd9c7]' style={{ width: t(80), height: t(80) }}>
@@ -85,13 +110,18 @@ export function BookingResult({ b }: { b: BookingResultData }) {
         )}
       </span>
       <h1
-        className={cn('relative font-(family-name:--font-libre-baskerville) font-bold italic', confirmed ? 'text-[#3aa456]' : 'text-[#ff4800]')}
+        className={cn('relative font-(family-name:--font-libre-baskerville) font-bold italic', confirmed ? 'text-[#3aa456]' : cancelled ? 'text-[#2c2d32]' : 'text-[#ff4800]')}
         style={{ marginTop: t(32), fontSize: t(54), letterSpacing: t(-2.78), lineHeight: t(60) }}
       >
-        {confirmed ? 'Table booked' : 'Requested table'}
+        {confirmed ? 'Table booked' : cancelled ? 'Booking cancelled' : 'Requested table'}
       </h1>
       <p className='relative font-semibold text-[#2c2d32]' style={{ marginTop: t(10), fontSize: t(26) }}>{b.restaurantName}</p>
-      {b.offer && (
+      {confirmed && earn && b.rewardAmount > 0 && (
+        <p className='relative font-medium text-[#3aa456]' style={{ marginTop: t(10), fontSize: t(18) }}>
+          MUR {b.rewardAmount.toLocaleString('en-US')} Privé Credits pending · unlocks after your visit
+        </p>
+      )}
+      {b.offer && !cancelled && (
         <p className='relative rounded-full bg-[#fff1eb] font-semibold text-[#ff4800]' style={{ marginTop: t(16), padding: `${t(8)} ${t(20)}`, fontSize: t(20) }}>{b.offer}</p>
       )}
 
@@ -99,10 +129,10 @@ export function BookingResult({ b }: { b: BookingResultData }) {
         <div className='flex items-center justify-between' style={{ padding: `${t(8)} 0` }}>
           <span className='font-bold text-[#2c2d32]' style={{ fontSize: t(22) }}>Booking details</span>
           <span
-            className={cn('rounded-full font-bold tracking-wider', confirmed ? 'bg-[#e8f6ec] text-[#2e8b4a]' : 'bg-[#fff3e6] text-[#c46a12]')}
+            className={cn('rounded-full font-bold tracking-wider', confirmed ? 'bg-[#e8f6ec] text-[#2e8b4a]' : cancelled ? 'bg-[#f2f2f2] text-[#5b5a5a]' : 'bg-[#fff3e6] text-[#c46a12]')}
             style={{ padding: `${t(6)} ${t(14)}`, fontSize: t(15) }}
           >
-            {confirmed ? 'CONFIRMED' : 'REQUESTED'}
+            {confirmed ? 'CONFIRMED' : cancelled ? 'CANCELLED' : proposed ? 'NEW TIME' : 'REQUESTED'}
           </span>
         </div>
         <Line label={longDate(b.date)} value={relDay(b.date)} />
@@ -113,7 +143,9 @@ export function BookingResult({ b }: { b: BookingResultData }) {
         {b.paid && <Line label='Cover charge' value='Paid — redeemed on your bill' />}
       </div>
 
-      {!confirmed && (
+      {proposed && <BookingProposalBanner booking={proposal} restaurantName={b.restaurantName} className='relative mt-4 w-full text-left' />}
+
+      {!confirmed && !cancelled && !proposed && (
         <div className='relative w-full rounded-[inherit] bg-[#fff8f5] text-left' style={{ marginTop: t(20), borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>
           <p className='font-bold text-[#2c2d32]' style={{ fontSize: t(22) }}>What next?</p>
           <ul className='list-disc text-[#5b5a5a]' style={{ marginTop: t(8), paddingLeft: t(24), fontSize: t(18), lineHeight: 1.6 }}>
@@ -124,7 +156,7 @@ export function BookingResult({ b }: { b: BookingResultData }) {
         </div>
       )}
 
-      <div className='relative flex w-full flex-col text-left' style={{ marginTop: t(20), gap: t(8), fontSize: t(18) }}>
+      {!cancelled && <div className='relative flex w-full flex-col text-left' style={{ marginTop: t(20), gap: t(8), fontSize: t(18) }}>
         <p className='text-[#5b5a5a]'>
           <span className='font-semibold text-[#2c2d32]'>Need modifications? </span>
           {deadline ? `Valid till ${deadline}` : 'Contact the restaurant or support'}
@@ -133,9 +165,9 @@ export function BookingResult({ b }: { b: BookingResultData }) {
           <span className='font-semibold text-[#2c2d32]'>Might need to cancel? </span>
           {deadline ? `100% refund till ${deadline}` : 'This booking can’t be cancelled online'}
         </p>
-      </div>
+      </div>}
 
-      <Link href='/support' className='relative flex w-full items-center justify-between bg-[#f6f6f6] text-left hover:bg-[#efefef]' style={{ marginTop: t(24), borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>
+      <Link href='/help' className='relative flex w-full items-center justify-between bg-[#f6f6f6] text-left hover:bg-[#efefef]' style={{ marginTop: t(24), borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>
         <span>
           <span className='block font-semibold text-[#2c2d32]' style={{ fontSize: t(20) }}>Need help with this booking?</span>
           <span className='flex items-center font-semibold text-[#ff4800]' style={{ fontSize: t(17), gap: t(4) }}>Contact help &amp; support <ChevronRight style={{ width: t(16), height: t(16) }} /></span>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Search, LocateFixed, Landmark } from 'lucide-react'
 import { CITY_DATA, DEFAULT_COUNTRY, type City } from './cityData'
+import { SavedLocationsPanel } from './SavedLocationsPanel'
 
 interface Props {
   isOpen: boolean
@@ -91,6 +92,8 @@ export function LocationPickerDialog({
             <LocateFixed className="w-5 h-5" />
             Use Current Location
           </button>
+
+          <SavedLocationsPanel onDone={onClose} />
 
           {/* Search results */}
           {query ? (

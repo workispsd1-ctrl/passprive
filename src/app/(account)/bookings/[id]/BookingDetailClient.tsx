@@ -16,6 +16,7 @@ import { CollapsibleCard } from '@/components/shared/CollapsibleCard'
 import { TermsList } from '@/components/shared/TermsList'
 import { StatusBanner } from '@/components/shared/StatusBanner'
 import { CancelBooking } from './CancelBooking'
+import { BookingProposalBanner } from '@/components/shared/BookingProposalBanner'
 
 const TERMS = [
   'Please arrive 15 minutes prior to your reservation time.',
@@ -164,6 +165,8 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
         {/* ── Right / Sidebar ─────────────────────────────────── */}
         <div className="flex flex-col gap-5">
 
+          <BookingProposalBanner booking={booking} restaurantName={restaurant?.name} />
+
           {coverJustPaid && (
             <StatusBanner status="success" title="Cover Charge Paid — Booking Confirmed!" />
           )}
@@ -193,14 +196,13 @@ export function BookingDetailClient({ booking, userName, ppBalance: initialBalan
                 Pay your bill securely via card and earn {cashbackRate}% back as PP Coins. 1 coin = MUR 1.
               </p>
               <Link
-                href={`/bookings/${booking.id}/pay${estimatedBill > 0 ? `?amount=${estimatedBill}` : ''}`}
+                href={`/pay-bill?restaurant_id=${booking.restaurant_id}${estimatedBill > 0 ? `&amount=${estimatedBill}` : ''}`}
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-brand-dark text-sm font-bold hover:bg-brand-tint transition-colors"
               >
                 <Coins className="w-4 h-4" />
                 Pay Bill &amp; Earn Coins
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <p className="text-[10px] text-white/40 text-center mt-2">Secured by iVeri · 3D Secure</p>
             </div>
           )}
 

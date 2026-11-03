@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
+import type { BookingReward } from '@/lib/services/bookings'
 import { Wallet, ArrowDownLeft, ArrowUpRight, Coins, Crown, ChevronRight, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import type { WalletBalance, WalletTransaction } from '@/lib/types/wallet'
@@ -177,9 +179,11 @@ interface Props {
   ledger: LedgerRow[] | null
   nextExpiry: NextExpiry | null
   membership: UserMembership | null
+  pendingRewards: BookingReward[]
 }
 
-export function WalletClient({ balance, transactions, ledger, nextExpiry, membership }: Props) {
+export function WalletClient({ balance, transactions, ledger, nextExpiry, membership, pendingRewards }: Props) {
+  const { earn } = usePlatformFlags()
   const [detail, setDetail] = useState<LedgerRow | null>(null)
   const rawTier = membership?.membership_tier ?? 'none'
   const resolvedTier = PLAN_TIER[rawTier] ?? rawTier
@@ -191,6 +195,22 @@ export function WalletClient({ balance, transactions, ledger, nextExpiry, member
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 pt-6">
+
+      {earn && pendingRewards.length > 0 && (
+        <div className="mb-4 rounded-2xl border border-brand-tint-strong bg-brand-tint p-4">
+          <p className="text-sm font-bold text-gray-900">
+            Pending Privé Credits · MUR {Math.round(pendingRewards.reduce((sum, r) => sum + Number(r.amount || 0), 0)).toLocaleString('en-US')}
+          </p>
+          {pendingRewards.map(r => (
+            <div key={r.id} className="mt-2">
+              <p className="truncate text-[13px] font-medium text-gray-800">
+                MUR {Math.round(Number(r.amount || 0))} · Table booking at {r.merchant_name || 'restaurant'} · {formatMuDate(r.booking_date)}
+              </p>
+              <p className="text-xs text-gray-500">Unlocks after your visit: scan your bill or pay it with PassPrive by {formatMuDate(r.verify_by)}.</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Top grid: balance card + info cards */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">

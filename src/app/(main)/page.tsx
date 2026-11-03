@@ -18,6 +18,8 @@ import { getUserCoords } from '@/lib/location';
 import { scopeStoresToRadius } from '@/lib/nearby';
 import { getCurrentUser } from '@/lib/services/user';
 import { getUpcomingDiningBookings } from '@/lib/services/bookings';
+import { getActiveMalls, getMallsSectionTitle } from '@/lib/services/malls';
+import { MallsNearYou } from '@/components/sections/malls/MallsNearYou';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -37,7 +39,7 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const [user, coords] = await Promise.all([getCurrentUser(), getUserCoords()]);
-  const [newStores, restaurants, stores, offers, collections, upcoming] =
+  const [newStores, restaurants, stores, offers, collections, upcoming, mallsTitle] =
     await Promise.all([
       getNewKickInStores({ limit: 8, userLat: coords?.lat, userLng: coords?.lng }),
       getNewRestaurants(40, coords),
@@ -46,8 +48,10 @@ export default async function Home() {
       getOffersForYou(),
       getEditorialCollections(),
       user ? getUpcomingDiningBookings(user.id) : Promise.resolve([]),
+      getMallsSectionTitle(),
     ]);
 
+  const malls = mallsTitle ? await getActiveMalls(coords) : [];
   const featured = restaurants.slice(0, 8);
 
   return (
@@ -66,6 +70,7 @@ export default async function Home() {
       {newStores.length > 0 && <NewKickInStores stores={newStores} />}
       <SalonVisitSection stores={stores} />
       {stores.length > 0 && <StoresNearYouSection stores={stores} />}
+      {mallsTitle && <MallsNearYou malls={malls} title={mallsTitle} />}
       <HotOnPassprive collections={collections} />
     </main>
   );

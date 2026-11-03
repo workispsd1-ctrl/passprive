@@ -18,8 +18,8 @@ export const metadata: Metadata = { title: 'Pay Bill | PassPrivé' }
  * → payment → BillPaymentSuccessScreen), drawn as the Figma "Flow Pay Bill"
  * frames: the restaurant on the left, the current step in a card on the right.
  */
-export default async function PayBillPage({ searchParams }: { searchParams: Promise<{ restaurant_id?: string; amount?: string; offer?: string }> }) {
-  const { restaurant_id, amount, offer } = await searchParams
+export default async function PayBillPage({ searchParams }: { searchParams: Promise<{ restaurant_id?: string; order?: string; amount?: string; offer?: string }> }) {
+  const { restaurant_id, amount, offer, order } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -77,6 +77,7 @@ export default async function PayBillPage({ searchParams }: { searchParams: Prom
       style={{ ['--u' as string]: DESIGN_UNIT }}
     >
       <PayBillClient
+        isOrder={order === '1'}
         restaurant={{
           id: restaurant.id,
           name: restaurant.name,

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return NextResponse.json({ error: 'Please log in to continue.' }, { status: 401 })
 
-  const body = await request.json() as { restaurant_id: string; total_amount: number; coins_amount: number }
+  const body = await request.json() as { restaurant_id: string; total_amount: number; coins_amount: number; order_items?: { id?: unknown; qty?: unknown }[] }
 
   const { data: merchant } = await supabase
     .from('restaurants')
@@ -26,6 +26,13 @@ export async function POST(request: Request) {
   if (!merchant || !canPayBill(merchant as MerchantCapabilityFields)) {
     return NextResponse.json({ error: 'This restaurant does not take bill payments on PassPrivé yet.' }, { status: 400 })
   }
+
+  // app parity: buildPayload — only the ids and quantities of an Order & Collect cart
+  const orderItems = Array.isArray(body.order_items)
+    ? body.order_items
+        .map(item => ({ id: String(item?.id ?? ''), qty: Math.floor(Number(item?.qty)) }))
+        .filter(item => item.id && item.qty > 0)
+    : []
 
   let upstream: Response
   try {
@@ -39,6 +46,7 @@ export async function POST(request: Request) {
         coins_amount: Number(body.coins_amount) || 0,
         currency: 'MUR',
         custom_redirect_url: MIPS_RETURN_URL,
+        ...(orderItems.length ? { order_items: orderItems } : {}),
       }),
       signal: AbortSignal.timeout(15000),
     })

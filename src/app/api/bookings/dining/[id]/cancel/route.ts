@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 // app parity: PaymentSuccessScreen.jsx CANCELLATION_REASONS
 const REASONS = ['Plan change', 'Found a better offer elsewhere', 'Booked by mistake', 'Others']
 const ACTIVE = ['pending', 'requested', 'confirmed', 'booked', 'accepted']
+// app parity: useExistingBookingGuard.cancelExisting — replacing a booking stores this fixed reason
+const REPLACED_REASON = 'Cancelled to create a new booking'
 // Mauritius is UTC+4; booking_date/time are stored as local wall-clock values.
 const MU_OFFSET = '+04:00'
 
@@ -16,7 +18,7 @@ const MU_OFFSET = '+04:00'
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { reason } = (await request.json().catch(() => ({}))) as { reason?: string }
+  const { reason, replacing } = (await request.json().catch(() => ({}))) as { reason?: string; replacing?: boolean }
   if (!reason || !REASONS.includes(reason)) {
     return NextResponse.json({ error: 'Please choose a reason for cancelling.' }, { status: 400 })
   }
@@ -35,18 +37,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const rest = booking.restaurants as { cancellation_available?: boolean | null } | { cancellation_available?: boolean | null }[] | null
   const allowed = (Array.isArray(rest) ? rest[0] : rest)?.cancellation_available === true
-  if (!allowed) return NextResponse.json({ error: 'This booking is not eligible for cancellation.' }, { status: 403 })
-  if (!ACTIVE.includes(String(booking.status).toLowerCase())) {
+  if (!allowed && !replacing) return NextResponse.json({ error: 'This booking is not eligible for cancellation.' }, { status: 403 })
+  const status = String(booking.status).toLowerCase()
+  if (!ACTIVE.includes(status) && !(replacing && status === 'payment_successfull')) {
     return NextResponse.json({ error: 'This booking can no longer be cancelled.' }, { status: 409 })
   }
   const startsAt = Date.parse(`${booking.booking_date}T${String(booking.booking_time).slice(0, 5)}:00${MU_OFFSET}`)
-  if (Number.isFinite(startsAt) && startsAt <= Date.now()) {
+  if (!replacing && Number.isFinite(startsAt) && startsAt <= Date.now()) {
     return NextResponse.json({ error: 'This booking has already started.' }, { status: 409 })
   }
 
   const { error } = await supabase
     .from('restaurant_bookings')
-    .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancel_reason: reason })
+    .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancel_reason: replacing ? REPLACED_REASON : reason })
     .eq('id', id)
     .eq('customer_user_id', user.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

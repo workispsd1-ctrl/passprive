@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getRestaurantBySlugOrId } from '@/lib/services/dining';
+import { getOrderCollect, getRestaurantBySlugOrId } from '@/lib/services/dining';
 import {
   PhotoGalleryProvider,
   PhotoGrid,
@@ -22,6 +22,7 @@ import { MobileTitleCard } from '@/components/shared/detail/MobileTitleCard';
 import { UpsellBannerPager } from '@/components/shared/detail/UpsellBannerPager';
 import { getDiscountCaps } from '@/lib/services/membershipCaps';
 import { canPayBill } from '@/lib/cashback';
+import { OrderCollectBanner } from '@/components/sections/dining/order/OrderCollectBanner';
 import { cn } from '@/lib/utils';
 import { DESIGN_UNIT, TYPE_SCALE } from '@/components/sections/dining/designUnit';
 import type { DiningOffer } from '@/lib/types/dining';
@@ -94,6 +95,7 @@ export default async function RestaurantPage({
   const [{ restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages, allHours }, caps] =
     await Promise.all([fetchRestaurant(id), getDiscountCaps()]);
   if (!restaurant) notFound();
+  const orderCollect = await getOrderCollect(restaurant.id);
 
   const tagsOf = (type: string) => tags.filter((t) => t.tag_type === type).map((t) => t.tag_value);
   const cuisineTags = tagsOf('cuisine');
@@ -218,6 +220,14 @@ export default async function RestaurantPage({
           <div className={`max-md:order-3 md:hidden ${firstUnderTabs}`}>
             <OffersForToday restaurantOffers={exclusiveOffers} bankOffers={bankOffers} merchant={restaurant} />
           </div>
+          {orderCollect.items.length > 0 && (
+            <OrderCollectBanner
+              href={`/dining/${restaurant.slug ?? restaurant.id}/order`}
+              orderEnabled={orderCollect.enabled}
+              count={orderCollect.items.length}
+              className='mt-4 max-md:order-1 md:order-5 md:mt-8 md:max-w-xl'
+            />
+          )}
           {/* phones: the app's deals stack; desktop draws Deals & cashback as offer cards in RestaurantDesktopSections */}
           <MerchantRewardsSection merchant={restaurant} kind='restaurant' name={restaurant.name} className='max-md:order-1 md:hidden' />
           <UpsellBannerPager

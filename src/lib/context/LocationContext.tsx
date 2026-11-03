@@ -20,6 +20,8 @@ interface LocationContextValue {
   /** true while the first GPS lookup is still running and nothing is saved yet */
   detecting: boolean
   setLocationByCity: (city: string, region: string, countryCode?: string) => Promise<void>
+  /** a saved address — its coordinates are already known */
+  setLocationByPlace: (place: { city: string; state: string; lat: number | null; lng: number | null }) => void
   detectFromGPS: () => void
 }
 
@@ -35,6 +37,7 @@ const LocationContext = createContext<LocationContextValue>({
   location: DEFAULT,
   detecting: false,
   setLocationByCity: async () => {},
+  setLocationByPlace: () => {},
   detectFromGPS: () => {},
 })
 
@@ -127,6 +130,12 @@ export function LocationProvider({ children, initial }: { children: React.ReactN
     }
   }, [router])
 
+  const setLocationByPlace = useCallback((place: { city: string; state: string; lat: number | null; lng: number | null }) => {
+    setManual(true)
+    setDetecting(false)
+    setLocation({ city: place.city, state: place.state, countryCode: 'mu', lat: place.lat, lng: place.lng })
+  }, [])
+
   // A hand-picked location stays until the visitor changes it; otherwise
   // follow the device.
   const startedManual = initial?.manual ?? false
@@ -153,7 +162,7 @@ export function LocationProvider({ children, initial }: { children: React.ReactN
   }, [lat, lng, router])
 
   return (
-    <LocationContext.Provider value={{ location, detecting, setLocationByCity, detectFromGPS }}>
+    <LocationContext.Provider value={{ location, detecting, setLocationByCity, setLocationByPlace, detectFromGPS }}>
       {children}
     </LocationContext.Provider>
   )

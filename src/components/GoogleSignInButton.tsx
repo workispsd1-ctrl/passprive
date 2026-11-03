@@ -14,7 +14,6 @@ interface GoogleAccountsId {
     callback: (res: GoogleCredentialResponse) => void
     nonce?: string
     ux_mode?: 'popup'
-    use_fedcm_for_button?: boolean
   }): void
   renderButton(el: HTMLElement, options: Record<string, unknown>): void
 }
@@ -79,7 +78,6 @@ export function GoogleSignInButton({ disabled, onBusyChange, onSuccess, onError 
           client_id: CLIENT_ID,
           nonce: hashedNonce,
           ux_mode: 'popup',
-          use_fedcm_for_button: true,
           callback: async ({ credential }) => {
             if (!credential) { handlers.current.onError('Google sign-in was cancelled.'); return }
             setBusy(true)

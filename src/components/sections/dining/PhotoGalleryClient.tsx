@@ -273,11 +273,12 @@ export function PhotoGrid({
 
       {/* Mobile hero — app parity: RestaurantDetails HEADER GALLERY: the cover
           image (~38% of the screen), back / heart / share over it, and
-          "View Gallery" sitting just above the overlapping title card. */}
+          "View Gallery" sitting just above the overlapping title card. Hidden from
+          md up, so `sizes` asks for the smallest copy there instead of a full one. */}
       <div className="relative h-[38svh] min-h-64 w-full bg-gray-200 md:hidden">
         {hero ? (
           <button type="button" onClick={() => openAt(0)} aria-label={`View photos of ${restaurantName}`} className="absolute inset-0">
-            <Image src={hero} alt={restaurantName} fill sizes="100vw" className="object-cover" priority />
+            <Image src={hero} alt={restaurantName} fill sizes="(min-width: 768px) 1px, 100vw" className="object-cover" priority />
           </button>
         ) : (
           <div className="h-full w-full bg-linear-to-br from-brand/30 to-pink-200" />

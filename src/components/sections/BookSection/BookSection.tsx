@@ -53,7 +53,7 @@ export function BookSection() {
 
           <div className='order-1 md:order-2 relative w-full aspect-video md:aspect-square rounded-none md:rounded-2xl overflow-hidden bg-gray-200'>
             <Image
-              src='/assets/home/book.png'
+              src='/assets/home/book.jpeg'
               alt='Restaurant table set for a special dining experience'
               fill
               className='object-cover'

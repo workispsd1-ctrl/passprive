@@ -8,6 +8,7 @@ import { Check, ChevronRight, Clock, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 import { hasBillCashback, isCashbackEnabled, type MerchantCapabilityFields } from '@/lib/cashback'
+import { earnOn } from '@/lib/platformFlags'
 import {
   RECEIPT_STATUS,
   claimBannerCopy,
@@ -136,7 +137,7 @@ function ReceiptArtCard({ children, className }: { children: React.ReactNode; cl
       <span className="pointer-events-none absolute top-[-37.4cqw] left-[-21.9cqw] size-[80.7cqw] rounded-full bg-[radial-gradient(closest-side,#20094C,rgba(32,9,76,0.75)_55%,transparent)]" />
       <span className="pointer-events-none absolute top-[-7.3cqw] left-[44.4cqw] h-[45cqw] w-[26.3cqw] rounded-full bg-[radial-gradient(closest-side,#38117D,rgba(56,17,125,0.75)_55%,transparent)]" />
       <Image
-        src="/assets/receipts/cashback-upload-receipt.png"
+        src="/assets/receipts/cashback-upload-receipt.jpeg"
         alt=""
         width={340}
         height={340}
@@ -170,7 +171,7 @@ export function ReceiptCashbackBanner({
 }) {
   const router = useRouter()
   const { promptLogin } = useAuthPrompt()
-  const eligible = !hasBillCashback(merchant)
+  const eligible = earnOn() && !hasBillCashback(merchant)
   // fetchedAt: "rejected in the last day" is judged against when the claim was loaded
   const [state, setState] = useState<(ReceiptMerchantState & { fetchedAt: number }) | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -201,7 +202,7 @@ export function ReceiptCashbackBanner({
   const figma = variant === 'figma'
   const receiptHead = (
     <OfferHead
-      icon={<Image src="/assets/receipts/cashback-upload-receipt.png" alt="" width={40} height={40} style={{ width: t(40), height: t(40) }} />}
+      icon={<Image src="/assets/receipts/cashback-upload-receipt.jpeg" alt="" width={40} height={40} style={{ width: t(40), height: t(40) }} />}
       label="Receipt cashback"
       color="#38107c"
     />

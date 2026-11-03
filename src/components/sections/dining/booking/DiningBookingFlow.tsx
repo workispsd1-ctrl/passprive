@@ -13,6 +13,7 @@ import { canPayBill, getCashbackPct, type CashbackPlan, type MerchantCapabilityF
 import { buildDates, buildSlots, defaultMeal, longDate, type HoursRow, type Meal, type Slot } from '@/lib/booking/slots'
 import type { BookingOption, DiningBooking } from '@/lib/booking/payload'
 import { confirmBooking, initiateBookingPayment } from '@/lib/booking/client'
+import { useExistingBookingGuard } from './useExistingBookingGuard'
 import { usePaymentWindow } from '@/lib/hooks/usePaymentWindow'
 import type { DiningOffer } from '@/lib/types/dining'
 import { t } from '@/components/sections/dining/designUnit'
@@ -139,6 +140,7 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
   const plan = useUserPlan()
   const { promptLogin } = useAuthPrompt()
   const dates = useMemo(() => buildDates(DATE_COUNT), [])
+  const guard = useExistingBookingGuard({ restaurantId: restaurant.id, bookHref })
 
   const [step, setStep] = useState<Step>('select')
   const [guests, setGuests] = useState(2)
@@ -414,7 +416,8 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
             </div>
 
             <div className='mt-auto' style={{ paddingTop: t(44) }}>
-              <CardButton onClick={() => go('option')} disabled={!slot}>Proceed</CardButton>
+              {guard.error && <p role='alert' className='text-center font-medium text-red-600' style={{ marginBottom: t(12), fontSize: t(18) }}>{guard.error}</p>}
+              <CardButton onClick={() => { if (slot) void guard.check({ dateId, time24: slot.time24 }, () => go('option')) }} disabled={!slot}>Proceed</CardButton>
             </div>
           </>
         )}
@@ -622,6 +625,7 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
       </FlowLayout>
 
       {submitting && !bank.waiting && step === 'method' && <ProcessingScreen sub='Opening your bank’s secure page — please do not close this window' />}
+      {guard.modals}
       {bank.waiting && (
         <ProcessingScreen title='Waiting for your payment…' sub='Enter your card details and the OTP in the bank’s secure window. We’ll confirm your table as soon as it’s done.'>
           <div className='flex flex-wrap justify-center' style={{ marginTop: t(12), gap: t(16) }}>

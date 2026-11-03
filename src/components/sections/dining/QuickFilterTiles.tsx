@@ -17,11 +17,11 @@ import { FilterDialog } from './FilterDialog'
  * /dining page reads to render the filtered feed (see restaurantFilters.ts).
  */
 const BADGES = [
-  { key: 'cashback', source: '/assets/dining/cashback.webp', gray: '/assets/dining/cashback-gray.png' },
-  { key: 'booking', source: '/assets/dining/booking.webp', gray: '/assets/dining/booking-gray.png' },
-  { key: 'instant', source: '/assets/dining/instant.webp', gray: '/assets/dining/instant-gray.png' },
-  { key: 'stamps', source: '/assets/dining/stamps.webp', gray: '/assets/dining/stamps-gray.png' },
-  { key: 'exclusive', source: '/assets/dining/exclusive.webp', gray: '/assets/dining/exclusive-gray.png' },
+  { key: 'cashback', source: '/assets/dining/cashback.webp', gray: '/assets/dining/cashback-gray.jpeg' },
+  { key: 'booking', source: '/assets/dining/booking.webp', gray: '/assets/dining/booking-gray.jpeg' },
+  { key: 'instant', source: '/assets/dining/instant.webp', gray: '/assets/dining/instant-gray.jpeg' },
+  { key: 'stamps', source: '/assets/dining/stamps.webp', gray: '/assets/dining/stamps-gray.jpeg' },
+  { key: 'exclusive', source: '/assets/dining/exclusive.webp', gray: '/assets/dining/exclusive-gray.jpeg' },
 ] as const
 
 /** quick-filter chips — app parity: QUICK_FILTER_OPTIONS (subset the RPC supports) */

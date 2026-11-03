@@ -9,6 +9,9 @@ export type DiningBooking = {
   source: string | null
   customer_name: string | null
   special_request: string | null
+  proposed_date?: string | null
+  proposed_time?: string | null
+  proposed_at?: string | null
   restaurants: {
     id: string
     name: string

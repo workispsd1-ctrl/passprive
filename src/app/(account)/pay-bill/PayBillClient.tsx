@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ORDER_CART_KEY, matchingOrder, type OrderLine, type PendingOrder } from '@/lib/orderCollect'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
@@ -119,6 +120,7 @@ export function PayBillClient({
   upsell,
   initialAmount,
   initialOffer,
+  isOrder,
 }: {
   restaurant: PayBillRestaurant
   offers: BillOffer[]
@@ -133,6 +135,8 @@ export function PayBillClient({
   /** back from buying a membership: reopen the bill's summary */
   initialAmount: number | null
   initialOffer: string | null | undefined
+  /** arrived from Order & Collect with a cart */
+  isOrder: boolean
 }) {
   const router = useRouter()
   const { promptLogin } = useAuthPrompt()
@@ -154,6 +158,13 @@ export function PayBillClient({
   const [paying, setPaying] = useState(false)
   const [error, setError] = useState('')
   const [authTick, setAuthTick] = useState(0)
+  // app parity: OrderBillSummary → the cart travels with the payment
+  const [orderLines] = useState<OrderLine[] | null>(() => {
+    if (!isOrder || !initialAmount || typeof window === 'undefined') return null
+    try {
+      return matchingOrder(JSON.parse(sessionStorage.getItem(ORDER_CART_KEY) ?? 'null') as PendingOrder | null, r.id, initialAmount)
+    } catch { return null }
+  })
 
   const amount = Number(digits) || 0
 
@@ -286,6 +297,7 @@ export function PayBillClient({
     // app parity: startMembershipPayment — buy the plan first, then come back to this bill
     if (upgradeApplied && upsell) {
       const qs = new URLSearchParams({ restaurant_id: r.id, amount: String(amount), offer: selected?.id ?? 'none' })
+      if (orderLines) qs.set('order', '1')
       try { sessionStorage.setItem(PAY_BILL_RESUME_KEY, `/pay-bill?${qs}`) } catch { /* private mode — they land on the membership page */ }
       router.push(`/membership/checkout?plan=${encodeURIComponent(upsell.planId)}`)
       return
@@ -306,6 +318,7 @@ export function PayBillClient({
           restaurant_id: r.id,
           total_amount: Math.round((toPay + creditsApplied) * 100) / 100,
           coins_amount: creditsApplied,
+          ...(orderLines ? { order_items: orderLines.map(l => ({ id: l.id, qty: l.qty })) } : {}),
         }),
       })
       const data = (await res.json()) as Record<string, unknown>
@@ -324,6 +337,7 @@ export function PayBillClient({
         discount,
         paidAmount: toPay,
         cashback,
+        orderItems: orderLines ?? undefined,
       }
       try { sessionStorage.setItem(PENDING_BILL_KEY, JSON.stringify(pending)) } catch { /* private mode — the receipt shows less */ }
 

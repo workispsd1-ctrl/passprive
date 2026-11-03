@@ -45,8 +45,8 @@ export default async function TouristPage() {
     <main className="min-h-screen bg-white pb-20 md:pb-0">
       {/* TODO(design): the app opens its Taxi flow here; the web has no taxi route yet. */}
       <TouristImageBanner
-        src="/assets/tourist/HireTaxis.png"
-        desktop={{ src: '/assets/tourist/hire-taxis-banner-desktop.png', width: 6304, height: 500 }}
+        src="/assets/tourist/HireTaxis.jpeg"
+        desktop={{ src: '/assets/tourist/hire-taxis-banner-desktop.jpeg', width: 6304, height: 500 }}
         alt="Hire Taxis — local prices guaranteed. No surcharges. No scams."
       />
       <TouristHomeClient
@@ -65,8 +65,8 @@ export default async function TouristPage() {
         exploreArea={
           // TODO(design): the app opens Saved Locations here; no web equivalent yet.
           <TouristImageBanner
-            src="/assets/tourist/ExploreArea.png"
-            desktop={{ src: '/assets/tourist/explore-area-banner-desktop.png', width: 6304, height: 656 }}
+            src="/assets/tourist/ExploreArea.jpeg"
+            desktop={{ src: '/assets/tourist/explore-area-banner-desktop.jpeg', width: 6304, height: 656 }}
             alt="Explore Area — pick a location in Mauritius and check out customised gems around"
           />
         }
@@ -76,7 +76,7 @@ export default async function TouristPage() {
           // to link to yet, so it isn't clickable.
           <TouristImageBanner
             mobile={false}
-            desktop={{ src: '/assets/tourist/ad-blue-bay-tours-desktop.png', width: 6304, height: 656 }}
+            desktop={{ src: '/assets/tourist/ad-blue-bay-tours-desktop.jpeg', width: 6304, height: 656 }}
             alt="Ad: Blue Bay Tours — Private Pirogue Sunset Cruise, book now from MUR 450"
           />
         }

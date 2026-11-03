@@ -3,6 +3,8 @@ import { LocationProvider } from '@/lib/context/LocationContext'
 import { AuthPromptProvider } from '@/lib/context/AuthPromptContext'
 import { SavedProvider } from '@/lib/context/SavedContext'
 import { PlanProvider } from '@/lib/context/PlanContext'
+import { PlatformFlagsProvider } from '@/lib/context/PlatformFlagsContext'
+import { getPlatformFlags } from '@/lib/services/platformFlags'
 import { getCurrentUser } from '@/lib/services/user'
 import { getUserPlan } from '@/lib/services/subscription'
 import { getHeaderLocation } from '@/lib/location'
@@ -11,9 +13,10 @@ import { FloatingModeNav } from '@/components/layout/FloatingModeNav/FloatingMod
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
-  const [plan, headerLocation] = await Promise.all([getUserPlan(user?.id), getHeaderLocation()])
+  const [plan, headerLocation, flags] = await Promise.all([getUserPlan(user?.id), getHeaderLocation(), getPlatformFlags()])
 
   return (
+    <PlatformFlagsProvider flags={flags}>
     <LocationProvider initial={headerLocation}>
       <AuthPromptProvider>
         <SavedProvider>
@@ -32,5 +35,6 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         </SavedProvider>
       </AuthPromptProvider>
     </LocationProvider>
+    </PlatformFlagsProvider>
   )
 }

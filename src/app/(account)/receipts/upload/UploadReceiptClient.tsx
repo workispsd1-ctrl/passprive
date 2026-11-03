@@ -30,6 +30,16 @@ export function ReceiptTip({ children }: { children: React.ReactNode }) {
  * the browser has no OCR, so the member types the total and date, which the
  * reviewer checks against the photo.
  */
+type AiRead = {
+  id?: string
+  is_receipt?: boolean
+  total?: number | null
+  purchase_date?: string | null
+  purchase_time?: string | null
+  receipt_number?: string | null
+  text?: string | null
+}
+
 export function UploadReceiptClient({
   merchant,
   backHref,
@@ -51,6 +61,9 @@ export function UploadReceiptClient({
   const [error, setError] = useState('')
   const [rejection, setRejection] = useState('')
   const [dragging, setDragging] = useState(false)
+  // app parity: ReviewReceiptScreen — every photo is read before it can be submitted
+  const [reading, setReading] = useState(false)
+  const [aiRead, setAiRead] = useState<AiRead | null>(null)
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
@@ -69,6 +82,24 @@ export function UploadReceiptClient({
     setPreviewFailed(false)
     setFile(next)
     setPreview(URL.createObjectURL(next))
+    void read(next)
+  }
+
+  async function read(next: File) {
+    setReading(true)
+    setAiRead(null)
+    setAmount('')
+    setPurchaseDate('')
+    const form = new FormData()
+    form.set('file', next)
+    const res = await fetch('/api/receipts/read', { method: 'POST', body: form }).catch(() => null)
+    const ai = res?.ok ? ((await res.json().catch(() => null)) as AiRead | null) : null
+    setReading(false)
+    if (!ai) { setRejection('We could not read this receipt right now. Check your connection and try again.'); return }
+    if (ai.is_receipt === false) { setRejection('This does not look like a receipt. Please upload a photo of the printed bill, not a screenshot or a document.'); return }
+    setAiRead(ai)
+    if (ai.total != null) setAmount(String(ai.total))
+    if (ai.purchase_date) setPurchaseDate(ai.purchase_date)
   }
 
   function retake() {
@@ -80,7 +111,7 @@ export function UploadReceiptClient({
   }
 
   async function submit() {
-    if (!file || busy || rejection) return
+    if (!file || busy || rejection || reading) return
     setBusy(true)
     setError('')
     const form = new FormData()
@@ -89,6 +120,14 @@ export function UploadReceiptClient({
     if (dealId) form.set('dealId', dealId)
     if (amount) form.set('billAmount', amount)
     if (purchaseDate) form.set('purchaseDate', purchaseDate)
+    if (aiRead) {
+      form.set('aiReadId', aiRead.id ?? '')
+      form.set('aiTotal', aiRead.total == null ? '' : String(aiRead.total))
+      form.set('aiPurchaseDate', aiRead.purchase_date ?? '')
+      form.set('aiPurchaseTime', aiRead.purchase_time ?? '')
+      form.set('receiptNumber', aiRead.receipt_number ?? '')
+      form.set('ocrText', aiRead.text ?? '')
+    }
     const res = await fetch('/api/receipts', { method: 'POST', body: form }).catch(() => null)
     const data = (await res?.json().catch(() => null)) as { claim?: ReceiptClaim; rejection?: string; error?: string } | null
     setBusy(false)
@@ -227,10 +266,10 @@ export function UploadReceiptClient({
       <button
         type="button"
         onClick={rejection ? retake : submit}
-        disabled={busy}
+        disabled={busy || reading}
         className="mt-8 flex h-12 items-center justify-center rounded-full bg-brand text-[16px] font-semibold text-white hover:bg-brand-dark disabled:opacity-85"
       >
-        {busy ? <Loader2 className="size-5 animate-spin" /> : rejection ? 'Retake photo' : 'Submit receipt'}
+        {busy || reading ? <Loader2 className="size-5 animate-spin" /> : rejection ? 'Retake photo' : 'Submit receipt'}
       </button>
       <button
         type="button"

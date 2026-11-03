@@ -1,3 +1,4 @@
+import { orderableItems, type OrderItem } from '@/lib/orderCollect';
 import { createClient } from '@/lib/supabase/server';
 import { FEED_PAGE_SIZE, toRpcArgs, type Coords, type FeedFilters } from '@/lib/restaurantFilters';
 import { scopeToRadius, withinRadius } from '@/lib/nearby';
@@ -452,4 +453,15 @@ export async function getRestaurantBySlugOrId(
     todayHours,
     allHours,
   };
+}
+
+/** Menu items and whether they can be ordered — app parity: restaurants.js fetchOrderCollectById. */
+export async function getOrderCollect(restaurantId: string): Promise<{ enabled: boolean; items: OrderItem[] }> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('restaurants')
+    .select('order_collect_enabled, menu_json')
+    .eq('id', restaurantId)
+    .maybeSingle();
+  return { enabled: data?.order_collect_enabled === true, items: orderableItems(data?.menu_json) };
 }

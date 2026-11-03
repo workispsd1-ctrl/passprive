@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, BookText, ChevronRight, CircleHelp, Crown, FileText, Gift, Heart, LogOut, MessageCircle, Receipt, ReceiptText, Share2, Wallet, Star,
+  LifeBuoy, Info,
 } from 'lucide-react'
 import { BillPaymentRow } from '@/components/shared/BillPaymentRow'
 import { cn } from '@/lib/utils'
@@ -37,7 +38,9 @@ const GROUPS: { title: string; items: { label: string; href: string; icon: React
     title: 'Support',
     items: [
       { label: 'Frequently asked questions', href: '/faq', icon: CircleHelp },
+      { label: 'Help topics', href: '/help', icon: LifeBuoy },
       { label: 'Chat with us', href: '/support', icon: MessageCircle },
+      { label: 'Share feedback', href: '/feedback', icon: Info },
     ],
   },
   {

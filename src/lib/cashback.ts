@@ -9,6 +9,8 @@
  * preferred 1.5%, black → verified 0.5% / preferred 3%) — see `getCardBadge`.
  */
 
+import { burnOn, earnOn } from '@/lib/platformFlags';
+
 export type CashbackPlan = 'free' | 'premiere' | 'black';
 
 // App parity: utils/cashbackBadge.js PLAN_BADGES
@@ -90,6 +92,7 @@ export function canPayBill(e: MerchantCapabilityFields): boolean {
 
 /** App parity: cashbackBadge.js isCashbackEnabled — only an explicit false switches it off. */
 export function isCashbackEnabled(e: MerchantCapabilityFields): boolean {
+  if (!earnOn() && !burnOn()) return false;
   return e.cashback_enabled !== false;
 }
 
@@ -130,9 +133,10 @@ export function getCardBadge(e: MerchantCapabilityFields, plan: CashbackPlan): C
   const arts: string[] = [];
   if (isCashbackEnabled(e)) {
     const type = String(e.merchant_type ?? '').trim().toLowerCase();
-    const earn = PLAN_BADGES[plan][type === 'verified' ? 'verified' : 'preferred'];
-    if (canPayBill(e)) arts.push(earn, USE_CASHBACK_BADGE);
-    else if (!canBook(e)) arts.push(earn);
+    const earn = earnOn() ? PLAN_BADGES[plan][type === 'verified' ? 'verified' : 'preferred'] : null;
+    const use = burnOn() ? USE_CASHBACK_BADGE : null;
+    if (canPayBill(e)) arts.push(...[earn, use].filter((art): art is string => !!art));
+    else if (!canBook(e) && earn) arts.push(earn);
   }
   return arts.length || promoted ? { arts, promoted } : null;
 }
@@ -152,6 +156,7 @@ export function canBook(e: MerchantCapabilityFields): boolean {
 
 /** App parity: cashbackBadge.js `getEntityCashbackPct` — the % rate itself, 0 when not eligible. */
 export function getCashbackPct(e: MerchantCapabilityFields, plan: CashbackPlan): number {
+  if (!earnOn()) return 0
   const tier = merchantTierOf(e)
   if (tier === 'preferred') return plan === 'black' ? 3 : plan === 'premiere' ? 1.5 : 0.5
   if (tier === 'verified') return 0.5

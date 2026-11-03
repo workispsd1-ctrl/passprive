@@ -7,6 +7,8 @@ import { Navigation, Globe, Smartphone, Coins } from 'lucide-react'
 import type { DiningBooking, StoreBooking } from '@/lib/types/bookings'
 import { formatBookingDateTime } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
+import { hasLiveProposal } from '@/lib/booking/status'
+import { BookingProposalBanner } from '@/components/shared/BookingProposalBanner'
 
 function getStatusBadge(status: string, bookingDate: string) {
   const today = new Date()
@@ -24,7 +26,9 @@ function getStatusBadge(status: string, bookingDate: string) {
 
 function BookingCard({ booking }: { booking: DiningBooking }) {
   const restaurant = booking.restaurants
-  const badge = getStatusBadge(booking.status, booking.booking_date)
+  const badge = hasLiveProposal(booking)
+    ? { label: 'New time', className: 'bg-brand-tint text-brand' }
+    : getStatusBadge(booking.status, booking.booking_date)
   const location = restaurant?.area ?? restaurant?.full_address ?? restaurant?.name ?? '—'
 
   return (
@@ -73,6 +77,8 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
         </div>
       </div>
 
+      <BookingProposalBanner booking={booking} restaurantName={restaurant?.name} className="mx-4 mb-3" />
+
       <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
         <div className="flex items-center gap-2">
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge.className}`}>
@@ -87,7 +93,7 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
         <div className="flex items-center gap-3">
           {(booking.status === 'confirmed' || booking.status === 'pending') && booking.restaurants?.merchant_type !== null && (
             <Link
-              href={`/bookings/${booking.id}`}
+              href={`/pay-bill?restaurant_id=${booking.restaurant_id}`}
               className="flex items-center gap-1.5 text-xs font-semibold text-brand-dark bg-brand-tint hover:bg-brand-tint-strong px-3 py-1.5 rounded-full transition-colors"
             >
               <Coins className="w-3.5 h-3.5" />

@@ -30,17 +30,28 @@ export async function POST(request: Request) {
   const photo = await readReceiptPhoto(file)
   if ('error' in photo) return NextResponse.json({ error: photo.error }, { status: 400 })
 
+  // what receipt-ai read from the photo, when it ran — app parity: mergeAiRead
+  const ai = {
+    id: String(form.get('aiReadId') ?? '') || null,
+    total: Number(form.get('aiTotal')) || null,
+    date: String(form.get('aiPurchaseDate') ?? '') || null,
+    time: String(form.get('aiPurchaseTime') ?? '') || null,
+    receiptNumber: String(form.get('receiptNumber') ?? '') || null,
+    text: String(form.get('ocrText') ?? '').slice(0, 4000) || null,
+  }
+  const purchasedAt = ai.date && ai.time && ai.date === fields.purchaseDate ? `${ai.date}T${ai.time.slice(0, 5)}:00+04:00` : null
+
   // A non-null result is the reason this bill can't be claimed (duplicate, wrong merchant, …).
   const { data: rejection } = await supabase.rpc('receipt_precheck', {
     p_restaurant_id: restaurantId,
     p_store_id: storeId,
-    p_ocr_text: null,
+    p_ocr_text: ai.text,
     p_ocr_ran: false,
     p_bill_amount: fields.billAmount,
     p_purchase_date: fields.purchaseDate,
-    p_purchased_at: null,
+    p_purchased_at: purchasedAt,
     p_image_hash: photo.hash,
-    p_receipt_number: null,
+    p_receipt_number: ai.receiptNumber,
   })
   if (rejection) return NextResponse.json({ rejection: String(rejection) }, { status: 422 })
 
@@ -57,11 +68,12 @@ export async function POST(request: Request) {
       image_path: stored.path,
       bill_amount: fields.billAmount,
       purchase_date: fields.purchaseDate,
-      purchased_at: null,
-      amount_source: fields.billAmount == null ? null : 'user',
-      ocr_text: null,
+      purchased_at: purchasedAt,
+      ai_read_id: ai.id,
+      amount_source: fields.billAmount == null ? null : ai.total != null && ai.total === fields.billAmount ? 'ai' : 'user',
+      ocr_text: ai.text,
       image_hash: photo.hash,
-      receipt_number: null,
+      receipt_number: ai.receiptNumber,
       ocr_ran: false,
       status: RECEIPT_STATUS.SUBMITTED,
     })

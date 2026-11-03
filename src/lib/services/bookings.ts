@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { DiningBooking, StoreBooking } from '@/lib/types/bookings'
 
-const BOOKING_SELECT = 'id, restaurant_id, booking_date, booking_time, party_size, status, booking_code, source, customer_name, special_request, restaurants(id, name, slug, cover_image, area, full_address, cost_for_two, merchant_type, cancellation_available, cancellation_cutoff_minutes)'
+const BOOKING_SELECT = 'id, restaurant_id, booking_date, booking_time, party_size, status, booking_code, source, customer_name, special_request, proposed_date, proposed_time, proposed_at, restaurants(id, name, slug, cover_image, area, full_address, cost_for_two, merchant_type, cancellation_available, cancellation_cutoff_minutes)'
 
 export async function getUserDiningBookings(userId: string): Promise<DiningBooking[]> {
   const supabase = await createClient()
@@ -71,4 +71,21 @@ export async function getUpcomingDiningBookings(
     .order('booking_time', { ascending: true })
     .limit(limit)
   return (data ?? []) as unknown as DiningBooking[]
+}
+
+export type BookingReward = { id: string; amount: number; status: string; merchant_name: string | null; booking_date: string | null; verify_by: string | null }
+
+/** Rewards for booked tables, unlocked after the visit — app parity: pointsLedger.js fetchBookingRewards. */
+export async function getPendingBookingRewards(): Promise<BookingReward[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('my_booking_rewards')
+  if (error || !Array.isArray(data)) return []
+  return (data as BookingReward[]).filter(r => r?.status === 'pending')
+}
+
+/** The reward held for one booking, 0 when none — app parity: PaymentSuccessScreen. */
+export async function getBookingRewardAmount(bookingId: string): Promise<number> {
+  const supabase = await createClient()
+  const { data } = await supabase.from('booking_rewards').select('amount, status').eq('booking_id', bookingId).maybeSingle()
+  return data?.status === 'pending' || data?.status === 'released' ? Number(data.amount || 0) : 0
 }

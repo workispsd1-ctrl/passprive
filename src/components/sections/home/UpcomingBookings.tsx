@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { CalendarDays, Users } from 'lucide-react'
 import { HScroll } from './HScroll'
 import type { DiningBooking } from '@/lib/types/bookings'
+import { hasLiveProposal } from '@/lib/booking/status'
 
 function formatWhen(date: string, time: string) {
   const d = new Date(`${date}T${time}`)
@@ -34,9 +35,13 @@ export function UpcomingBookings({ bookings }: { bookings: DiningBooking[] }) {
             </p>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-[#878787]">
               <Users className="h-3 w-3 shrink-0" /> {b.party_size} guests
-              <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold capitalize text-green-700">
-                {b.status}
-              </span>
+              {hasLiveProposal(b) ? (
+                <span className="ml-1 rounded-full bg-brand-tint px-1.5 py-0.5 text-[10px] font-semibold text-brand">NEW TIME</span>
+              ) : (
+                <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold capitalize text-green-700">
+                  {b.status}
+                </span>
+              )}
             </p>
           </div>
         </Link>

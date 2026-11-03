@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { canBook, canPayBill, getCashbackPct, hasBillCashback, type MerchantCapabilityFields } from './cashback'
+import { afterEach, describe, expect, it } from 'vitest'
+import { DEFAULT_PLATFORM_FLAGS, flagsFromRow, setPlatformFlags } from './platformFlags'
+import { canBook, canPayBill, getCardBadge, getCashbackPct, hasBillCashback, type MerchantCapabilityFields } from './cashback'
 
 const preferred: MerchantCapabilityFields = { merchant_type: 'Preferred', merchant_plan: 'paid', pay_bill_enabled: true, on_boarded: true }
 const verified: MerchantCapabilityFields = { ...preferred, merchant_type: 'Verified' }
@@ -55,5 +56,32 @@ describe('canBook', () => {
     expect(canBook({ merchant_plan: 'paid', service_level: 'booking' })).toBe(true)
     expect(canBook({ merchant_plan: 'paid', service_level: 'payments' })).toBe(true)
     expect(canBook({ merchant_plan: 'paid', service_level: 'discoverable' })).toBe(false)
+  })
+})
+
+describe('platform earn / burn switches', () => {
+  afterEach(() => setPlatformFlags(DEFAULT_PLATFORM_FLAGS))
+
+  it('earn off: no rate and no earn art, the use-credits art stays', () => {
+    setPlatformFlags({ ...DEFAULT_PLATFORM_FLAGS, earn: false })
+    expect(getCashbackPct(preferred, 'black')).toBe(0)
+    expect(getCardBadge(preferred, 'black')?.arts).toEqual(['/assets/cashback/Use-Cashback-OnPayment.webp'])
+  })
+
+  it('burn off: only the earn art', () => {
+    setPlatformFlags({ ...DEFAULT_PLATFORM_FLAGS, burn: false })
+    expect(getCardBadge(preferred, 'black')?.arts).toEqual(['/assets/cashback/Lite_Theme_Black_3.webp'])
+  })
+
+  it('both off: cashback is off everywhere', () => {
+    setPlatformFlags({ ...DEFAULT_PLATFORM_FLAGS, earn: false, burn: false })
+    expect(hasBillCashback(preferred)).toBe(false)
+    expect(getCardBadge(preferred, 'black')).toBeNull()
+  })
+
+  it('reads a row: only an explicit false is off, and the reward needs earn on', () => {
+    expect(flagsFromRow(null)).toEqual(DEFAULT_PLATFORM_FLAGS)
+    expect(flagsFromRow({ booking_reward_enabled: true, booking_reward_amount: '50.00' }).bookingRewardAmount).toBe(50)
+    expect(flagsFromRow({ cashback_earn_enabled: false, booking_reward_enabled: true, booking_reward_amount: 50 }).bookingRewardAmount).toBe(0)
   })
 })
