@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? ''
@@ -40,6 +41,23 @@ async function makeNonce(): Promise<[raw: string, hashed: string]> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))
   const hashed = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('')
   return [raw, hashed]
+}
+
+async function ensureUserRow(supabase: ReturnType<typeof createClient>, user: User) {
+  const now = new Date().toISOString()
+  const { data: row } = await supabase.from('users').select('id').eq('id', user.id).maybeSingle()
+  if (row) {
+    await supabase.from('users').update({ last_login: now, last_opened: now, updated_at: now }).eq('id', user.id)
+    return
+  }
+  await supabase.from('users').insert({
+    id: user.id,
+    email: user.email,
+    full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
+    created_at: now,
+    last_login: now,
+    last_opened: now,
+  })
 }
 
 interface Props {
@@ -82,11 +100,13 @@ export function GoogleSignInButton({ disabled, onBusyChange, onSuccess, onError 
             if (!credential) { handlers.current.onError('Google sign-in was cancelled.'); return }
             setBusy(true)
             handlers.current.onBusyChange?.(true)
-            const { error } = await createClient().auth.signInWithIdToken({
+            const supabase = createClient()
+            const { data, error } = await supabase.auth.signInWithIdToken({
               provider: 'google',
               token: credential,
               nonce: rawNonce,
             })
+            if (!error && data.user) await ensureUserRow(supabase, data.user)
             setBusy(false)
             handlers.current.onBusyChange?.(false)
             if (error) handlers.current.onError(error.message)

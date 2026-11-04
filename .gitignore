@@ -46,3 +46,4 @@ AGENTS.md
 
 # Supabase migrations (kept out of repo)
 supabase/migrations/
+.gstack/
