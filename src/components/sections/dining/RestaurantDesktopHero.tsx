@@ -3,6 +3,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { Check, ChevronDown, Heart, Share2 } from 'lucide-react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { canPayBill, getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
 import { formatDistanceKm, haversineKm } from '@/lib/utils'
@@ -10,81 +12,38 @@ import type { HoursRow } from '@/lib/openingHours'
 import { OpeningHoursPill } from '@/components/shared/detail/OpeningHours'
 import { areaLabel } from '@/components/shared/detail/MobileTitleCard'
 import { findSection } from '@/components/shared/detail/DetailSectionTabs'
+import { directionsUrl, shareLink, useSaveMerchant } from '@/components/shared/detail/MerchantActions'
+import { cn } from '@/lib/utils'
 import { useGallery } from './PhotoGalleryClient'
-import { t, u } from './designUnit'
+import { t, tMin, u } from './designUnit'
 
 const A = '/assets/merchant-detail'
 const INTER = 'font-(family-name:--font-inter)'
 
+/** Figma tag: 21 high, 11/16 semibold on #FFF1EB. */
 function Tag({ icon, label, color, iconW, iconH }: { icon: string; label: string; color: string; iconW: number; iconH: number }) {
   return (
     <span
-      className='inline-flex items-center rounded-full bg-[#fff1eb] font-semibold whitespace-nowrap'
-      style={{ height: t(46), paddingLeft: t(15), paddingRight: t(18), gap: t(9), fontSize: t(24), lineHeight: t(35), color }}
+      className='inline-flex items-center bg-[#fff1eb] font-semibold whitespace-nowrap'
+      style={{ height: tMin(21, 19), borderRadius: t(15.83), paddingLeft: tMin(7, 6), paddingRight: tMin(6, 5), gap: tMin(4, 3), fontSize: tMin(11, 10), lineHeight: 1.45, color }}
     >
-      <Image src={`${A}/${icon}`} alt='' width={iconW} height={iconH} style={{ width: t(iconW), height: t(iconH) }} />
+      <Image src={`${A}/${icon}`} alt='' width={iconW} height={iconH} style={{ width: tMin(iconW, iconW * 0.8), height: tMin(iconH, iconH * 0.8) }} />
       {label}
     </span>
   )
 }
 
+const ICON_BUTTON = 'flex shrink-0 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40'
+
 /**
- * Restaurant detail header on desktop — Figma "Dining - Pay Bill"
- * (PASS-PRIVE-HOMEPAGE 11318:17535), drawn on its 1920 frame: layout in `u`
- * (fluid with the screen), type and controls in `t` (stepped per breakpoint,
- * full size only at 1920). Phones keep MobileTitleCard.
+ * Top of the restaurant page on desktop — Figma "Dining": Back, then the full
+ * column photo with save and share over it. Phones keep the app's cover hero.
  */
-export function RestaurantDesktopHero({
-  name,
-  cover,
-  photoCount,
-  cuisines,
-  costForTwo,
-  area,
-  city,
-  lat,
-  lng,
-  rating,
-  hours,
-  stampSheet,
-  trending,
-  exclusive,
-  merchant,
-  bookHref,
-  payHref,
-}: {
-  name: string
-  cover: string | null
-  photoCount: number
-  cuisines: string[]
-  costForTwo: number | null
-  area: string | null
-  city: string | null
-  lat: number | null
-  lng: number | null
-  rating: { avg: number; count: number }
-  hours: HoursRow[]
-  stampSheet: boolean
-  trending: boolean
-  exclusive: boolean
-  merchant: MerchantCapabilityFields
-  bookHref: string | null
-  payHref: string | null
-}) {
+export function RestaurantDesktopHero({ id, name, cover }: { id: string; name: string; cover: string | null }) {
   const router = useRouter()
   const { openAt } = useGallery()
-  const { location } = useLocation()
-  const distance =
-    location.lat != null && location.lng != null && lat != null && lng != null
-      ? formatDistanceKm(haversineKm(location.lat, location.lng, Number(lat), Number(lng)))
-      : null
-  const line1 = [cuisines.slice(0, 2).join(', '), costForTwo != null ? `MUR ${costForTwo.toLocaleString('en-US')} for two` : null]
-    .filter(Boolean)
-    .join(' •  ')
-  const line2 = [distance, areaLabel(area, city)].filter(Boolean).join(' • ')
-  // "up to" — what a Black member earns here
-  const upTo = canPayBill(merchant) ? getCashbackPct(merchant, 'black') : 0
-  const ratingCount = rating.count >= 1000 ? `${(rating.count / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(rating.count)
+  const saver = useSaveMerchant(id, 'RESTAURANT')
+  const [copied, setCopied] = useState(false)
 
   function back() {
     if (window.history.length > 1 && document.referrer.startsWith(window.location.origin)) router.back()
@@ -105,114 +64,168 @@ export function RestaurantDesktopHero({
       />
 
       <div className='relative' style={{ paddingTop: t(59) }}>
-        <button type='button' onClick={back} className='flex items-center font-semibold text-[#ff4800] hover:text-brand-dark' style={{ fontSize: t(24), height: t(40) }}>
+        <button type='button' onClick={back} className='flex items-center font-semibold text-[#ff4800] hover:text-brand-dark' style={{ fontSize: tMin(24, 15), height: t(40) }}>
           <Image src={`${A}/back-chevron.svg`} alt='' width={40} height={40} style={{ width: t(40), height: t(40), marginRight: t(-12) }} />
           Back
         </button>
 
-        <div className='flex items-start' style={{ marginTop: t(24), gap: u(60) }}>
-          <button
-            type='button'
-            onClick={() => openAt(0)}
-            aria-label={`View photos of ${name}`}
-            className='group relative shrink-0 overflow-hidden bg-[rgba(241,241,241,1)]'
-            style={{ width: u(760), height: u(464), borderRadius: u(35.03) }}
-          >
-            {cover && (
-              <Image src={cover} alt={name} fill priority sizes='(min-width: 1920px) 760px, 40vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.03]' />
-            )}
-            {photoCount > 1 && (
-              <span
-                className='absolute flex items-center rounded-full bg-white/95 font-semibold text-gray-900 shadow-sm'
-                style={{ right: t(20), bottom: t(20), padding: `${t(8)} ${t(16)}`, fontSize: t(15) }}
-              >
-                Show all {photoCount} photos
-              </span>
-            )}
+        <div className='relative overflow-hidden bg-[rgba(241,241,241,1)]' style={{ marginTop: t(25), height: u(480), borderRadius: u(12.03) }}>
+          <button type='button' onClick={() => openAt(0)} aria-label={`View photos of ${name}`} className='group absolute inset-0'>
+            {cover && <Image src={cover} alt={name} fill priority sizes='(min-width: 1920px) 1576px, 90vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.02]' />}
           </button>
-
-          <div className='flex min-w-0 flex-1 flex-col' style={{ paddingTop: t(6) }}>
-            <div className='flex items-start justify-between' style={{ gap: t(24) }}>
-              <div className='flex min-w-0 flex-col' style={{ gap: t(17.5) }}>
-                <h1 className='font-semibold text-[#2c2d32]' style={{ fontSize: t(44), lineHeight: t(57) }}>{name}</h1>
-                <div className='flex flex-col font-medium whitespace-pre text-[#5b5a5a]' style={{ fontSize: t(28), lineHeight: t(36), gap: t(3.5) }}>
-                  {line1 && <p>{line1}</p>}
-                  {line2 && <p>{line2}</p>}
-                </div>
-              </div>
-              {rating.avg > 0 && (
-                <button
-                  type='button'
-                  onClick={() => findSection('reviews')?.scrollIntoView({ behavior: 'smooth' })}
-                  className='flex shrink-0 flex-col items-center'
-                  style={{ width: t(120), gap: t(4) }}
-                >
-                  <span
-                    className={`flex items-center justify-center rounded-full bg-[#3aa456] font-bold text-white ${INTER}`}
-                    style={{ width: t(120), height: t(48), gap: t(7), fontSize: t(28), letterSpacing: t(0.52) }}
-                  >
-                    {rating.avg.toFixed(1)}
-                    <Image src={`${A}/rating-star.svg`} alt='' width={20} height={18} style={{ width: t(20), height: t(18) }} />
-                  </span>
-                  <span className={`font-medium text-[#787575] underline ${INTER}`} style={{ fontSize: t(16), lineHeight: t(22) }}>
-                    {ratingCount} ratings
-                  </span>
-                </button>
-              )}
-            </div>
-
-            <div style={{ marginTop: t(32) }}>
-              <OpeningHoursPill hours={hours} variant='figma' />
-            </div>
-
-            {(stampSheet || trending || exclusive) && (
-              <div className='flex flex-wrap' style={{ marginTop: t(16), gap: t(13) }}>
-                {stampSheet && <Tag icon='tag-stamp.svg' label='Stamp sheet' color='#ff4800' iconW={24} iconH={26} />}
-                {trending && <Tag icon='tag-trending.svg' label='Trending' color='#ff6a30' iconW={18} iconH={24} />}
-                {exclusive && <Tag icon='tag-exclusive.svg' label='Exclusive' color='#ff6a30' iconW={24} iconH={21} />}
-              </div>
-            )}
-
-            {upTo > 0 && (
-              <p
-                className={`flex items-center font-semibold whitespace-nowrap text-[#424144] ${INTER}`}
-                style={{ marginTop: t(26), gap: t(3), fontSize: t(15.75), lineHeight: t(22.4) }}
-              >
-                <Image src={`${A}/earn-coin.png`} alt='' width={48} height={48} style={{ width: t(48), height: t(48) }} />
-                <span>
-                  Earn up to <span className='text-[#0248f6]'>{upTo}% cashback</span> on bill payment
-                </span>
-                <Link href='/membership' aria-label='How cashback works' style={{ marginLeft: t(6) }}>
-                  <Image src={`${A}/info.svg`} alt='' width={18} height={18} style={{ width: t(18), height: t(18) }} />
-                </Link>
-              </p>
-            )}
-
-            {(bookHref || payHref) && (
-              <div className='flex' style={{ marginTop: t(15), gap: t(20) }}>
-                {bookHref && (
-                  <Link
-                    href={bookHref}
-                    className={`flex items-center justify-center rounded-full border-solid border-[#ff4800] bg-white font-semibold text-[#ff4800] transition-colors hover:bg-brand-tint ${INTER}`}
-                    style={{ width: t(280), height: t(72), borderWidth: t(1.52), fontSize: t(28) }}
-                  >
-                    Book table
-                  </Link>
-                )}
-                {payHref && (
-                  <Link
-                    href={payHref}
-                    className={`flex items-center justify-center rounded-full bg-[#ff4800] font-semibold text-[#fffbff] transition-colors hover:bg-brand-dark ${INTER}`}
-                    style={{ width: t(264), height: t(72), fontSize: t(28) }}
-                  >
-                    Pay bill
-                  </Link>
-                )}
-              </div>
-            )}
+          <div className='absolute flex' style={{ top: tMin(24, 12), right: tMin(24, 12), gap: tMin(12, 8) }}>
+            <button type='button' onClick={saver.onSave} aria-label={saver.saved ? 'Edit saved lists' : 'Save'} aria-pressed={saver.saved} className={ICON_BUTTON} style={{ width: tMin(44, 34), height: tMin(44, 34) }}>
+              <Heart className={cn(saver.saved && 'fill-brand text-brand')} style={{ width: tMin(22, 17), height: tMin(22, 17) }} />
+            </button>
+            <button
+              type='button'
+              onClick={async () => { if (await shareLink(name)) { setCopied(true); setTimeout(() => setCopied(false), 2000) } }}
+              aria-label={copied ? 'Link copied' : 'Share'}
+              className={ICON_BUTTON}
+              style={{ width: tMin(44, 34), height: tMin(44, 34) }}
+            >
+              {copied ? <Check style={{ width: tMin(22, 17), height: tMin(22, 17) }} /> : <Share2 style={{ width: tMin(22, 17), height: tMin(22, 17) }} />}
+            </button>
           </div>
         </div>
+        {saver.sheet(name)}
       </div>
+    </section>
+  )
+}
+
+/** The name, facts, hours, ways to reach the place and tags, on a card under the photo. */
+export function RestaurantTitleCard({
+  name,
+  cuisines,
+  costForTwo,
+  area,
+  city,
+  lat,
+  lng,
+  address,
+  phone,
+  rating,
+  hours,
+  stampSheet,
+  trending,
+  exclusive,
+}: {
+  name: string
+  cuisines: string[]
+  costForTwo: number | null
+  area: string | null
+  city: string | null
+  lat: number | null
+  lng: number | null
+  address: string
+  phone: string | null
+  rating: { avg: number; count: number }
+  hours: HoursRow[]
+  stampSheet: boolean
+  trending: boolean
+  exclusive: boolean
+}) {
+  const { location } = useLocation()
+  const [showAddress, setShowAddress] = useState(false)
+  const distance =
+    location.lat != null && location.lng != null && lat != null && lng != null
+      ? formatDistanceKm(haversineKm(location.lat, location.lng, Number(lat), Number(lng)))
+      : null
+  const line1 = [cuisines.slice(0, 2).join(', '), costForTwo != null ? `MUR ${costForTwo.toLocaleString('en-US')} for two` : null]
+    .filter(Boolean)
+    .join(' • ')
+  const line2 = [distance, areaLabel(area, city)].filter(Boolean).join(' • ')
+  const ratingCount = rating.count >= 1000 ? `${(rating.count / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(rating.count)
+  const round = { width: tMin(31.73, 26), height: tMin(30.8, 25) }
+
+  return (
+    <section
+      className='relative hidden bg-white/80 font-(family-name:--font-dm-sans) drop-shadow-[0_4px_43.5px_rgba(0,0,0,0.1)] md:block'
+      style={{ marginTop: tMin(24, 14), minHeight: t(192), padding: `${tMin(14, 11)} ${tMin(24, 14)}`, borderRadius: t(18) }}
+    >
+      <div className='flex items-start justify-between' style={{ gap: tMin(16, 10) }}>
+        <div className='min-w-0'>
+          <h1 className='font-bold wrap-break-word text-[#2c2d32]' style={{ fontSize: tMin(30, 20), lineHeight: 1.4, letterSpacing: t(-0.5) }}>{name}</h1>
+          {line1 && <p className='font-medium wrap-break-word text-[#5b5a5a]' style={{ marginTop: t(2), fontSize: tMin(14, 13), lineHeight: 1.43 }}>{line1}</p>}
+          {line2 && (
+            <button
+              type='button'
+              onClick={() => setShowAddress(v => !v)}
+              aria-expanded={showAddress}
+              disabled={!address}
+              className='flex items-center text-left font-medium text-[#777]'
+              style={{ marginTop: tMin(6, 4), gap: tMin(8, 6), fontSize: tMin(14, 13), lineHeight: 1.43 }}
+            >
+              <span className='min-w-0 wrap-break-word'>{line2}</span>
+              {address && <ChevronDown className={cn('shrink-0 text-[#ff4800] transition-transform', showAddress && 'rotate-180')} style={{ width: tMin(16, 13), height: tMin(16, 13) }} />}
+            </button>
+          )}
+          {showAddress && address && <p className='wrap-break-word text-[#767677]' style={{ marginTop: t(4), fontSize: tMin(14, 12) }}>{address}</p>}
+        </div>
+        {rating.avg > 0 && (
+          <button type='button' onClick={() => findSection('reviews')?.scrollIntoView({ behavior: 'smooth' })} className='flex shrink-0 flex-col items-end' style={{ marginTop: t(8), gap: tMin(11, 5) }}>
+            <span className={`flex items-center justify-center bg-[#3aa456] font-bold text-white ${INTER}`} style={{ width: tMin(68, 54), height: tMin(26, 22), borderRadius: t(20.9), gap: tMin(6, 4), fontSize: tMin(13.38, 12), letterSpacing: t(0.24) }}>
+              {rating.avg.toFixed(1)}
+              <Image src={`${A}/rating-star.svg`} alt='' width={20} height={18} style={{ width: tMin(12, 10), height: tMin(12, 10) }} />
+            </span>
+            <span className={`font-medium text-[#787575] underline ${INTER}`} style={{ fontSize: tMin(12, 11), lineHeight: 1.42, letterSpacing: t(0.12) }}>{ratingCount} ratings</span>
+          </button>
+        )}
+      </div>
+
+      <div className='flex flex-wrap items-center' style={{ marginTop: tMin(14, 10), columnGap: tMin(12, 8), rowGap: tMin(8, 6) }}>
+        <OpeningHoursPill hours={hours} variant='figma' />
+        {(address || (lat != null && lng != null)) && (
+          <a href={directionsUrl(lat, lng, address)} target='_blank' rel='noreferrer' aria-label='Get directions' className='shrink-0 hover:opacity-80' style={round}>
+            <Image src={`${A}/Direction.webp`} alt='' width={64} height={62} className='size-full' />
+          </a>
+        )}
+        {phone && (
+          <a href={`tel:${phone}`} aria-label={`Call ${name}`} className='shrink-0 hover:opacity-80' style={round}>
+            <Image src={`${A}/Call.webp`} alt='' width={64} height={62} className='size-full' />
+          </a>
+        )}
+        <span className='flex flex-wrap items-center lg:ml-[calc(11*var(--t))]' style={{ gap: tMin(12, 8) }}>
+          {stampSheet && <Tag icon='tag-stamp.svg' label='Stamp sheet' color='#ff4800' iconW={11} iconH={12} />}
+          {trending && <Tag icon='tag-trending.svg' label='Trending' color='#ff6a30' iconW={8.13} iconH={11} />}
+          {exclusive && <Tag icon='tag-exclusive.svg' label='Exclusive' color='#ff6a30' iconW={10.98} iconH={9.61} />}
+        </span>
+      </div>
+    </section>
+  )
+}
+
+/** "Earn up to X% cashback" with Book table and Pay bill — first in the sidebar. */
+export function RestaurantCtaCard({ merchant, bookHref, payHref, className }: { merchant: MerchantCapabilityFields; bookHref: string | null; payHref: string | null; className?: string }) {
+  // "up to" — what a Black member earns here
+  const upTo = canPayBill(merchant) ? getCashbackPct(merchant, 'black') : 0
+  if (!bookHref && !payHref && !upTo) return null
+  const button = { height: tMin(48, 36), fontSize: tMin(16, 13) }
+  return (
+    <section className={cn('relative bg-white font-(family-name:--font-dm-sans) drop-shadow-[0_8px_23.8px_rgba(0,0,0,0.1)]', className)} style={{ padding: tMin(22, 12), borderRadius: t(24) }}>
+      {upTo > 0 && (
+        <p className={`flex items-center justify-center font-medium text-[#424144] ${INTER}`} style={{ gap: tMin(6, 4), fontSize: tMin(13, 11) }}>
+          <span className='min-w-0 text-center'>Earn up to <span className='font-semibold text-[#0248f6]'>{upTo}% cashback</span> on bill payment</span>
+          <Link href='/membership' aria-label='How cashback works' className='shrink-0'>
+            <Image src={`${A}/info.svg`} alt='' width={18} height={18} style={{ width: tMin(15, 12), height: tMin(15, 12) }} />
+          </Link>
+        </p>
+      )}
+      {(bookHref || payHref) && (
+        <div className='flex flex-wrap' style={{ marginTop: upTo > 0 ? tMin(14, 10) : 0, gap: tMin(12, 8) }}>
+          {bookHref && (
+            <Link href={bookHref} className='flex min-w-fit flex-1 items-center justify-center rounded-full border border-[#ff4800] bg-white px-3 font-semibold whitespace-nowrap text-[#ff4800] transition-colors hover:bg-[#fff1eb]' style={button}>
+              Book table
+            </Link>
+          )}
+          {payHref && (
+            <Link href={payHref} className={`flex min-w-fit flex-1 items-center justify-center rounded-full bg-[#ff4800] px-3 font-semibold whitespace-nowrap text-[#fffbff] transition-colors hover:bg-brand-dark ${INTER}`} style={button}>
+              Pay bill
+            </Link>
+          )}
+        </div>
+      )}
     </section>
   )
 }

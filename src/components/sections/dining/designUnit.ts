@@ -17,6 +17,9 @@ export const DESIGN_UNIT = 'max(0.5px, min(1px, calc(100vw / 1920)))'
  */
 export const t = (px: number) => `calc(${px} * var(--t))`
 
+/** `t`, but never below `min` px, so small print and tap targets stay usable on laptops. */
+export const tMin = (px: number, min: number) => `max(${min}px, ${t(px)})`
+
 /** Tailwind classes setting `--t` per breakpoint — 1 design px only on full 1920 screens. */
 export const TYPE_SCALE =
   'md:[--t:0.5px] lg:[--t:0.58px] xl:[--t:0.65px] 2xl:[--t:0.78px] min-[120rem]:[--t:1px]'

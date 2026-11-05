@@ -1,16 +1,16 @@
 /**
- * Review config shared by the dialog and the API — one shape for the three
- * review tables. app parity: LeaveReviewModal's `steps` (restaurants:
- * utils/restaurantReviews.js, tourist places: utils/touristReviews.js).
- * Stores have no app flow yet; they use the same sheet on `store_reviews`.
+ * Review config shared by the pages and the API — one shape for the three
+ * review tables. `steps` are the aspects the app's LeaveReviewModal asks about;
+ * the website's single-rating dialog doesn't set them, so they're only read
+ * back for reviews written in the app.
  */
 export type ReviewKind = 'restaurant' | 'store' | 'tourist'
 
 export interface ReviewStep {
   key: string
-  /** fills "How was the {label}?" */
+  /** names the aspect on reviews that have one */
   label: string
-  /** rating column this step is saved to; null = it is the overall rating */
+  /** rating column it was saved to; null = it is the overall rating */
   column: string | null
 }
 

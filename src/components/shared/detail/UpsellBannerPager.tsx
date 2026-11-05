@@ -100,6 +100,7 @@ export function UpsellBannerPager({
   offerPct,
   caps,
   className,
+  variant = 'default',
 }: {
   merchantType: string | null | undefined
   merchantId: string
@@ -108,6 +109,8 @@ export function UpsellBannerPager({
   offerPct: number
   caps: DiscountCaps
   className?: string
+  /** 'figma' — the salon page's bright "Earn 6x more cashback" banner */
+  variant?: 'default' | 'figma'
 }) {
   const plan = useUserPlan()
   const show = String(merchantType ?? '').toLowerCase() === 'preferred' && plan !== 'black'
@@ -164,7 +167,28 @@ export function UpsellBannerPager({
         className='scrollbar-hide flex snap-x snap-mandatory overflow-x-auto'
         aria-roledescription='carousel'
       >
-        {earnMore && (
+        {earnMore && variant === 'figma' && (
+          <button
+            type='button'
+            onClick={() => setSheet(true)}
+            aria-label={`Earn ${Math.round(quote.blackPct / quote.pct)}x more cashback`}
+            className='relative flex aspect-358/73 w-full shrink-0 snap-start items-center justify-between overflow-hidden rounded-xl bg-[linear-gradient(95deg,#EF7A2C,#F39A2F_55%,#EE5A24)] pr-3.5 pl-4 text-left text-white'
+          >
+            <span className='min-w-0'>
+              <span className='block truncate text-[17px] leading-5 font-bold'>
+                Earn {Math.round(quote.blackPct / quote.pct)}x <span className={`${SERIF} font-normal italic`}>more</span> cashback
+              </span>
+              <span className='mt-0.5 block truncate text-[11.5px] 2xl:text-[12.5px] leading-4'>{formatPct(quote.blackPct)} Privé Credits on every payment</span>
+              <span className='mt-1 block text-[10.5px] text-white/85'>
+                1 <span className={`${SERIF} italic`}>Privé</span>Credit = MUR 1
+              </span>
+            </span>
+            <span className='shrink-0 mb-2.5 self-end rounded-full bg-[#2247FF] px-2.5 py-1 text-[11.5px] font-semibold whitespace-nowrap 2xl:px-3 2xl:text-[12.5px]'>Claim now →</span>
+            {/* the coin's art says "6x" */}
+            {Math.round(quote.blackPct / quote.pct) === 6 && <Image src='/assets/merchant-detail/earn-coin.png' alt='' width={47} height={47} className='absolute -top-1 right-1.5 size-7' />}
+          </button>
+        )}
+        {earnMore && variant === 'default' && (
           <button
             type='button'
             onClick={() => setSheet(true)}

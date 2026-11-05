@@ -1,3 +1,4 @@
+import type { ReviewRow } from '@/lib/allReviews';
 import { orderableItems, type OrderItem } from '@/lib/orderCollect';
 import { createClient } from '@/lib/supabase/server';
 import { FEED_PAGE_SIZE, toRpcArgs, type Coords, type FeedFilters } from '@/lib/restaurantFilters';
@@ -464,4 +465,40 @@ export async function getOrderCollect(restaurantId: string): Promise<{ enabled: 
     .eq('id', restaurantId)
     .maybeSingle();
   return { enabled: data?.order_collect_enabled === true, items: orderableItems(data?.menu_json) };
+}
+
+const REVIEW_PAGE_SIZE = 1000;
+
+/** Every approved review with its author's current name and photo — app parity: restaurantReviews.js. */
+export async function getAllRestaurantReviews(restaurantId: string): Promise<ReviewRow[]> {
+  const supabase = await createClient();
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += REVIEW_PAGE_SIZE) {
+    const { data } = await supabase
+      .from('restaurant_reviews')
+      .select('id, user_id, rating, review_text, username_snapshot, avatar_snapshot, liked_tags, created_at')
+      .eq('restaurant_id', restaurantId)
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false })
+      .range(from, from + REVIEW_PAGE_SIZE - 1);
+    rows.push(...(data ?? []));
+    if ((data?.length ?? 0) < REVIEW_PAGE_SIZE) break;
+  }
+  const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))] as string[];
+  const { data: users } = userIds.length
+    ? await supabase.from('users').select('id, full_name, profile_image').in('id', userIds)
+    : { data: [] };
+  const byId = new Map((users ?? []).map(u => [u.id, u]));
+  return rows.map(r => {
+    const user = byId.get(r.user_id as string);
+    return {
+      id: String(r.id),
+      rating: Number(r.rating) || 0,
+      text: String(r.review_text ?? '').trim(),
+      name: user?.full_name || String(r.username_snapshot ?? '').trim() || 'PassPrivé member',
+      avatar: user?.profile_image || (r.avatar_snapshot as string | null) || null,
+      tags: Array.isArray(r.liked_tags) ? (r.liked_tags as string[]) : [],
+      createdAt: (r.created_at as string | null) ?? null,
+    };
+  });
 }

@@ -351,3 +351,26 @@ export async function getStampDetail(kind: string, id: string): Promise<StampDet
     ),
   };
 }
+
+/** Ids of the stores that collect stamps — the "Stamp sheet" tag on store cards. */
+export async function getStampStoreIds(): Promise<string[]> {
+  return (await getStampStores()).map(s => s.id);
+}
+
+/** A salon's stamp card, null when it has no stamp program — app parity: RepeatRewardSection.jsx. */
+export async function getStoreStampCard(storeId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('store_repeat_reward', { in_store_id: storeId });
+  const row = (Array.isArray(data) ? data[0] : data) as { enabled?: boolean; visit_count?: number; tiers?: StampTier[] } | null;
+  const { total, visits, almostThere } = sheetProgress({ visitCount: row?.visit_count, tiers: Array.isArray(row?.tiers) ? row.tiers : [] });
+  return row?.enabled && total > 0 ? { total, visits, almostThere } : null;
+}
+
+/** The "Collect stamps here" card, null when the place has no stamp program — app parity: RepeatRewardSection.jsx. */
+export async function getRestaurantStampCard(restaurantId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('restaurant_repeat_reward', { in_restaurant_id: restaurantId });
+  const row = (Array.isArray(data) ? data[0] : data) as { enabled?: boolean; visit_count?: number; tiers?: StampTier[] } | null;
+  const { total, visits } = sheetProgress({ visitCount: row?.visit_count, tiers: Array.isArray(row?.tiers) ? row.tiers : [] });
+  return row?.enabled && total > 0 ? { total, visits } : null;
+}

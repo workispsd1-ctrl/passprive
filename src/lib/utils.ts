@@ -93,3 +93,8 @@ export function scopeByLocation<
     return userCity.length > 0 && (i.city ?? '').trim().toLowerCase() === userCity
   })
 }
+
+/** app parity: StoreVibesSection.jsx isVideoUrl */
+export function isVideoUrl(url: string) {
+  return /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(url.split('?')[0])
+}

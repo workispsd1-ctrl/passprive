@@ -12,7 +12,7 @@ import type { ServiceOffer } from '@/lib/types/stores'
 type Body = { main: string; sub: string; logo?: string | null }
 
 /** app parity: ServiceStoreDetails.jsx `exclusiveOfferItems` */
-function exclusiveBody(o: ServiceOffer): Body {
+export function exclusiveBody(o: ServiceOffer): Body {
   const main = o.discount_value
     ? o.discount_type === 'PERCENT'
       ? `Flat ${o.discount_value}% OFF`
@@ -22,7 +22,7 @@ function exclusiveBody(o: ServiceOffer): Body {
 }
 
 /** app parity: OffersForYouSection.jsx `bankOfferBody` */
-function bankBody(o: ServiceOffer): Body {
+export function bankBody(o: ServiceOffer): Body {
   const bank = o.sponsor_name?.trim() || 'Bank'
   return { main: o.title, sub: o.description || `using ${bank} cards`, logo: o.logo_url }
 }

@@ -125,7 +125,7 @@ export function DetailSectionTabs({
         aria-label='Sections'
         className={cn(
           'sticky top-0 z-30 -mx-4 border-b bg-white/95 px-4 backdrop-blur transition-shadow md:mx-0 md:px-0',
-          figma && 'md:mt-[calc(48*var(--t))] md:border-b-[calc(2*var(--t))] md:border-[#dfdfdf]',
+          figma && 'md:mt-[calc(32*var(--t))] md:border-b-[calc(2*var(--t))] md:border-[#dfdfdf]',
           stuck ? 'border-gray-100 shadow-[0_6px_16px_-10px_rgba(0,0,0,0.18)] md:-mx-4 md:px-4' : 'border-gray-100',
           orderClassName,
           className,
@@ -153,7 +153,7 @@ export function DetailSectionTabs({
         )}
         <div
           ref={rowRef}
-          className={cn('scrollbar-hide flex gap-7 overflow-x-auto md:gap-11', figma && 'md:gap-[calc(64*var(--t))] md:pl-[calc(8*var(--t))]')}
+          className={cn('scrollbar-hide flex gap-7 overflow-x-auto md:gap-11', figma && 'md:gap-[max(20px,calc(56*var(--t)))] md:pl-[calc(8*var(--t))]')}
         >
           {present.map(t => (
             <a
@@ -165,7 +165,7 @@ export function DetailSectionTabs({
               className={cn(
                 'relative shrink-0 py-3.5 text-[14px] font-semibold transition-colors md:py-4 md:text-[17px] md:font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand',
                 active === t.id ? 'text-brand' : 'text-gray-600 hover:text-gray-900',
-                figma && 'md:pt-0 md:pb-[calc(10*var(--t))] md:text-[length:calc(28*var(--t))] md:leading-[calc(40*var(--t))] md:tracking-[calc(0.5*var(--t))]',
+                figma && 'md:pt-0 md:pb-[calc(10*var(--t))] md:text-[length:max(14px,calc(18*var(--t)))] md:leading-[1.4] md:tracking-[calc(0.5*var(--t))]',
                 figma && (active === t.id ? 'md:font-semibold md:text-[#ff4800]' : 'md:font-medium md:text-[#424144]'),
               )}
             >

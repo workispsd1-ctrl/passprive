@@ -1,10 +1,10 @@
 import { cn } from '@/lib/utils'
-import { t } from './designUnit'
+import { t, tMin } from './designUnit'
 
 /**
- * The Figma "Offers for today" card — 508×208, white, radius 32, soft 20px
- * shadow — shared by the offer cards and the Deals & cashback cards so the
- * two rows on the restaurant page read as one family. Sized in `t` units.
+ * The Figma "Offers for today" card, white with a soft 20px shadow — shared by
+ * the offer cards and the Deals & cashback cards so the two rows on the
+ * restaurant page read as one family. It fills its grid cell.
  */
 export function OfferCard({
   children,
@@ -23,13 +23,12 @@ export function OfferCard({
     <Tag
       data-offer-card
       {...rest}
-      className={cn('relative flex shrink-0 snap-start flex-col bg-white text-left drop-shadow-[0_0_20px_rgba(0,0,0,0.08)]', className)}
+      className={cn('relative flex w-full min-w-0 flex-col bg-white text-left drop-shadow-[0_0_20px_rgba(0,0,0,0.08)]', className)}
       style={{
-        width: t(508),
-        height: t(208),
-        padding: compact ? `${t(20)} ${t(32)}` : t(32),
-        gap: t(compact ? 12 : 24),
-        borderRadius: t(32),
+        minHeight: tMin(170, 112),
+        padding: tMin(22, 13),
+        gap: tMin(compact ? 10 : 16, 8),
+        borderRadius: t(24),
         ...rest.style,
       }}
     >
@@ -41,10 +40,10 @@ export function OfferCard({
 /** Card head — icon + 24 Bold uppercase label on the left, `aside` (dots, an action) on the right. */
 export function OfferHead({ icon, label, color, aside }: { icon: React.ReactNode; label: string; color: string; aside?: React.ReactNode }) {
   return (
-    <div className='flex items-center justify-between' style={{ gap: t(16), minHeight: t(31) }}>
-      <span className='flex min-w-0 items-center uppercase' style={{ gap: t(16) }}>
+    <div className='flex items-center justify-between' style={{ gap: t(12), minHeight: t(26) }}>
+      <span className='flex min-w-0 items-center uppercase' style={{ gap: t(10) }}>
         {icon}
-        <span className='truncate font-bold' style={{ fontSize: t(24), color }}>{label}</span>
+        <span className='truncate font-bold' style={{ fontSize: tMin(14, 11), color }}>{label}</span>
       </span>
       {aside}
     </div>
@@ -55,8 +54,8 @@ export function OfferHead({ icon, label, color, aside }: { icon: React.ReactNode
 export function OfferText({ main, sub, className }: { main: React.ReactNode; sub?: React.ReactNode; className?: string }) {
   return (
     <span className={cn('flex min-w-0 flex-col whitespace-nowrap', className)} style={{ gap: t(8) }}>
-      <span className='max-w-full truncate font-bold text-[#111]' style={{ fontSize: t(36) }}>{main}</span>
-      {sub && <span className='max-w-full truncate text-[#767677]' style={{ fontSize: t(26) }}>{sub}</span>}
+      <span className='max-w-full truncate font-bold text-[#111]' style={{ fontSize: tMin(23, 15) }}>{main}</span>
+      {sub && <span className='max-w-full truncate text-[#767677]' style={{ fontSize: tMin(15, 12) }}>{sub}</span>}
     </span>
   )
 }
@@ -72,7 +71,7 @@ export function OfferAction({ children, onClick, disabled, gradient = false }: {
         'flex shrink-0 items-center rounded-full font-semibold whitespace-nowrap text-white transition-opacity hover:opacity-90 disabled:opacity-60',
         gradient ? 'bg-[linear-gradient(109.78deg,#FF4800,#001FE7)]' : 'bg-[#ff4800]',
       )}
-      style={{ height: t(44), padding: `0 ${t(22)}`, gap: t(8), fontSize: t(20) }}
+      style={{ height: tMin(34, 26), padding: `0 ${tMin(14, 10)}`, gap: t(6), fontSize: tMin(14, 11) }}
     >
       {children}
     </button>

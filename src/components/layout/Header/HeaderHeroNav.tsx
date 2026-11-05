@@ -30,7 +30,8 @@ export function HeaderHeroNav({ banners, wellnessBanners, touristBanners, pad }:
   // the restaurant page opens straight on its own header (web design) — no category pills
   // the stamp pages open on their own heading or hero
   if (pathname.startsWith('/visit-rewards')) return null
-  if (/^\/dining\/(?!mood\/)[^/]+(\/book|\/order)?$/.test(pathname)) return null
+  if (/^\/wellness\/[^/]+$/.test(pathname)) return null
+  if (/^\/dining\/(?!mood\/)[^/]+(\/book|\/order|\/reviews)?$/.test(pathname)) return null
 
   if (isHome) {
     return (

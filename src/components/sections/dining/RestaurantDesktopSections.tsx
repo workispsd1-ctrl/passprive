@@ -1,7 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
@@ -14,59 +16,20 @@ import { ReceiptCashbackBanner } from '@/components/shared/receipts/ReceiptCashb
 import { MenuGalleryProvider, useMenuGallery } from './MenuGalleryClient'
 import { OfferCard, OfferText } from './OfferCard'
 import { useGallery } from './PhotoGalleryClient'
-import { t, u } from './designUnit'
+import { t, tMin } from './designUnit'
 
 const A = '/assets/merchant-detail'
 const INTER = 'font-(family-name:--font-inter)'
-const SERIF = 'font-(family-name:--font-libre-baskerville)'
+// three across the main column, once it's wide enough to hold them
+export const CARD_GRID = 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 min-[120rem]:gap-4'
 
-/** Section heading — 32 Bold #2c2d32, 28 above its content. */
-function Section({ id, title, top, gap = 28, className, children }: { id: string; title: string; top: number; gap?: number; className?: string; children: React.ReactNode }) {
+/** Section heading — 20 Bold #2c2d32 on the Figma 1920 frame. */
+export function Section({ id, title, top, gap = 28, className, children }: { id: string; title: string; top: number; gap?: number; className?: string; children: React.ReactNode }) {
   return (
     <section data-section={id} className={className} style={{ marginTop: t(top), scrollMarginTop: t(170) }}>
-      <h2 className='font-bold text-[#2c2d32]' style={{ fontSize: t(32), lineHeight: t(40), marginBottom: t(gap) }}>{title}</h2>
+      <h2 className='font-bold text-[#2c2d32]' style={{ fontSize: tMin(20, 16), lineHeight: 1.3, marginBottom: t(gap) }}>{title}</h2>
       {children}
     </section>
-  )
-}
-
-/**
- * A row that scrolls sideways, with the frame's round "next" button at its
- * right edge while more is hidden. The scroller is padded out (and pulled
- * back by negative margins) so the cards' soft shadows have room — a
- * scroller clips everything at its edges, which drew hard lines through them.
- */
-function Rail({ children, gap, arrowTop }: { children: React.ReactNode; gap: number; arrowTop?: string }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [more, setMore] = useState(false)
-  const measure = useCallback(() => {
-    const el = ref.current
-    if (el) setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
-  }, [])
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [measure])
-  return (
-    <div className='relative'>
-      <div ref={ref} onScroll={measure} className='scrollbar-hide -mx-8 -my-10 flex snap-x scroll-px-8 overflow-x-auto px-8 py-10' style={{ gap: t(gap) }}>
-        {children}
-      </div>
-      {more && (
-        <button
-          type='button'
-          aria-label='Show more'
-          onClick={() => ref.current?.scrollBy({ left: ref.current.clientWidth * 0.8, behavior: 'smooth' })}
-          className='absolute -translate-y-1/2'
-          style={{ right: t(-24), top: arrowTop ?? '50%', width: t(48), height: t(48) }}
-        >
-          <Image src={`${A}/round-next.svg`} alt='' width={48} height={48} style={{ width: t(48), height: t(48) }} />
-        </button>
-      )}
-    </div>
   )
 }
 
@@ -132,7 +95,7 @@ function PagerCard({ head, items, bank = false }: { head: React.ReactNode; items
         {items.map(it => (
           <div key={it.id} className='flex w-full shrink-0 snap-start items-center' style={{ gap: t(16) }}>
             {bank && (
-              <span className='relative shrink-0 overflow-hidden bg-[#d9d9d9]' style={{ width: t(92), height: t(88), borderRadius: t(4) }}>
+              <span className='relative shrink-0 overflow-hidden bg-[#d9d9d9]' style={{ width: tMin(52, 36), height: tMin(52, 36), borderRadius: t(4) }}>
                 {it.logo && <Image src={it.logo} alt='' fill sizes='92px' className='object-contain p-2' />}
               </span>
             )}
@@ -145,7 +108,7 @@ function PagerCard({ head, items, bank = false }: { head: React.ReactNode; items
 }
 
 /** "Offers for today" — 508×208 cards, 26 apart, joined by "+" connectors. */
-function OffersRow({ restaurantOffers, bankOffers, merchant }: { restaurantOffers: OfferBody[]; bankOffers: OfferBody[]; merchant: MerchantCapabilityFields }) {
+export function OffersRow({ restaurantOffers, bankOffers, merchant, exclusiveLabel = 'Restaurant exclusive' }: { restaurantOffers: OfferBody[]; bankOffers: OfferBody[]; merchant: MerchantCapabilityFields; exclusiveLabel?: string }) {
   const plan = useUserPlan()
   const pct = getCashbackPct(merchant, plan)
   const cards: React.ReactNode[] = []
@@ -155,9 +118,9 @@ function OffersRow({ restaurantOffers, bankOffers, merchant }: { restaurantOffer
         key='exclusive'
         items={restaurantOffers}
         head={
-          <span className='flex items-center uppercase' style={{ gap: t(16) }}>
-            <Image src={`${A}/offer-diamond.png`} alt='' width={36} height={31} style={{ width: t(36), height: t(31) }} />
-            <span className='font-bold text-[#ff4800]' style={{ fontSize: t(24) }}>Restaurant exclusive</span>
+          <span className='flex min-w-0 items-center uppercase' style={{ gap: t(10) }}>
+            <Image src={`${A}/offer-diamond.png`} alt='' width={36} height={31} className='shrink-0' style={{ width: tMin(22, 16), height: tMin(19, 14) }} />
+            <span className='truncate font-bold text-[#ff4800]' style={{ fontSize: tMin(14, 11) }}>{exclusiveLabel}</span>
           </span>
         }
       />,
@@ -166,7 +129,7 @@ function OffersRow({ restaurantOffers, bankOffers, merchant }: { restaurantOffer
   if (pct > 0) {
     cards.push(
       <OfferCard key='cashback' compact>
-        <Image src={MEMBERSHIP_BADGE[plan]} alt='' width={133} height={57} className='w-auto self-start' style={{ height: t(57) }} />
+        <Image src={MEMBERSHIP_BADGE[plan]} alt='' width={133} height={57} className='w-auto self-start' style={{ height: tMin(40, 26) }} />
         <OfferText main={`Get ${pct}% cash back`} sub='credited as PrivéCredits instantly' />
       </OfferCard>,
     )
@@ -178,9 +141,9 @@ function OffersRow({ restaurantOffers, bankOffers, merchant }: { restaurantOffer
         bank
         items={bankOffers}
         head={
-          <span className='flex items-center uppercase' style={{ gap: t(16) }}>
+          <span className='flex min-w-0 items-center uppercase' style={{ gap: t(10) }}>
             <WalletIcon />
-            <span className='font-bold text-[#7c2d12]' style={{ fontSize: t(24) }}>Bank &amp; card offers</span>
+            <span className='truncate font-bold text-[#7c2d12]' style={{ fontSize: tMin(14, 11) }}>Bank &amp; card offers</span>
           </span>
         }
       />,
@@ -188,15 +151,15 @@ function OffersRow({ restaurantOffers, bankOffers, merchant }: { restaurantOffer
   }
   if (!cards.length) return null
   return (
-    <Section id='offers' title='Offers for today' top={60}>
-      <div className='flex items-center'>
+    <Section id='offers' title='Offers for today' top={44} gap={20}>
+      <div className={CARD_GRID}>
         {cards.map((card, i) => (
-          <div key={i} className='flex items-center'>
+          <div key={i} className='relative min-w-0'>
             {card}
             {i < cards.length - 1 && (
               <span
-                className='relative z-10 flex shrink-0 items-center justify-center rounded-full bg-[#767677] font-bold text-white'
-                style={{ width: t(36.8), height: t(36.8), margin: `0 ${t(-5.4)}`, fontSize: t(24.5) }}
+                className='absolute top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full bg-[#767677] font-bold text-white xl:flex'
+                style={{ right: t(-22), width: t(28), height: t(28), fontSize: t(18) }}
               >
                 +
               </span>
@@ -208,88 +171,43 @@ function OffersRow({ restaurantOffers, bankOffers, merchant }: { restaurantOffer
   )
 }
 
-type Piece = {
-  card: string; left: number; top: number; rot: number
-  oLeft: number; oTop: number; oRot: number
-  label: string; labelColor: string; labelLeft: number; labelTop: number; labelSize: number
-  icon: string; iconLeft: number; iconTop: number; iconSize: number; iconRot: number
-}
-
-// the six menu cards on the banner, placed as in the 1576×200 frame
-const MENU_PIECES: Piece[] = [
-  { card: 'menu-card-7.svg', left: 318, top: 89, rot: -17.55, oLeft: 322, oTop: 89, oRot: -22.18, label: 'Food', labelColor: '#33363f', labelLeft: 368, labelTop: 207, labelSize: 22.9, icon: 'menu-burger-2.svg', iconLeft: 345.6, iconTop: 121.9, iconSize: 51.6, iconRot: -22.39 },
-  { card: 'menu-card-6.svg', left: 462.6, top: 35, rot: 11.29, oLeft: 479.3, oTop: 35.4, oRot: 6.65, label: 'Food', labelColor: '#5e89e7', labelLeft: 482.4, labelTop: 151, labelSize: 20, icon: 'menu-burger.svg', iconLeft: 501.4, iconTop: 67.4, iconSize: 51.6, iconRot: 6.45 },
-  { card: 'menu-card-5.svg', left: 608.1, top: -30, rot: -5.66, oLeft: 616, oTop: -30.1, oRot: -2.64, label: 'Bar', labelColor: '#5e89e7', labelLeft: 651.1, labelTop: 90.6, labelSize: 20, icon: 'menu-drink.svg', iconLeft: 639, iconTop: 2.1, iconSize: 51.6, iconRot: -0.31 },
-  { card: 'menu-card-4.svg', left: 750.1, top: 56.3, rot: 5.26, oLeft: 762.9, oTop: 56, oRot: 0.62, label: 'Beverages', labelColor: '#5e89e7', labelLeft: 758.3, labelTop: 176.3, labelSize: 20, icon: 'menu-cocktail.svg', iconLeft: 785.4, iconTop: 84.7, iconSize: 51.6, iconRot: 0.15 },
-  { card: 'menu-card-2.svg', left: 924.4, top: 14.4, rot: 1.85, oLeft: 935.8, oTop: 14.1, oRot: -2.79, label: 'Special', labelColor: '#5e89e7', labelLeft: 950.3, labelTop: 136, labelSize: 20, icon: 'menu-diamond.svg', iconLeft: 961.4, iconTop: 47.5, iconSize: 44.6, iconRot: -3.2 },
-  { card: 'menu-card-3.svg', left: 1081.2, top: 63.9, rot: -6.59, oLeft: 1089.2, oTop: 63.7, oRot: -11.23, label: 'Special', labelColor: '#33363f', labelLeft: 1107.9, labelTop: 182.6, labelSize: 22.9, icon: 'menu-diamond-2.svg', iconLeft: 1114.5, iconTop: 97.4, iconSize: 44.6, iconRot: -11.64 },
-]
-
+/** The artwork carries the cards and its "Check out Menu" pill; the whole banner opens the menu. */
 function MenuBanner() {
   const { openAt } = useMenuGallery()
   return (
-    <button
-      type='button'
-      onClick={() => openAt(0)}
-      aria-label='Check out the menu'
-      className='relative block w-full overflow-hidden text-left'
-      style={{ height: u(200), borderRadius: u(24), backgroundImage: 'linear-gradient(90deg, #122a5e 0%, #2247ff 150.28%)' }}
-    >
-      {MENU_PIECES.map(p => (
-        <span key={p.card} aria-hidden='true'>
-          <Image src={`${A}/${p.card}`} alt='' width={120} height={159} className='absolute max-w-none' style={{ left: u(p.left), top: u(p.top), width: u(120.4), height: u(159.3), rotate: `${p.rot}deg` }} />
-          <span className='absolute bg-linear-to-b from-[#ff4800] to-[#dc4104]' style={{ left: u(p.oLeft), top: u(p.oTop), width: u(98.25), height: u(113.5), borderRadius: u(2.07), rotate: `${p.oRot}deg` }} />
-          <span className={`absolute font-bold whitespace-nowrap italic ${SERIF}`} style={{ left: u(p.labelLeft), top: u(p.labelTop), fontSize: u(p.labelSize), letterSpacing: u(-1.2), color: p.labelColor, rotate: `${p.rot}deg` }}>
-            {p.label}
-          </span>
-          <Image src={`${A}/${p.icon}`} alt='' width={52} height={52} className='absolute max-w-none' style={{ left: u(p.iconLeft), top: u(p.iconTop), width: u(p.iconSize), height: u(p.iconSize), rotate: `${p.iconRot}deg` }} />
-        </span>
-      ))}
-      <Image src={`${A}/menu-glow.svg`} alt='' width={596} height={314} aria-hidden='true' className='absolute max-w-none' style={{ left: u(514.2 - 50), top: u(100 - 50), width: u(596), height: u(314) }} />
-      <span
-        className='absolute flex -translate-x-1/2 items-center rounded-full bg-white font-extrabold whitespace-nowrap text-[#2247ff] drop-shadow-[0_12px_14px_rgba(0,0,0,0.1)]'
-        style={{ left: '50%', top: u(132), height: u(48), width: u(264), paddingLeft: u(22), gap: u(6), fontSize: u(24) }}
-      >
-        Check out Menu
-        <Image src={`${A}/menu-arrow.svg`} alt='' width={32} height={32} style={{ width: u(32), height: u(32) }} />
-      </span>
+    <button type='button' onClick={() => openAt(0)} aria-label='Check out the menu' className='relative block aspect-4512/512 w-full overflow-hidden transition-opacity hover:opacity-95' style={{ borderRadius: t(16) }}>
+      <Image src={`${A}/menu-banner.webp`} alt='' fill sizes='(min-width: 1920px) 1128px, 70vw' className='object-cover' />
     </button>
   )
 }
 
+/** Figma: two rows of three, the sixth tile counting what's left. */
 function PhotosGrid({ photos }: { photos: string[] }) {
   const { openAt } = useGallery()
-  const tiles = photos.slice(1, 9)
-  const hidden = photos.length - 1 - tiles.length
+  const tiles = photos.slice(0, 6)
+  const hidden = photos.length - tiles.length
   return (
-    <div className='flex' style={{ gap: u(16) }}>
-      <button type='button' onClick={() => openAt(0)} className='group relative shrink-0 overflow-hidden bg-[#e1e1e1]' style={{ width: u(868), height: u(336), borderRadius: u(22.9) }} aria-label='View photos'>
-        <Image src={photos[0]} alt='' fill sizes='868px' className='object-cover transition-transform duration-500 group-hover:scale-[1.03]' />
-      </button>
-      {tiles.length > 0 && (
-        <div className='grid grid-flow-col grid-rows-2' style={{ columnGap: u(12), rowGap: u(12) }}>
-          {tiles.map((src, i) => {
-            const last = i === tiles.length - 1 && hidden > 0
-            return (
-              <button
-                key={src + i}
-                type='button'
-                onClick={() => openAt(i + 1)}
-                className='group relative overflow-hidden bg-[#e1e1e1]'
-                style={{ width: u(164), height: u(162), borderRadius: u(24) }}
-                aria-label={last ? `View all ${photos.length} photos` : `View photo ${i + 2}`}
-              >
-                <Image src={src} alt='' fill sizes='164px' className='object-cover transition-transform duration-500 group-hover:scale-[1.05]' />
-                {last && (
-                  <span className='absolute inset-0 flex items-center justify-center bg-[#b5b5b5]/85 font-semibold text-[#fffbff]' style={{ fontSize: u(27.75), letterSpacing: u(1.66) }}>
-                    +{hidden}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      )}
+    <div className='grid grid-cols-2 lg:grid-cols-3' style={{ gap: tMin(20, 10) }}>
+      {tiles.map((src, i) => {
+        const last = i === tiles.length - 1 && hidden > 0
+        return (
+          <button
+            key={src + i}
+            type='button'
+            onClick={() => openAt(i)}
+            className='group relative aspect-360/178 min-w-0 overflow-hidden bg-[#e1e1e1]'
+            style={{ borderRadius: t(20) }}
+            aria-label={last ? `View all ${photos.length} photos` : `View photo ${i + 1}`}
+          >
+            <Image src={src} alt='' fill sizes='(min-width: 1920px) 360px, (min-width: 1024px) 20vw, 40vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.05]' />
+            {last && (
+              <span className='absolute inset-0 flex items-center justify-center bg-[#b5b5b5]/85 font-semibold text-[#fffbff]' style={{ fontSize: tMin(20, 15) }}>
+                +{hidden}
+              </span>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -306,25 +224,25 @@ function ReviewCard({ review }: { review: DetailReview }) {
   const name = review.username_snapshot?.trim() || 'PassPrivé member'
   const text = review.review_text?.trim()
   return (
-    <article className='flex shrink-0 snap-start flex-col bg-[#ebebeb]' style={{ width: t(505), minHeight: t(323), paddingLeft: t(30.6), borderRadius: t(30.6) }}>
-      <div className='flex items-start' style={{ gap: t(23), padding: `${t(39)} ${t(30.6)} ${t(15.3)} 0` }}>
-        <span className='flex shrink-0 items-center justify-center rounded-full bg-[#FFD9C7] font-bold text-[#B33A00]' style={{ width: t(57.4), height: t(57.4), fontSize: t(23) }}>
+    <article className='flex min-w-0 flex-col bg-[#ebebeb]' style={{ minHeight: tMin(214, 150), padding: tMin(24, 14), borderRadius: t(24), gap: tMin(16, 10) }}>
+      <div className='flex items-start' style={{ gap: tMin(14, 10) }}>
+        <span className='flex shrink-0 items-center justify-center rounded-full bg-[#FFD9C7] font-bold text-[#B33A00]' style={{ width: tMin(40, 30), height: tMin(40, 30), fontSize: tMin(16, 13) }}>
           {name.charAt(0).toUpperCase()}
         </span>
         <span className='flex min-w-0 flex-1 flex-col font-medium'>
-          <span className='truncate text-[#303030]' style={{ fontSize: t(23), lineHeight: t(30.6) }}>{name}</span>
-          <span className='text-[#666]' style={{ fontSize: t(21), lineHeight: t(30.6) }}>{reviewDate(review.created_at)}</span>
+          <span className='truncate text-[#303030]' style={{ fontSize: tMin(15, 13) }}>{name}</span>
+          <span className='text-[#666]' style={{ fontSize: tMin(13, 11) }}>{reviewDate(review.created_at)}</span>
         </span>
-        <span className='flex shrink-0 items-center rounded-full bg-[#00752e] font-bold text-white' style={{ padding: `${t(3.8)} ${t(11.5)}`, gap: t(3.8), fontSize: t(23), lineHeight: t(30.6), letterSpacing: t(0.96) }}>
+        <span className='flex shrink-0 items-center rounded-full bg-[#00752e] font-bold text-white' style={{ padding: `${tMin(4, 3)} ${tMin(12, 8)}`, gap: t(4), fontSize: tMin(13, 11) }}>
           {Number(review.rating).toFixed(1)}
-          <Image src={`${A}/review-star.svg`} alt='' width={19} height={19} style={{ width: t(19), height: t(19) }} />
+          <Image src={`${A}/review-star.svg`} alt='' width={19} height={19} style={{ width: tMin(11, 9), height: tMin(11, 9) }} />
         </span>
       </div>
       {text && (
-        <p className='text-[#666]' style={{ fontSize: t(23), lineHeight: t(30.6), padding: `0 ${t(30.6)} ${t(30.6)} 0` }}>
-          <span className={cn(!open && 'line-clamp-4')}>{text}</span>
+        <p className='text-[#666]' style={{ fontSize: tMin(15, 12), lineHeight: 1.45 }}>
+          <span className={cn(!open && 'line-clamp-3')}>{text}</span>
           {text.length > 150 && (
-            <button type='button' onClick={() => setOpen(v => !v)} className='ml-1 text-[#252424] underline'>
+            <button type='button' onClick={() => setOpen(v => !v)} className='mt-1 block text-[#252424] underline'>
               {open ? 'Show less' : 'Read more'}
             </button>
           )}
@@ -340,13 +258,15 @@ function aspect(reviews: DetailReview[], key: 'food_rating' | 'service_rating' |
 }
 
 /**
- * Restaurant detail sections on desktop — Figma "Dining - Pay Bill": Offers
- * for today, Deals & cashback, the menu banner, photos, reviews (+ "Leave a review"), About
- * the Restaurant and Amenities, type and cards in `t`, the menu banner and photo grid in `u`. Sections carry
- * `data-section` so the sticky tabs find them; phones use the app layout.
+ * The main column of the restaurant page on desktop: Offers for today, Deals &
+ * cashback, the menu banner, photos, reviews (+ "Leave a review"), About the
+ * Restaurant and Amenities, sized for the 1128 column of the 1920 frame.
+ * Sections carry `data-section` so the sticky tabs find them; phones use the
+ * app layout.
  */
 export function RestaurantDesktopSections({
   restaurantId,
+  slug,
   name,
   restaurantOffers,
   bankOffers,
@@ -361,6 +281,7 @@ export function RestaurantDesktopSections({
   amenities,
 }: {
   restaurantId: string
+  slug: string
   name: string
   restaurantOffers: OfferBody[]
   bankOffers: OfferBody[]
@@ -387,19 +308,19 @@ export function RestaurantDesktopSections({
   ].filter((a): a is { title: string; body: string } => !!a)
 
   return (
-    <div className='hidden font-(family-name:--font-dm-sans) md:block' style={{ paddingBottom: t(126) }}>
+    <div className='hidden font-(family-name:--font-dm-sans) md:block' style={{ paddingBottom: t(90) }}>
       <OffersRow restaurantOffers={restaurantOffers} bankOffers={bankOffers} merchant={merchant} />
 
       {/* member deals + receipt cashback, as offer cards; the section hides until one loads */}
-      <Section id='deals' title='Deals & cashback' top={84} className='[&:not(:has([data-offer-card]))]:hidden'>
-        <Rail gap={26}>
+      <Section id='deals' title='Deals & cashback' top={44} gap={20} className='[&:not(:has([data-offer-card]))]:hidden'>
+        <div className={CARD_GRID}>
           <DealRevealSection restaurantId={restaurantId} merchantName={name} variant='figma' />
           <ReceiptCashbackBanner merchant={{ ...merchant, id: restaurantId }} kind='restaurant' variant='figma' />
-        </Rail>
+        </div>
       </Section>
 
       {menuImages.length > 0 && (
-        <Section id='menu' title='Menu' top={84}>
+        <Section id='menu' title='Menu' top={44} gap={20}>
           <MenuGalleryProvider images={menuImages}>
             <MenuBanner />
           </MenuGalleryProvider>
@@ -407,67 +328,80 @@ export function RestaurantDesktopSections({
       )}
 
       {photos.length > 0 && (
-        <Section id='gallery' title='Photos' top={63}>
+        <Section id='gallery' title='Photos' top={32} gap={20}>
           <PhotosGrid photos={photos} />
+          <div className='flex justify-end' style={{ marginTop: tMin(20, 12) }}>
+            <LeaveReviewDialog kind='restaurant' entityId={restaurantId} entityName={name} variant='add-image' />
+          </div>
         </Section>
       )}
 
-      <Section id='reviews' title='Reviews' top={70}>
+      <Section id='reviews' title='Reviews' top={32} gap={20}>
         {summary.count > 0 && (
-          <div className='flex items-center' style={{ height: t(80), marginBottom: t(36) }}>
-            <div className='flex flex-col items-center' style={{ width: t(112), marginRight: t(108) }}>
-              <span className={`flex items-center justify-center rounded-full bg-[#007c40] font-bold text-white ${INTER}`} style={{ width: t(112), height: t(48.7), gap: t(8), fontSize: t(28), letterSpacing: t(0.53) }}>
+          <div className='flex items-center' style={{ minHeight: tMin(56, 44), marginBottom: tMin(28, 16) }}>
+            <div className='flex flex-col items-center' style={{ marginRight: tMin(70, 22) }}>
+              <span className={`flex items-center justify-center rounded-full bg-[#007c40] font-bold text-white ${INTER}`} style={{ gap: t(6), padding: `${tMin(5, 4)} ${tMin(16, 11)}`, fontSize: tMin(18, 14) }}>
                 {summary.avg.toFixed(1)}
-                <Image src={`${A}/rating-star-lg.svg`} alt='' width={20} height={18} style={{ width: t(20), height: t(18) }} />
+                <Image src={`${A}/rating-star-lg.svg`} alt='' width={20} height={18} style={{ width: tMin(14, 11), height: tMin(13, 10) }} />
               </span>
-              <span className='font-medium text-[#8b898d] underline' style={{ fontSize: t(16), lineHeight: t(22), marginTop: t(4) }}>{ratingCount} ratings</span>
+              <span className='font-medium text-[#8b898d] underline' style={{ fontSize: tMin(12, 11), marginTop: t(4) }}>{ratingCount} ratings</span>
             </div>
             {aspects.map(a => (
-              <div key={a.label} className='flex h-full items-center'>
-                <span className='h-full rounded-lg bg-[#8b898d]' style={{ width: t(2) }} />
-                <div className='flex flex-col items-center font-medium' style={{ padding: `0 ${t(44)}` }}>
-                  <span className='font-semibold text-[#443c44]' style={{ fontSize: t(24), lineHeight: t(32), letterSpacing: t(1), padding: `${t(4)} ${t(12)}` }}>{a.value!.toFixed(1)}</span>
-                  <span className='text-[#8b898d]' style={{ fontSize: t(24), lineHeight: t(32) }}>{a.label}</span>
+              <div key={a.label} className='flex items-center self-stretch'>
+                <span className='h-full rounded-lg bg-[#8b898d]' style={{ width: 1 }} />
+                <div className='flex flex-col items-center font-medium' style={{ padding: `0 ${tMin(44, 16)}`, fontSize: tMin(15, 12) }}>
+                  <span className='font-semibold text-[#443c44]'>{Number(a.value).toFixed(1)}</span>
+                  <span className='text-[#8b898d]'>{a.label}</span>
                 </div>
               </div>
             ))}
           </div>
         )}
         {reviews.length > 0 ? (
-          <Rail gap={28}>
-            {reviews.map(r => <ReviewCard key={r.id} review={r} />)}
-          </Rail>
+          <div className='grid grid-cols-1 lg:grid-cols-2' style={{ gap: tMin(24, 12) }}>
+            {reviews.slice(0, 2).map(r => <ReviewCard key={r.id} review={r} />)}
+          </div>
         ) : (
-          <p className='text-[#767677]' style={{ fontSize: t(24) }}>No reviews yet — be the first to share your experience at {name}.</p>
+          <p className='text-[#767677]' style={{ fontSize: tMin(16, 13) }}>No reviews yet — be the first to share your experience at {name}.</p>
         )}
-        <div style={{ marginTop: t(32) }}>
+        <div className='flex flex-wrap items-center justify-between' style={{ marginTop: tMin(24, 14), gap: tMin(12, 8) }}>
           <LeaveReviewDialog kind='restaurant' entityId={restaurantId} entityName={name} variant='figma' />
+          {summary.count > 2 && (
+            <Link
+              href={`/dining/${slug}/reviews`}
+              className='flex items-center justify-between border border-[#d5d5d5] bg-white font-medium text-[#252427] hover:bg-gray-50'
+              style={{ width: tMin(370, 200), height: tMin(44, 36), borderRadius: t(24), padding: `0 ${tMin(22, 14)}`, gap: 8, fontSize: tMin(14, 12) }}
+            >
+              Show all {summary.count} reviews
+              <ChevronRight className='shrink-0 text-[#666]' style={{ width: tMin(18, 14), height: tMin(18, 14) }} />
+            </Link>
+          )}
         </div>
       </Section>
 
       {about.length > 0 && (
-        <Section id='about-desktop' title='About the Restaurant' top={100} gap={34}>
-          <Rail gap={28}>
+        <Section id='about-desktop' title='About the Restaurant' top={32} gap={20}>
+          <div className='grid grid-cols-1 lg:grid-cols-2' style={{ gap: tMin(24, 12) }}>
             {about.map(a => (
               <article
                 key={a.title}
-                className='flex shrink-0 snap-start flex-col justify-center bg-white drop-shadow-[0_8px_23.8px_rgba(0,0,0,0.1)]'
-                style={{ width: t(528), height: t(266), padding: `0 ${t(32)}`, borderRadius: t(32), gap: t(16) }}
+                className='flex min-w-0 flex-col bg-white drop-shadow-[0_8px_23.8px_rgba(0,0,0,0.1)]'
+                style={{ minHeight: tMin(176, 110), padding: tMin(24, 14), borderRadius: t(24), gap: tMin(16, 8) }}
               >
-                <h3 className='font-extrabold text-[#303030]' style={{ fontSize: t(24), lineHeight: t(32) }}>{a.title}</h3>
-                <p className='line-clamp-4 text-[#454545]' style={{ fontSize: t(24), lineHeight: t(32) }}>{a.body}</p>
+                <h3 className='font-bold text-[#303030]' style={{ fontSize: tMin(16, 13) }}>{a.title}</h3>
+                <p className='line-clamp-4 text-[#454545]' style={{ fontSize: tMin(15, 12), lineHeight: 1.5 }}>{a.body}</p>
               </article>
             ))}
-          </Rail>
+          </div>
         </Section>
       )}
 
       {amenities.length > 0 && (
-        <Section id='amenities' title='Amenities' top={64} gap={52}>
-          <ul className='flex flex-wrap text-[#505050]' style={{ columnGap: t(92), rowGap: t(36), fontSize: t(32), lineHeight: t(32.5) }}>
+        <Section id='amenities' title='Amenities' top={32} gap={20}>
+          <ul className='grid grid-cols-2 text-[#505050] lg:grid-cols-3' style={{ rowGap: tMin(14, 8), columnGap: t(24), fontSize: tMin(15, 13) }}>
             {amenities.map(a => (
-              <li key={a} className='flex items-center whitespace-nowrap' style={{ gap: t(18), paddingLeft: t(12) }}>
-                <span className='shrink-0 rounded-full bg-[#505050]' style={{ width: t(6), height: t(6) }} />
+              <li key={a} className='flex min-w-0 items-center' style={{ gap: tMin(10, 8), paddingLeft: t(8) }}>
+                <span className='shrink-0 rounded-full bg-[#505050]' style={{ width: 4, height: 4 }} />
                 {a}
               </li>
             ))}

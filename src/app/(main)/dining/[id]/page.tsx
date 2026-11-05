@@ -12,8 +12,11 @@ import { MerchantRewardsSection } from '@/components/shared/MerchantRewardsSecti
 import { DetailSectionTabs, type DetailTab } from '@/components/shared/detail/DetailSectionTabs';
 import { CtaMobileBar, type CtaAction } from '@/components/shared/detail/DetailCtaBar';
 import { OffersForToday, type OfferBody } from '@/components/shared/detail/OffersForToday';
-import { RestaurantDesktopHero } from '@/components/sections/dining/RestaurantDesktopHero';
+import { RestaurantCtaCard, RestaurantDesktopHero, RestaurantTitleCard } from '@/components/sections/dining/RestaurantDesktopHero';
 import { RestaurantDesktopSections } from '@/components/sections/dining/RestaurantDesktopSections';
+import { HelpSideCard, SavingsReceipt, StampSideCard } from '@/components/sections/dining/RestaurantSidebar';
+import { getRestaurantStampCard } from '@/lib/services/visitRewards';
+import { billOffers, type RestaurantOfferRow } from '@/lib/payBill';
 import { DetailReviews } from '@/components/shared/detail/DetailReviews';
 import { DetailAbout, type Fact } from '@/components/shared/detail/DetailAbout';
 import { DetailLocation } from '@/components/shared/detail/DetailLocation';
@@ -24,7 +27,7 @@ import { getDiscountCaps } from '@/lib/services/membershipCaps';
 import { canPayBill } from '@/lib/cashback';
 import { OrderCollectBanner } from '@/components/sections/dining/order/OrderCollectBanner';
 import { cn } from '@/lib/utils';
-import { DESIGN_UNIT, TYPE_SCALE } from '@/components/sections/dining/designUnit';
+import { DESIGN_UNIT, TYPE_SCALE, tMin, t } from '@/components/sections/dining/designUnit';
 import type { DiningOffer } from '@/lib/types/dining';
 
 const fetchRestaurant = cache((id: string) => getRestaurantBySlugOrId(id));
@@ -95,7 +98,8 @@ export default async function RestaurantPage({
   const [{ restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages, allHours }, caps] =
     await Promise.all([fetchRestaurant(id), getDiscountCaps()]);
   if (!restaurant) notFound();
-  const orderCollect = await getOrderCollect(restaurant.id);
+  const [orderCollect, stampCard] = await Promise.all([getOrderCollect(restaurant.id), getRestaurantStampCard(restaurant.id)]);
+  const printedAt = new Date().toLocaleString('en-US', { timeZone: 'Indian/Mauritius', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
   const tagsOf = (type: string) => tags.filter((t) => t.tag_type === type).map((t) => t.tag_value);
   const cuisineTags = tagsOf('cuisine');
@@ -173,25 +177,31 @@ export default async function RestaurantPage({
         <div
           className='relative z-10 mx-auto flex max-w-7xl flex-col rounded-t-[20px] bg-white px-4 md:max-w-[calc(1920*var(--u))] md:rounded-none md:bg-transparent md:px-[calc(172*var(--u))]'
         >
-          <RestaurantDesktopHero
+          <RestaurantDesktopHero id={restaurant.id} name={restaurant.name} cover={restaurant.cover_image ?? galleryPhotos[0] ?? null} />
+
+          {/* phones: `contents` leaves these children in the page's ordered column */}
+          <div
+            className='contents md:block lg:grid lg:grid-cols-[minmax(0,1128fr)_minmax(270px,390fr)] lg:items-start lg:gap-x-[calc(58*var(--u))]'
+          >
+          <div className='contents md:block md:min-w-0'>
+          <RestaurantTitleCard
             name={restaurant.name}
-            cover={restaurant.cover_image ?? galleryPhotos[0] ?? null}
-            photoCount={galleryPhotos.length}
             cuisines={cuisineTags}
             costForTwo={restaurant.cost_for_two}
             area={restaurant.area}
             city={restaurant.city}
             lat={restaurant.latitude}
             lng={restaurant.longitude}
+            address={address}
+            phone={restaurant.phone}
             rating={reviewSummary}
             hours={allHours}
             stampSheet={stampSheet}
             trending={restaurant.is_advertised}
             exclusive={exclusive}
-            merchant={restaurant}
-            bookHref={bookHref}
-            payHref={payHref}
           />
+          {/* small tablets have no sidebar beside the card, so the actions come straight after it */}
+          <RestaurantCtaCard merchant={restaurant} bookHref={bookHref} payHref={payHref} className='mt-4 hidden md:block lg:hidden' />
 
           <MobileTitleCard
             name={restaurant.name}
@@ -222,10 +232,10 @@ export default async function RestaurantPage({
           </div>
           {orderCollect.items.length > 0 && (
             <OrderCollectBanner
-              href={`/dining/${restaurant.slug ?? restaurant.id}/order`}
+              href={`/dining/${slug}/order`}
               orderEnabled={orderCollect.enabled}
               count={orderCollect.items.length}
-              className='mt-4 max-md:order-1 md:order-5 md:mt-8 md:max-w-xl'
+              className='mt-4 max-md:order-1 md:hidden'
             />
           )}
           {/* phones: the app's deals stack; desktop draws Deals & cashback as offer cards in RestaurantDesktopSections */}
@@ -236,10 +246,11 @@ export default async function RestaurantPage({
             kind='restaurant'
             offerPct={offerPct}
             caps={caps}
-            className='mt-4 max-md:order-1 md:order-5 md:mt-8 md:mb-16 md:max-w-xl'
+            className='mt-4 max-md:order-1 md:hidden'
           />
           <RestaurantDesktopSections
             restaurantId={restaurant.id}
+            slug={slug}
             name={restaurant.name}
             restaurantOffers={exclusiveOffers}
             bankOffers={bankOffers}
@@ -282,6 +293,39 @@ export default async function RestaurantPage({
               hours={allHours}
             />
             <HelpCard className='mt-10' />
+          </div>
+          </div>
+
+          <aside className='hidden flex-col font-(family-name:--font-dm-sans) md:flex lg:mt-[calc(24*var(--t))]' style={{ gap: tMin(24, 14), paddingBottom: t(90) }}>
+            <RestaurantCtaCard merchant={restaurant} bookHref={bookHref} payHref={payHref} className='hidden lg:block' />
+            <UpsellBannerPager
+              merchantType={restaurant.merchant_type}
+              merchantId={restaurant.id}
+              kind='restaurant'
+              offerPct={offerPct}
+              caps={caps}
+            />
+            {orderCollect.items.length > 0 && (
+              <OrderCollectBanner href={`/dining/${slug}/order`} orderEnabled={orderCollect.enabled} count={orderCollect.items.length} />
+            )}
+            {stampCard && (
+              <StampSideCard
+                href={`/visit-rewards/restaurant/${restaurant.id}`}
+                image={restaurant.cover_image ?? galleryPhotos[0] ?? null}
+                visits={stampCard.visits}
+                total={stampCard.total}
+              />
+            )}
+            <SavingsReceipt
+              costForTwo={restaurant.cost_for_two}
+              offers={billOffers(restaurant.id, offers as RestaurantOfferRow[], [])}
+              caps={caps}
+              merchant={restaurant}
+              printedAt={printedAt}
+              calculateHref={payHref}
+            />
+            <HelpSideCard />
+          </aside>
           </div>
         </div>
 

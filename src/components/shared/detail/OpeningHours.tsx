@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { ChevronDown, Clock } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { t } from '@/components/sections/dining/designUnit'
+import { t, tMin } from '@/components/sections/dining/designUnit'
 import {
   DAY_NAMES,
   WEEK_ORDER,
@@ -91,11 +91,11 @@ export function OpeningHoursPill({ hours, variant = 'web' }: { hours: HoursRow[]
           type='button'
           onClick={() => setOpen(v => !v)}
           aria-expanded={open}
-          className='inline-flex items-center rounded-full bg-[#f4f4f4] whitespace-nowrap'
-          style={{ height: t(52.5), paddingLeft: t(17), paddingRight: t(20), gap: t(10), fontSize: t(24), lineHeight: t(34.4) }}
+          className='inline-flex max-w-full items-center bg-[#f4f4f4] text-left'
+          style={{ minHeight: tMin(32, 28), borderRadius: t(22.99), paddingBlock: t(4), paddingLeft: tMin(10, 8), paddingRight: tMin(12, 9), gap: tMin(11, 6), fontSize: tMin(14, 12), lineHeight: 1.43 }}
         >
-          <span>
-            <span className={cn('font-semibold', status.isOpen ? 'text-[#3aa456]' : 'text-[#C62828]')} style={{ letterSpacing: t(0.43) }}>
+          <span className='min-w-0'>
+            <span className={cn('font-semibold', status.isOpen ? 'text-[#3aa456]' : 'text-[#C62828]')} style={{ letterSpacing: t(0.25) }}>
               {status.isOpen ? 'Open' : 'Closed'}
             </span>
             <span className='text-[#666]'>
@@ -107,8 +107,8 @@ export function OpeningHoursPill({ hours, variant = 'web' }: { hours: HoursRow[]
             alt=''
             width={8}
             height={15}
-            className={cn('transition-transform', open ? 'rotate-90' : '-rotate-90')}
-            style={{ width: t(7.5), height: t(15) }}
+            className={cn('shrink-0 transition-transform', open ? 'rotate-90' : '-rotate-90')}
+            style={{ width: tMin(5, 4), height: tMin(10, 8) }}
           />
         </button>
       ) : variant === 'app' ? (
