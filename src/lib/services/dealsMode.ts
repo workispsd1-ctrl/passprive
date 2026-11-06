@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getActiveStores } from '@/lib/services/stores'
+import { isWellnessStore } from '@/lib/storeType'
 import { toRpcArgs, type Coords } from '@/lib/restaurantFilters'
 import { canBook, canPayBill, isCashbackEnabled, type MerchantCapabilityFields } from '@/lib/cashback'
 import { isDealLive, isOfferLive, isRepeatRewardOffer, offerBenefitLabel, offerStripText, type MerchantOffer } from '@/lib/deals'
@@ -137,9 +138,6 @@ function acceptsCashback(e: MerchantCapabilityFields) {
   return canPayBill(e) && isCashbackEnabled(e)
 }
 
-function isWellness(category: string | null) {
-  return String(category ?? '').split(',').some(part => part.trim().toLowerCase() === 'salon & wellness')
-}
 
 /**
  * Deals Mode / Use Cashback lists — app parity: DealsCashbackScreen.jsx
@@ -186,7 +184,7 @@ export async function getDealsModeItems(mode: DealsMode, coords: Coords | null):
   for (const s of stores) {
     const offers = index.get(`store:${s.id}`) ?? []
     if (mode === 'cashback' ? !acceptsCashback(s) : !offers.length) continue
-    const wellness = isWellness(s.category)
+    const wellness = isWellnessStore(s)
     const slug = s.slug ?? s.id
     const bookable = wellness && canBook(s)
     items.push({

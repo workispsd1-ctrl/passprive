@@ -4,6 +4,7 @@ import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm } from '@/lib/utils'
 import { getCardBadge } from '@/lib/cashback'
+import { getCardChips } from '@/lib/cardChips'
 import { DiningMerchantCard } from './DiningMerchantCard'
 import type { FeaturedRestaurant } from '@/lib/types/dining'
 
@@ -36,6 +37,7 @@ export function FeedRestaurantCard({ r }: { r: FeaturedRestaurant }) {
       ratingCount={r.rating_count}
       meta={meta || undefined}
       tagline={r.cuisines.length ? r.cuisines.join(', ') : undefined}
+      chips={getCardChips(r)}
     />
   )
 }

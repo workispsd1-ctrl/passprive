@@ -12,13 +12,12 @@ export type SavedItem = {
   tagline: string | null
 }
 
-const WELLNESS_CATEGORY = 'salon & wellness'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * Everything the user has favourited, resolved to cards — the same
  * `user_hotlist_items` rows the app's SavedRestaurants screen reads, split
- * into dining / wellness (category "Salon & Wellness") / other stores.
+ * into dining / wellness (store_type "SERVICE", app parity: utils/wellnessStore.js) / other stores.
  */
 export async function getSavedItems(userId: string): Promise<SavedItem[]> {
   const supabase = await createClient()
@@ -38,7 +37,7 @@ export async function getSavedItems(userId: string): Promise<SavedItem[]> {
 
   const [restaurantsRes, storesRes] = await Promise.all([
     supabase.from('restaurants').select('id, name, slug, cover_image, area, city').in('id', ids),
-    supabase.from('stores').select('id, name, slug, cover_image, category, subcategory, location_name, city').in('id', ids),
+    supabase.from('stores').select('id, name, slug, cover_image, category, subcategory, location_name, city, store_type').in('id', ids),
   ])
   if (restaurantsRes.error) console.error('[savedItems] restaurants query failed:', restaurantsRes.error.message)
   if (storesRes.error) console.error('[savedItems] stores query failed:', storesRes.error.message)
@@ -57,7 +56,7 @@ export async function getSavedItems(userId: string): Promise<SavedItem[]> {
     })
   }
   for (const s of storesRes.data ?? []) {
-    const isWellness = (s.category ?? '').trim().toLowerCase() === WELLNESS_CATEGORY
+    const isWellness = String(s.store_type ?? '').trim().toUpperCase() === 'SERVICE'
     items.set(String(s.id), {
       id: String(s.id),
       type: 'STORE',

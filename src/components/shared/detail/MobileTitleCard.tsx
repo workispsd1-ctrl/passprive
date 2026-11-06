@@ -1,6 +1,8 @@
 'use client'
 
 import Image from 'next/image'
+import type { CardChipKey } from '@/lib/cardChips'
+import { CardChips } from '@/components/shared/CardChips'
 import { ChevronDown, Flame, Gem } from 'lucide-react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
@@ -40,6 +42,8 @@ export function MobileTitleCard({
   hours = [],
   trending = false,
   offerZone = false,
+  exclusive = false,
+  chips = [],
 }: {
   name: string
   subtitle?: string | null
@@ -55,6 +59,10 @@ export function MobileTitleCard({
   hours?: HoursRow[]
   trending?: boolean
   offerZone?: boolean
+  /** the same "Exclusive" tag the store's card shows (a subscribed store) */
+  exclusive?: boolean
+  /** app parity: MerchantInfoCard.jsx — getCardChips(entity) under the pills */
+  chips?: CardChipKey[]
 }) {
   const { location } = useLocation()
   const distance =
@@ -115,7 +123,7 @@ export function MobileTitleCard({
         </div>
       </div>
 
-      {(trending || offerZone) && (
+      {(trending || offerZone || exclusive) && (
         <div className='flex flex-wrap items-center gap-1.5'>
           {trending && (
             <span className='flex h-5.25 items-center gap-1 rounded-[10px] border border-[#A5C569] bg-white px-2 text-[11px] leading-3.5 text-[#595B61]'>
@@ -127,8 +135,14 @@ export function MobileTitleCard({
               <Gem className='size-3 text-[#F5A623]' strokeWidth={2} /> Offer Zone
             </span>
           )}
+          {exclusive && (
+            <span className='flex h-5.25 items-center gap-1 rounded-[10px] border border-[#FFBA50] bg-white px-2 text-[11px] leading-3.5 text-[#595B61]'>
+              <Gem className='size-3 text-[#F5A623]' strokeWidth={2} /> Exclusive
+            </span>
+          )}
         </div>
       )}
+      <CardChips chips={chips} />
     </div>
   )
 }

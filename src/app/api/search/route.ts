@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   const { data: storesData } = await supabase
     .from('stores')
-    .select('id, name, category, location_name, city, logo_url, slug')
+    .select('id, name, category, location_name, city, logo_url, slug, store_type')
     .or(
       `name.ilike.%${safe}%,category.ilike.%${safe}%,subcategory.ilike.%${safe}%,location_name.ilike.%${safe}%,city.ilike.%${safe}%`,
     )

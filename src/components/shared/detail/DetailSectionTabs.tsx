@@ -44,9 +44,11 @@ export function DetailSectionTabs({
   /** flex `order` for the bar and its stuck-detection sentinel — they must move together */
   orderClassName?: string
   /** 'figma' — desktop restaurant page: Figma "Dining - Pay Bill" tab row, in --t type units */
-  variant?: 'default' | 'figma'
+  /** 'wellness' — desktop salon page: Figma "Salon details – Desktop" tab row, in --u design px */
+  variant?: 'default' | 'figma' | 'wellness'
 }) {
   const figma = variant === 'figma'
+  const wellness = variant === 'wellness'
   const [present, setPresent] = useState<DetailTab[]>(tabs)
   const [active, setActive] = useState(tabs[0]?.id)
   const [stuck, setStuck] = useState(false)
@@ -127,6 +129,7 @@ export function DetailSectionTabs({
           'sticky top-0 z-30 -mx-4 border-b bg-white/95 px-4 backdrop-blur transition-shadow md:mx-0 md:px-0',
           figma && 'md:mt-[calc(32*var(--t))] md:border-b-[calc(2*var(--t))] md:border-[#dfdfdf]',
           stuck ? 'border-gray-100 shadow-[0_6px_16px_-10px_rgba(0,0,0,0.18)] md:-mx-4 md:px-4' : 'border-gray-100',
+          wellness && 'md:mt-[calc(40*var(--u))] md:border-b md:border-[#ffd1bf]',
           orderClassName,
           className,
         )}
@@ -153,7 +156,7 @@ export function DetailSectionTabs({
         )}
         <div
           ref={rowRef}
-          className={cn('scrollbar-hide flex gap-7 overflow-x-auto md:gap-11', figma && 'md:gap-[max(20px,calc(56*var(--t)))] md:pl-[calc(8*var(--t))]')}
+          className={cn('scrollbar-hide flex gap-7 overflow-x-auto md:gap-11', figma && 'md:gap-[max(20px,calc(56*var(--t)))] md:pl-[calc(8*var(--t))]', wellness && 'md:gap-[calc(44*var(--u))]')}
         >
           {present.map(t => (
             <a
@@ -167,6 +170,8 @@ export function DetailSectionTabs({
                 active === t.id ? 'text-brand' : 'text-gray-600 hover:text-gray-900',
                 figma && 'md:pt-0 md:pb-[calc(10*var(--t))] md:text-[length:max(14px,calc(18*var(--t)))] md:leading-[1.4] md:tracking-[calc(0.5*var(--t))]',
                 figma && (active === t.id ? 'md:font-semibold md:text-[#ff4800]' : 'md:font-medium md:text-[#424144]'),
+                wellness && 'md:flex md:h-[calc(45*var(--u))] md:items-center md:py-0 md:px-[calc(4*var(--u))] md:text-[length:calc(16*var(--u))] md:leading-[calc(21*var(--u))]',
+                wellness && (active === t.id ? 'md:font-bold md:text-[#ff4800]' : 'md:font-medium md:text-[#2c2d32]'),
               )}
             >
               {t.label}
@@ -174,6 +179,7 @@ export function DetailSectionTabs({
                 className={cn(
                   'absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-brand transition-opacity md:h-[3px]',
                   figma && 'md:-inset-x-[calc(6*var(--t))] md:-bottom-[calc(2*var(--t))] md:h-[calc(6*var(--t))] md:rounded-[calc(5*var(--t))] md:bg-[#ff4800]',
+                  wellness && 'md:h-[calc(3*var(--u))] md:rounded-none md:bg-[#ff4800]',
                   active === t.id ? 'opacity-100' : 'opacity-0',
                 )}
               />

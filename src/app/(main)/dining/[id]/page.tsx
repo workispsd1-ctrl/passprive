@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { getCardChips } from '@/lib/cardChips'
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getOrderCollect, getRestaurantBySlugOrId } from '@/lib/services/dining';
@@ -109,6 +110,8 @@ export default async function RestaurantPage({
   const fullMenuImages: string[] =
     menuImages.length > 0 ? menuImages : (restaurant.menu_json?.full_menu_image_urls ?? []);
   const isBank = (o: DiningOffer) => o.offer_type === 'bank_card' || o.offer_type === 'credit_card';
+  // app parity: MerchantInfoCard.jsx — getCardChips(entity), with the review summary as its rating
+  const chips = getCardChips({ ...restaurant, rating: reviewSummary.avg, rating_count: reviewSummary.count, has_offer: offers.length > 0, repeat_rewards_enabled: !!stampCard })
   const exclusiveOffers = offers.filter((o) => !isBank(o)).map(exclusiveOffer);
   const bankOffers = offers.filter(isBank).map(bankOffer);
   const address = restaurant.full_address ?? [restaurant.area, restaurant.city].filter(Boolean).join(', ');
@@ -185,6 +188,7 @@ export default async function RestaurantPage({
           >
           <div className='contents md:block md:min-w-0'>
           <RestaurantTitleCard
+            chips={chips}
             name={restaurant.name}
             cuisines={cuisineTags}
             costForTwo={restaurant.cost_for_two}
@@ -204,6 +208,7 @@ export default async function RestaurantPage({
           <RestaurantCtaCard merchant={restaurant} bookHref={bookHref} payHref={payHref} className='mt-4 hidden md:block lg:hidden' />
 
           <MobileTitleCard
+            chips={chips}
             name={restaurant.name}
             subtitle={[cuisineTags.slice(0, 2).join(', '), costForTwo].filter(Boolean).join(' • ')}
             area={restaurant.area}

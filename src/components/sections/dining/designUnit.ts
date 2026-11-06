@@ -6,6 +6,16 @@
  */
 export const u = (px: number) => `calc(${px} * var(--u))`
 
+/**
+ * `--u` for the salon page (Figma "Salon details – Desktop"): exactly 1px on a
+ * 1920 screen and proportional on every other width — same styling, only the
+ * size changes. Shared by the page and its loading skeleton.
+ */
+export const SALON_UNIT = 'calc(100vw / 1920)'
+
+/** Tailwind class pointing `--t` (the type scale shared components use) at `--u` on desktop. */
+export const SALON_TYPE = 'md:[--t:var(--u)]'
+
 /** The CSS value for `--u`: 100vw / 1920, never above 1px, never below 0.5px. */
 export const DESIGN_UNIT = 'max(0.5px, min(1px, calc(100vw / 1920)))'
 

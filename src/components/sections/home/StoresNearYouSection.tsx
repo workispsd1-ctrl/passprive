@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { getCardChips } from '@/lib/cardChips'
+import { CardChips } from '@/components/shared/CardChips'
 import Image from 'next/image'
 import { HScroll } from './HScroll'
 import type { StoreRow } from '@/lib/types/stores'
@@ -43,6 +45,8 @@ export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
           <p className="absolute left-4 top-4 text-[15px] font-bold text-white drop-shadow">
             {store.name}
           </p>
+          {/* app parity: ShopThisWeekend.jsx CardChips, under the name */}
+          <CardChips chips={getCardChips(store)} className="absolute left-4 top-11" />
 
           {/* DM Sans 500 / 19.6 / 28 — #2247FF on white, radius 19.6 */}
           <span className="absolute bottom-5 left-1/2 flex h-8 w-33 -translate-x-1/2 items-center justify-center rounded-full bg-white font-(family-name:--font-dm-sans) text-[15px] font-medium leading-7 text-[#2247FF] 2xl:h-10 2xl:w-43 2xl:text-[19.6px]">

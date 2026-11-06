@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { getActiveStores } from '@/lib/services/stores'
+import { storeHref } from '@/lib/storeType'
 import { getActiveRestaurants } from '@/lib/services/dining'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.passprive.com'
@@ -11,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ])
 
   const storeUrls: MetadataRoute.Sitemap = stores.map(store => ({
-    url: `${SITE_URL}/stores/${store.slug ?? store.id}`,
+    url: `${SITE_URL}${storeHref(store)}`,
     changeFrequency: 'weekly',
     priority: 0.7,
   }))

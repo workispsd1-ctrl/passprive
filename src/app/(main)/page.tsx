@@ -16,6 +16,7 @@ import { getOffersForYou } from '@/lib/services/offersForYou';
 import { UpcomingBookings } from '@/components/sections/home/UpcomingBookings';
 import { getUserCoords } from '@/lib/location';
 import { scopeStoresToRadius } from '@/lib/nearby';
+import { isWellnessStore } from '@/lib/storeType';
 import { getCurrentUser } from '@/lib/services/user';
 import { getUpcomingDiningBookings } from '@/lib/services/bookings';
 import { getActiveMalls, getMallsSectionTitle } from '@/lib/services/malls';
@@ -69,7 +70,7 @@ export default async function Home() {
       {restaurants.length > 0 && <NowTrendingSection restaurants={restaurants} />}
       {newStores.length > 0 && <NewKickInStores stores={newStores} />}
       <SalonVisitSection stores={stores} />
-      {stores.length > 0 && <StoresNearYouSection stores={stores} />}
+      {stores.length > 0 && <StoresNearYouSection stores={stores.filter((s) => !isWellnessStore(s))} />}
       {mallsTitle && <MallsNearYou malls={malls} title={mallsTitle} />}
       <HotOnPassprive collections={collections} />
     </main>

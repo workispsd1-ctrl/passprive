@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 type Result = {
   id: string;
@@ -13,15 +14,25 @@ type Result = {
   city: string;
   logo_url: string | null;
   slug: string;
-  type: 'store' | 'restaurant';
+  type: 'store' | 'restaurant' | 'tourist_place';
+  /** stores only — 'SERVICE' is a wellness store */
+  store_type?: string | null;
 };
 
 interface Props {
   variant?: 'mobile' | 'desktop-inline' | 'hero' | 'desktop-full';
   onClose?: () => void;
+  /** desktop header: Figma 1920 sizes (784 × 64 pill) in the header's --u unit */
+  scaled?: boolean;
 }
 
-export function SearchBar({ variant = 'mobile', onClose }: Props) {
+// Scaled (desktop header) pill: 64 tall, 728 inner row → 28 side padding, gap 24.
+const SCALED_BAR = 'h-[calc(var(--u)*64)] gap-[calc(var(--u)*24)] px-[calc(var(--u)*28)]';
+const SCALED_ICON = 'h-[calc(var(--u)*38)] w-[calc(var(--u)*38)]';
+const SCALED_DIVIDER = 'h-[calc(var(--u)*28)]';
+const SCALED_TEXT = 'text-[length:calc(var(--u)*20)] leading-[calc(var(--u)*20)]';
+
+export function SearchBar({ variant = 'mobile', onClose, scaled = false }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,8 +106,15 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
 
   function handleSelect(result: Result) {
     const slug = result.slug || result.id;
+    // app parity: storeDetailsRouting.js — SERVICE stores open the salon page
     const path =
-      result.type === 'restaurant' ? `/dining/${slug}` : `/stores/${slug}`;
+      result.type === 'restaurant'
+        ? `/dining/${slug}`
+        : result.type === 'tourist_place'
+          ? `/tourist/${slug}`
+          : String(result.store_type ?? '').toUpperCase() === 'SERVICE'
+            ? `/wellness/${slug}`
+            : `/stores/${slug}`;
     setQuery('');
     setResults([]);
     setIsOpen(false);
@@ -211,16 +229,16 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
   if (variant === 'hero') {
     return (
       <div ref={containerRef} className='relative w-full'>
-        <div className='flex h-12 items-center gap-3 rounded-full bg-white px-5 shadow-[0px_4px_4px_0px_rgba(223,94,43,1)] 2xl:h-16 2xl:px-6'>
-          <Search className='h-5 w-5 shrink-0 text-brand-light 2xl:h-7 2xl:w-7' aria-hidden='true' />
-          <span className='h-6 w-px shrink-0 bg-[#E4E4E4] 2xl:h-7' aria-hidden='true' />
+        <div className={cn('flex items-center rounded-full bg-white shadow-[0px_4px_4px_0px_rgba(223,94,43,1)]', scaled ? SCALED_BAR : 'h-12 gap-3 px-5 2xl:h-16 2xl:px-6')}>
+          <Search className={cn('shrink-0 text-brand-light', scaled ? SCALED_ICON : 'h-5 w-5 2xl:h-7 2xl:w-7')} strokeWidth={scaled ? 1.5 : 2} aria-hidden='true' />
+          <span className={cn('w-px shrink-0 bg-[#E4E4E4]', scaled ? SCALED_DIVIDER : 'h-6 2xl:h-7')} aria-hidden='true' />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKey}
             placeholder={'Search for “Sneakers” around you'}
-            className='min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) text-[15px] leading-5 tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C] 2xl:text-[20px]'
+            className={cn('min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C]', scaled ? SCALED_TEXT : 'text-[15px] leading-5 2xl:text-[20px]')}
             autoComplete='off'
             aria-label='Search'
           />
@@ -274,16 +292,16 @@ export function SearchBar({ variant = 'mobile', onClose }: Props) {
   if (variant === 'desktop-full') {
     return (
       <div ref={containerRef} className='relative w-full'>
-        <div className='flex h-10 items-center gap-2 rounded-full bg-[#F6F4F4] px-4 2xl:h-12 2xl:px-5 min-[120rem]:h-16 min-[120rem]:gap-3 min-[120rem]:px-7'>
-          <Search className='h-4.5 w-4.5 shrink-0 text-brand-light 2xl:h-5 2xl:w-5 min-[120rem]:h-7 min-[120rem]:w-7' aria-hidden='true' />
-          <span className='h-5 w-px shrink-0 bg-[#E4E4E4] 2xl:h-6 min-[120rem]:h-7' aria-hidden='true' />
+        <div className={cn('flex items-center rounded-full bg-[#F6F4F4]', scaled ? SCALED_BAR : 'h-10 gap-2 px-4 2xl:h-12 2xl:px-5 min-[120rem]:h-16 min-[120rem]:gap-3 min-[120rem]:px-7')}>
+          <Search className={cn('shrink-0 text-brand-light', scaled ? SCALED_ICON : 'h-4.5 w-4.5 2xl:h-5 2xl:w-5 min-[120rem]:h-7 min-[120rem]:w-7')} strokeWidth={scaled ? 1.5 : 2} aria-hidden='true' />
+          <span className={cn('w-px shrink-0 bg-[#E4E4E4]', scaled ? SCALED_DIVIDER : 'h-5 2xl:h-6 min-[120rem]:h-7')} aria-hidden='true' />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKey}
             placeholder={'Search for “Sneakers” around you'}
-            className='min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) text-[13px] leading-5 font-normal not-italic tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C] 2xl:text-[15px] min-[120rem]:text-[20px]'
+            className={cn('min-w-0 flex-1 bg-transparent font-(family-name:--font-dm-sans) font-normal not-italic tracking-normal text-[#0D141C] outline-none placeholder:text-[#0D141C]', scaled ? SCALED_TEXT : 'text-[13px] leading-5 2xl:text-[15px] min-[120rem]:text-[20px]')}
             autoComplete='off'
             aria-label='Search'
           />

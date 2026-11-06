@@ -7,7 +7,6 @@ import { WellnessGlowUpSection } from '@/components/sections/wellness/WellnessGl
 import { AllSalonsSection } from '@/components/sections/wellness/AllSalonsSection'
 import { getWellnessStores, getWellnessPromotionalCollections } from '@/lib/services/stores'
 import { getUserCoords } from '@/lib/location'
-import { scopeStoresToRadius } from '@/lib/nearby'
 
 export const metadata: Metadata = {
   title: 'Wellness & Spas',
@@ -26,8 +25,9 @@ export const metadata: Metadata = {
 export default async function Wellness() {
   const coords = await getUserCoords()
   const [stores, collections] = await Promise.all([
-    // every wellness rail draws from this, so the 3–5 km radius applies to all of them
-    getWellnessStores().then((all) => scopeStoresToRadius(all, coords)),
+    // each rail scopes these itself, app parity: matchesUserLocation(…, 50) —
+    // 50 km by distance, or by city / area for the many stores with no coordinates
+    getWellnessStores(),
     getWellnessPromotionalCollections(),
   ])
 

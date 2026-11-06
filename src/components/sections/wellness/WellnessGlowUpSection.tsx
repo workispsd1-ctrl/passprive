@@ -6,7 +6,7 @@ import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm, sortByMerchant } from '@/lib/utils'
 import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from '@/components/sections/home/HScroll'
-import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
+import { MerchantCard } from '@/components/sections/home/MerchantCard'
 import type { StoreRow } from '@/lib/types/stores'
 import type { StorePromotionalCollection } from '@/lib/services/stores'
 
@@ -76,9 +76,6 @@ export function WellnessGlowUpSection({
             <div className={c.hasBanner ? 'relative pt-[21%] pb-4 md:pt-[max(7rem,8%)]' : 'relative pt-24 pb-4'}>
               <HScroll>
                 {rail.map(({ s, dist }) => {
-                  const tags: MerchantCardTag[] = []
-                  if (s.store_offers?.length) tags.push({ label: 'Sale is live' })
-                  if (s.merchant_type === 'preferred') tags.push({ label: 'Exclusive', icon: 'exclusive' })
 
                   const offer = s.store_offers?.[0]
                   const offerLabel = offer?.discount_value ? `Flat ${offer.discount_value}% OFF` : offer?.badge_text ?? undefined
@@ -95,7 +92,6 @@ export function WellnessGlowUpSection({
                       tagline={[s.category, s.subcategory].filter(Boolean).join(', ') || undefined}
                       offerLabel={offerLabel}
                       cardBadge={getCardBadge(s, plan)}
-                      tags={tags}
                     />
                   )
                 })}

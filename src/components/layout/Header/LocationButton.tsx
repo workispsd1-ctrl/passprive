@@ -54,19 +54,21 @@ export function LocationButton({ variant = 'desktop', theme = 'default' }: Props
         type="button"
         aria-label="Change location"
         onClick={() => setDialogOpen(true)}
-        className={`flex shrink-0 items-center gap-2 transition-opacity hover:opacity-80 2xl:gap-2.75`}
+        className="flex shrink-0 items-center gap-[calc(var(--u)*11)] transition-opacity hover:opacity-80"
       >
+        {/* sizes use the desktop header's --u (1920 → 1px) — see DesktopHeaderClient */}
         <MapPin
-          className={`h-5 w-5 shrink-0 2xl:h-6 2xl:w-6 min-[120rem]:h-8 min-[120rem]:w-8 ${light ? 'text-white' : 'text-brand-light'}`}
+          className={`h-[calc(var(--u)*40)] w-[calc(var(--u)*40)] shrink-0 ${light ? 'text-white' : 'text-[#FF6A19]'}`}
+          strokeWidth={1.5}
           aria-hidden="true"
         />
         {/* tablets: the pin alone, so the search keeps its room — the name shows from lg */}
-        <div className="hidden flex-col items-start gap-0.75 leading-tight lg:flex">
-          <span className={`text-[14px] font-bold 2xl:text-[16px] min-[120rem]:text-[20px] min-[120rem]:leading-5 ${light ? 'text-white' : 'text-[#0D141C]'}`}>
+        <div className="hidden w-[calc(var(--u)*190)] flex-col items-start gap-[calc(var(--u)*3)] text-left font-(family-name:--font-dm-sans) lg:flex">
+          <span className={`w-full truncate text-[length:calc(var(--u)*20)] leading-[calc(var(--u)*20)] font-bold ${light ? 'text-white' : 'text-[#0D141C]'}`}>
             {cityLabel}
           </span>
           {stateLabel && (
-            <span className={`text-[12px] 2xl:text-[13px] min-[120rem]:text-[16px] min-[120rem]:leading-5 min-[120rem]:font-medium ${light ? 'text-white/80' : 'text-[#606366]'}`}>
+            <span className={`w-full truncate text-[length:calc(var(--u)*16)] leading-[calc(var(--u)*20)] font-medium ${light ? 'text-white/80' : 'text-[#606366]'}`}>
               {stateLabel}
             </span>
           )}

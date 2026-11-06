@@ -57,40 +57,31 @@ export function formatDistanceKm(
   return `${n.toFixed(1)}${suffix}`
 }
 
-/**
- * Location-scopes a store list: nearest first when the user's coordinates are
- * known (stores without coordinates go last), otherwise unchanged.
- */
-export function sortByDistanceFrom<T extends { lat: number | null; lng: number | null }>(
-  items: T[],
-  coords: { lat: number; lng: number } | null,
-): T[] {
-  if (!coords) return items
-  const d = (i: T) =>
-    i.lat != null && i.lng != null
-      ? haversineKm(coords.lat, coords.lng, i.lat, i.lng)
-      : Number.POSITIVE_INFINITY
-  return [...items].sort((a, b) => d(a) - d(b))
-}
+const normLoc = (v: string | null | undefined) => String(v ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
 
 /**
- * Location-scopes a store list: keeps only stores within `radiusKm` of the
- * user (falling back to a same-city match when either side has no
- * coordinates), same as the app's `matchesUserLocation`/`hasResolvedUserLocation`
- * (`utils/locationScope.js`). Returns the list unchanged when the user's
- * location hasn't resolved at all (no coords, no city).
+ * Location-scopes a list — app parity: `matchesUserLocation` /
+ * `hasResolvedUserLocation` (utils/locationScope.js). An item with a distance
+ * is kept within `radiusKm`; an item without coordinates (most stores have
+ * none) is kept when its city is the user's, or when any part of the user's
+ * location (`parts`: city, region…) matches its area, address, city or name.
+ * Returns the list unchanged when the user's location hasn't resolved at all.
  */
 export function scopeByLocation<
-  T extends { lat?: number | null; lng?: number | null; city?: string | null },
->(items: T[], coords: { lat: number; lng: number } | null, city: string, radiusKm: number): T[] {
-  const userCity = city.trim().toLowerCase()
-  if (!coords && !userCity) return items
+  T extends { lat?: number | null; lng?: number | null; city?: string | null; location_name?: string | null; area?: string | null; address_line1?: string | null; name?: string | null },
+>(items: T[], coords: { lat: number; lng: number } | null, city: string, radiusKm: number, parts: (string | null | undefined)[] = [city]): T[] {
+  const userCity = normLoc(city)
+  const userParts = parts.map(normLoc).filter(Boolean)
+  if (!coords && !userCity && !userParts.length) return items
 
   return items.filter((i) => {
     if (coords && i.lat != null && i.lng != null) {
-      return haversineKm(coords.lat, coords.lng, i.lat, i.lng) <= radiusKm
+      return haversineKm(coords.lat, coords.lng, Number(i.lat), Number(i.lng)) <= radiusKm
     }
-    return userCity.length > 0 && (i.city ?? '').trim().toLowerCase() === userCity
+    if (userCity && normLoc(i.city) === userCity) return true
+    // app parity: hasMatchingLocationTerm
+    const fields = [i.area, i.location_name, i.address_line1, i.city, i.name].map(normLoc).filter(Boolean)
+    return userParts.some(part => fields.some(f => f === part || f.includes(part) || part.includes(f)))
   })
 }
 

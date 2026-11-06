@@ -1,4 +1,5 @@
-import { DESIGN_UNIT, TYPE_SCALE, t, u } from '@/components/sections/dining/designUnit'
+import { DESIGN_UNIT, SALON_TYPE, SALON_UNIT, TYPE_SCALE, t, u } from '@/components/sections/dining/designUnit'
+import { PROFILE_UNIT } from '@/components/sections/profile/units'
 import { cn } from '@/lib/utils'
 
 /**
@@ -62,6 +63,8 @@ export function MerchantCardSkeleton() {
         <Line className='h-3.5 w-3/5' />
         <Line className='w-4/5' />
         <Line className='w-2/5' />
+        {/* CardChips row (Recommended, Best value…) */}
+        <Bone className='mt-1 h-5.25 w-28 rounded-full' />
       </div>
     </div>
   )
@@ -96,6 +99,29 @@ export function TileSkeleton() {
 /** BankOffersSection — 256:196 offer card. */
 export function OfferCardSkeleton() {
   return <Bone className='aspect-256/196 w-64 shrink-0 rounded-2xl' />
+}
+
+/** malls/MallsNearYou — white 16:10 photo card with two caption lines. */
+export function MallCardSkeleton() {
+  return (
+    <div className='w-72 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0px_4.8px_20.4px_0px_rgba(0,0,0,0.08)] 2xl:w-96'>
+      <Bone className='aspect-16/10 rounded-none' />
+      <div className='space-y-2 p-4'>
+        <Line className='h-3.5 w-3/5' />
+        <Line className='w-2/5' />
+      </div>
+    </div>
+  )
+}
+
+/** home/HotOnPassprive — 326:218 collection photo with a caption under it. */
+export function CollectionCardSkeleton() {
+  return (
+    <div className='w-81.5 shrink-0 xl:w-90 2xl:w-105 min-[120rem]:w-[489px]'>
+      <Bone className='aspect-326/218 rounded-[16px]' />
+      <Line className='mt-3 h-3.5 w-3/5' />
+    </div>
+  )
 }
 
 /** tourist CuratedCard / CompactPlaceCard — padded white card with photo. */
@@ -188,17 +214,37 @@ export function CardGridPageSkeleton({ count = 8, subtitle = false }: { count?: 
   )
 }
 
-/** Search — the rounded search field and a result list (SearchClient). */
+/** Search (SearchClient, app parity: GlobalSearchScreen) — back + search pill, the five tabs, recent chips and the discovery rails. */
 export function SearchPageSkeleton() {
   return (
-    <main className='mx-auto max-w-3xl px-4 pt-6 pb-16 md:px-8' aria-busy='true'>
-      <Bone className='h-12 rounded-full' />
-      <div className='mt-6 space-y-3'>
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className='flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm'>
-            <Bone className='h-14 w-14 shrink-0 rounded-xl' />
-            <div className='flex-1 space-y-2'>
-              <Line className='h-3.5 w-1/2' />
+    <main className='mx-auto min-h-screen max-w-3xl bg-white pb-6' aria-busy='true'>
+      <div className='flex items-center gap-3 px-4 pt-2 pb-3'>
+        <Bone className='size-5 shrink-0 rounded-md' />
+        <Bone className='h-12 flex-1 rounded-full' />
+      </div>
+      <div className='mb-2 flex border-b border-[#EFEFEF] px-4 pb-2.5'>
+        {[0, 1, 2, 3, 4].map(i => (
+          <div key={i} className='flex flex-1 justify-center'>
+            <Line className='h-3.5 w-14' />
+          </div>
+        ))}
+      </div>
+      <Bone className='mx-4 mt-6.5 h-5 w-40 rounded-full' />
+      <div className='mt-3 flex flex-col gap-2 px-4'>
+        {[['w-24', 'w-32', 'w-20'], ['w-28', 'w-20', 'w-24']].map((row, r) => (
+          <div key={r} className='flex gap-2'>
+            {row.map((w, i) => <Bone key={i} className={cn('h-7.25 rounded-full', w)} />)}
+          </div>
+        ))}
+      </div>
+      <Bone className='mx-4 mt-6.5 h-5 w-52 rounded-full' />
+      <div className='mt-3 flex flex-col gap-4.5 px-4'>
+        {[0, 1, 2].map(i => (
+          <div key={i} className='flex h-23.75 gap-2.25 rounded-2xl bg-white pt-1.5 pr-3 pl-1.75 shadow-[0_1px_6px_rgba(0,0,0,0.05)]'>
+            <Bone className='h-20.5 w-20.75 shrink-0 rounded-xl' />
+            <div className='flex-1 space-y-2.5 pt-1'>
+              <Line className='h-4 w-1/2' />
+              <Line className='w-2/3' />
               <Line className='w-1/3' />
             </div>
           </div>
@@ -238,15 +284,190 @@ export function BookingsListSkeleton() {
   )
 }
 
-/** Neutral page skeleton for screens without a dedicated one (Visit Rewards). */
-export function SimplePageSkeleton() {
+/**
+ * Visit Rewards (CollectStamps) — the full-bleed medal hero, "How it works"
+ * steps, then a rail of stamp cards with its "Explore all" pill.
+ */
+export function VisitRewardsSkeleton() {
   return (
-    <main className='mx-auto min-h-screen max-w-4xl px-4 pt-6 pb-16 md:px-8' aria-busy='true'>
-      <Bone className='h-7 w-56 rounded-full' />
-      <Line className='mt-2 w-72' />
-      <Bone className='mt-6 h-44 rounded-3xl' />
-      <div className='mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2'>
-        {[0, 1, 2, 3].map(i => <Bone key={i} className='h-28 rounded-2xl' />)}
+    <main
+      className={cn('min-h-screen bg-white pb-16 max-md:[--t:0.62px] md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen', TYPE_SCALE)}
+      style={{ ['--u' as string]: DESIGN_UNIT }}
+      aria-busy='true'
+    >
+      {/* Hero — warm gradient band, headline left, medals right */}
+      <div className='bg-[#B5502E]'>
+        <div className='mx-auto flex max-w-7xl items-center justify-between px-4 md:px-8' style={{ minHeight: t(360) }}>
+          <div className='space-y-3'>
+            <Bone className='h-8 w-44 rounded-full bg-white/15 md:h-12 md:w-72' />
+            <Bone className='h-9 w-52 rounded-full bg-white/20 md:h-14 md:w-96' />
+          </div>
+          <div className='hidden items-end md:flex' aria-hidden>
+            <Bone className='rounded-full bg-white/15' style={{ width: t(190), height: t(190), marginRight: t(-58) }} />
+            <Bone className='relative rounded-full bg-white/20' style={{ width: t(220), height: t(220), marginBottom: t(46) }} />
+            <Bone className='rounded-full bg-white/15' style={{ width: t(190), height: t(190), marginLeft: t(-58) }} />
+          </div>
+        </div>
+      </div>
+
+      {/* HowItWorks — four step cards */}
+      <div className='mx-auto max-w-7xl py-6 md:py-10'>
+        <Bone className='mx-4 h-6 w-40 rounded-full md:mx-8' />
+        <div className='flex gap-3 overflow-hidden px-4 pt-4 pb-5 md:grid md:grid-cols-4 md:px-8 lg:gap-4'>
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className='w-64 shrink-0 rounded-2xl border border-[#F0F0F0] bg-white p-4 shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:w-auto'>
+              <div className='flex items-center justify-between'>
+                <Bone className='size-10 rounded-full' />
+                <Bone className='h-6 w-16 rounded-full' />
+              </div>
+              <Line className='mt-5 h-4 w-3/5' />
+              <Line className='mt-2 w-4/5' />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Section — "Collect at Restaurants": four stamp cards across */}
+      <RailSkeleton titleWidth='w-56' count={4} gap='gap-3 lg:gap-4' className='py-0! md:py-0!'>
+        {i => (
+          <div key={i} className='w-64 shrink-0 overflow-hidden rounded-2xl bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:w-[calc((100%-3*16px)/4)]'>
+            <Bone className='rounded-none' style={{ height: t(220), minHeight: 150 }} />
+            <div className='space-y-2 p-4'>
+              <Line className='h-4 w-3/5' />
+              <Line className='w-2/5' />
+            </div>
+            <div className='border-t border-[#EFEFEF] p-4'>
+              <Line className='w-4/5' />
+            </div>
+          </div>
+        )}
+      </RailSkeleton>
+      <div className='mt-1 flex justify-center px-4'>
+        <Bone className='h-12 w-72 rounded-full' />
+      </div>
+    </main>
+  )
+}
+
+/** One stamp sheet (StampDetailView) — back + name, the big sheet card beside its side column. */
+export function StampDetailSkeleton() {
+  return (
+    <main
+      className={cn('min-h-screen bg-white pb-16 max-md:[--t:0.62px] md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen', TYPE_SCALE)}
+      style={{ ['--u' as string]: DESIGN_UNIT }}
+      aria-busy='true'
+    >
+      <div className='mx-auto max-w-7xl px-4 pt-5 md:px-8 md:pt-8'>
+        <div className='flex items-center gap-3'>
+          <Bone className='size-10 shrink-0 rounded-full' />
+          <Bone className='h-6 w-56 rounded-full' />
+        </div>
+        <div className='mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.64fr)_minmax(0,1fr)] lg:gap-x-6'>
+          <div className='min-w-0'>
+            <Bone className='aspect-16/9 rounded-[20px]' />
+            <Bone className='mt-5 h-7 w-2/5 rounded-full' />
+            <Line className='mt-3 w-3/5' />
+            <div className='mt-6 grid grid-cols-1 gap-4 md:grid-cols-2'>
+              {[0, 1].map(i => <Bone key={i} className='h-28 rounded-2xl' />)}
+            </div>
+          </div>
+          <div className='flex flex-col gap-4'>
+            <Bone className='h-56 rounded-[20px]' />
+            <Bone className='h-32 rounded-[20px]' />
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+/** Mall (MallDetailClient) — full-bleed cover, name, address, actions, then rails of places. */
+export function MallDetailSkeleton() {
+  return (
+    <main className='min-h-screen bg-white pb-16' aria-busy='true'>
+      <Bone className='relative left-1/2 h-64 w-screen -translate-x-1/2 rounded-none md:h-96' />
+      <div className='mx-auto max-w-7xl px-4 pt-6 md:px-8'>
+        <Bone className='h-8 w-64 rounded-full md:h-9' />
+        <Line className='mt-3 h-3.5 w-72 max-w-full' />
+        <Line className='mt-3 h-3.5 w-40' />
+        <div className='mt-4 flex gap-3'>
+          {['w-32', 'w-24'].map((w, i) => <Bone key={i} className={cn('h-10 rounded-full', w)} />)}
+        </div>
+      </div>
+      <RailSkeleton titleWidth='w-40'>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
+    </main>
+  )
+}
+
+/** Order & Collect (OrderCollectClient) — title, search, category chips + sort, then the item rows. */
+export function OrderCollectSkeleton() {
+  return (
+    <main className='mx-auto min-h-screen max-w-4xl px-4 pt-6 pb-32 md:px-8' aria-busy='true'>
+      <Bone className='h-8 w-56 rounded-full' />
+      <Line className='mt-2 h-3.5 w-64' />
+      <Bone className='mt-4 h-11 rounded-xl' />
+      <div className='mt-3 flex items-center justify-between gap-3'>
+        <div className='flex gap-2 overflow-hidden'>
+          {['w-16', 'w-24', 'w-20', 'w-24'].map((w, i) => <Bone key={i} className={cn('h-9 shrink-0 rounded-full', w)} />)}
+        </div>
+        <Bone className='h-9 w-28 shrink-0 rounded-lg' />
+      </div>
+      <div className='mt-4 divide-y divide-[#EAEAEA]'>
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className='flex gap-4 py-4'>
+            <div className='flex-1 space-y-2'>
+              <Line className='w-16' />
+              <Line className='h-4 w-1/2' />
+              <Line className='h-3.5 w-20' />
+              <Line className='w-4/5' />
+            </div>
+            <Bone className='size-28 shrink-0 rounded-xl' />
+          </div>
+        ))}
+      </div>
+    </main>
+  )
+}
+
+/** All reviews (AllReviewsClient) — back + name, the rating summary, sort / tag chips and search, then review cards. */
+export function AllReviewsSkeleton() {
+  return (
+    <main
+      className={cn('min-h-screen bg-white pb-16 max-md:[--t:0.7px] md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen', TYPE_SCALE)}
+      style={{ ['--u' as string]: DESIGN_UNIT }}
+      aria-busy='true'
+    >
+      <div className='mx-auto max-w-7xl px-4 md:px-8' style={{ paddingTop: t(52) }}>
+        <Bone className='h-7 w-48 rounded-full' />
+        <Line className='mt-2 w-40' />
+        <div className='mt-6 flex items-center gap-3'>
+          <Bone className='h-10 w-16 rounded-full' />
+          <div className='space-y-2'>
+            <Line className='h-3.5 w-28' />
+            <Line className='w-20' />
+          </div>
+        </div>
+        <div className='mt-6 flex flex-wrap items-center justify-between gap-3'>
+          <div className='flex flex-wrap gap-2'>
+            {['w-28', 'w-20', 'w-24', 'w-20'].map((w, i) => <Bone key={i} className={cn('h-9 rounded-full', w)} />)}
+          </div>
+          <Bone className='h-10 w-full rounded-full sm:w-72' />
+        </div>
+        <div className='mt-6 flex flex-col' style={{ gap: t(20) }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} className='bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)]' style={{ padding: `${t(28)} ${t(32)}`, borderRadius: t(18) }}>
+              <div className='flex items-center gap-3'>
+                <Bone className='size-10 shrink-0 rounded-full md:size-[calc(60*var(--t))]' />
+                <div className='flex-1 space-y-2'>
+                  <Line className='h-4 w-40' />
+                  <Line className='w-24' />
+                </div>
+              </div>
+              <Line className='mt-4 w-full' />
+              <Line className='mt-2 w-3/4' />
+            </div>
+          ))}
+        </div>
       </div>
     </main>
   )
@@ -368,7 +589,8 @@ export function TouristDetailSkeleton() {
 
 /**
  * Restaurant detail (Figma "Dining - Pay Bill") — phones: cover + floating title
- * card; desktop: photo beside the details, tabs, deals, menu banner, photos.
+ * card; desktop: back link and full-width cover, then the title card, tabs
+ * and offers beside the sidebar (book / pay card, banners, stamp card).
  * Measured in the page's own --u / --t units (designUnit.ts).
  */
 export function RestaurantDetailSkeleton() {
@@ -381,24 +603,10 @@ export function RestaurantDetailSkeleton() {
       <Bone className='h-105 rounded-none md:hidden' />
 
       <div className='relative z-10 mx-auto flex max-w-7xl flex-col rounded-t-[20px] bg-white px-4 md:max-w-[calc(1920*var(--u))] md:rounded-none md:bg-transparent md:px-[calc(172*var(--u))]'>
-        {/* desktop: RestaurantDesktopHero */}
+        {/* desktop: RestaurantDesktopHero — back link and the full-width 480 cover */}
         <div className='hidden md:block' style={{ paddingTop: t(59) }}>
           <Bone className='rounded-full' style={{ width: t(110), height: t(40) }} />
-          <div className='flex items-start' style={{ marginTop: t(24), gap: u(60) }}>
-            <Bone className='shrink-0' style={{ width: u(760), height: u(464), borderRadius: u(35.03) }} />
-            <div className='flex min-w-0 flex-1 items-start justify-between' style={{ paddingTop: t(6), gap: t(24) }}>
-              <div className='flex min-w-0 flex-1 flex-col'>
-                <Bone className='w-2/5 rounded-full' style={{ height: t(52) }} />
-                <Bone className='w-3/4 rounded-full' style={{ height: t(28), marginTop: t(24) }} />
-                <Bone className='w-1/2 rounded-full' style={{ height: t(28), marginTop: t(14) }} />
-                <Bone className='w-3/5 rounded-full' style={{ height: t(48), marginTop: t(28) }} />
-              </div>
-              <div className='flex shrink-0 flex-col items-center' style={{ gap: t(10) }}>
-                <Bone className='rounded-full' style={{ width: t(120), height: t(48) }} />
-                <Bone className='rounded-full' style={{ width: t(72), height: t(16) }} />
-              </div>
-            </div>
-          </div>
+          <Bone style={{ marginTop: t(25), height: u(480), borderRadius: u(12.03) }} />
         </div>
 
         {/* phones: MobileTitleCard, status row and the upsell banner */}
@@ -421,26 +629,55 @@ export function RestaurantDetailSkeleton() {
           <Bone className='mt-5 h-36 rounded-[20px]' />
         </div>
 
-        {/* DetailSectionTabs (figma variant) */}
-        <div className='mt-6 flex gap-5 border-b border-gray-100 pb-3.5 md:gap-[calc(42*var(--t))] md:pb-[calc(24*var(--t))]'>
-          {['w-12', 'w-12', 'w-14', 'w-16', 'w-20'].map((w, i) => <Line key={i} className={cn('h-4', w)} />)}
-        </div>
-
-        {/* desktop: RestaurantDesktopSections */}
-        <div className='hidden md:block'>
-          <Bone className='rounded-full' style={{ width: t(290), height: t(34), marginTop: t(72) }} />
-          <Bone style={{ width: t(507), height: t(208), marginTop: t(32), borderRadius: t(28) }} />
-          <Bone className='rounded-full' style={{ width: t(110), height: t(34), marginTop: t(72) }} />
-          <Bone style={{ height: u(200), marginTop: t(32), borderRadius: t(28) }} />
-          <Bone className='rounded-full' style={{ width: t(130), height: t(34), marginTop: t(72) }} />
-          <div className='flex' style={{ height: u(336), marginTop: t(32), gap: u(12) }}>
-            <Bone style={{ width: u(868), borderRadius: t(24) }} />
-            {[0, 1].map(col => (
-              <div key={col} className='flex flex-col' style={{ width: u(164), gap: u(12) }}>
-                <Bone className='flex-1' style={{ borderRadius: t(24) }} />
-                <Bone className='flex-1' style={{ borderRadius: t(24) }} />
+        {/* the main column beside the sidebar (lg), stacked above it (md) */}
+        <div className='md:block lg:grid lg:grid-cols-[minmax(0,1128fr)_minmax(270px,390fr)] lg:items-start lg:gap-x-[calc(58*var(--u))]'>
+          <div className='min-w-0'>
+            {/* desktop: RestaurantTitleCard */}
+            <div className='hidden bg-white shadow-[0_4px_43.5px_rgba(0,0,0,0.1)] md:block' style={{ marginTop: t(24), minHeight: t(192), padding: `${t(14)} ${t(24)}`, borderRadius: t(18) }}>
+              <div className='flex items-start justify-between' style={{ gap: t(16) }}>
+                <div className='flex flex-1 flex-col'>
+                  <Bone className='w-2/5 rounded-full' style={{ height: t(42) }} />
+                  <Bone className='w-3/5 rounded-full' style={{ height: t(20), marginTop: t(8) }} />
+                  <Bone className='w-2/5 rounded-full' style={{ height: t(20), marginTop: t(8) }} />
+                </div>
+                <Bone className='rounded-full' style={{ width: t(68), height: t(26), marginTop: t(8) }} />
               </div>
-            ))}
+              <div className='flex' style={{ marginTop: t(14), gap: t(12) }}>
+                <Bone className='rounded-full' style={{ width: t(200), height: t(32) }} />
+                <Bone className='rounded-full' style={{ width: t(32), height: t(31) }} />
+                <Bone className='rounded-full' style={{ width: t(32), height: t(31) }} />
+              </div>
+            </div>
+
+            {/* DetailSectionTabs (figma variant) */}
+            <div className='mt-6 flex gap-5 border-b border-gray-100 pb-3.5 md:mt-[calc(32*var(--t))] md:gap-[calc(56*var(--t))] md:pb-[calc(12*var(--t))]'>
+              {['w-12', 'w-12', 'w-14', 'w-16', 'w-20'].map((w, i) => <Line key={i} className={cn('h-4', w)} />)}
+            </div>
+
+            {/* desktop: RestaurantDesktopSections — "Offers for today", then the next section */}
+            <div className='hidden md:block'>
+              <Bone className='rounded-full' style={{ width: t(200), height: t(26), marginTop: t(44) }} />
+              <div className='grid grid-cols-2 gap-4 xl:grid-cols-3' style={{ marginTop: t(20) }}>
+                {[0, 1, 2].map(i => <Bone key={i} className={cn(i === 2 && 'hidden xl:block')} style={{ height: t(170), borderRadius: t(24) }} />)}
+              </div>
+              <Bone className='rounded-full' style={{ width: t(160), height: t(26), marginTop: t(44) }} />
+              <div className='grid grid-cols-2 gap-4 xl:grid-cols-3' style={{ marginTop: t(20) }}>
+                {[0, 1].map(i => <Bone key={i} style={{ height: t(170), borderRadius: t(24) }} />)}
+              </div>
+            </div>
+          </div>
+
+          {/* desktop: the sidebar — RestaurantCtaCard, UpsellBannerPager, stamp card */}
+          <div className='hidden flex-col md:flex lg:mt-[calc(24*var(--t))]' style={{ gap: t(24), paddingBottom: t(90) }}>
+            <div className='hidden bg-white shadow-[0_8px_23.8px_rgba(0,0,0,0.1)] lg:block' style={{ padding: t(24), borderRadius: t(18) }}>
+              <Bone className='mx-auto w-4/5 rounded-full' style={{ height: t(18) }} />
+              <div className='flex' style={{ marginTop: t(14), gap: t(12) }}>
+                <Bone className='flex-1 rounded-full' style={{ height: t(48) }} />
+                <Bone className='flex-1 rounded-full' style={{ height: t(48) }} />
+              </div>
+            </div>
+            <Bone className='aspect-1436/296 rounded-xl' />
+            <Bone style={{ height: t(200), borderRadius: t(24) }} />
           </div>
         </div>
 
@@ -450,6 +687,103 @@ export function RestaurantDetailSkeleton() {
           <Line className='mt-3 w-52' />
           <div className='mt-5 flex gap-3 overflow-hidden'>
             {[0, 1, 2].map(i => <Bone key={i} className='h-48 w-36 shrink-0 rounded-2xl' />)}
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+/**
+ * Salon detail (Figma "Salon details – Desktop") — phones: cover + floating
+ * title card; desktop: back link, the 980×480 photo beside the 568-wide
+ * details card, tabs, offers, service tiles and vibes. Same --u as the page
+ * (SALON_UNIT), so it scales with the screen exactly like the real layout.
+ */
+export function WellnessDetailSkeleton() {
+  const U = (n: number) => `calc(${n}*var(--u))`
+  return (
+    <main
+      className={cn('min-h-screen bg-white pb-36 md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen md:pb-0', SALON_TYPE)}
+      style={{ ['--u' as string]: SALON_UNIT }}
+      aria-busy='true'
+    >
+      <Bone className='h-105 rounded-none md:hidden' />
+
+      <div className='relative z-10 mx-auto flex max-w-7xl flex-col rounded-t-[20px] bg-white px-4 md:max-w-none md:rounded-none md:px-[calc(172*var(--u))]'>
+        {/* desktop: WellnessBackLink + WellnessDesktopHero */}
+        <div className='hidden md:block'>
+          <Bone className='rounded-full' style={{ marginTop: U(60), width: U(110), height: U(40) }} />
+          <div className='grid grid-cols-[minmax(0,980fr)_minmax(0,568fr)]' style={{ paddingTop: U(24), columnGap: U(28) }}>
+            <Bone style={{ height: U(480), borderRadius: U(18) }} />
+            <div className='flex flex-col' style={{ gap: U(20) }}>
+              <div className='flex flex-1 flex-col bg-white shadow-[0_4px_24px_rgba(0,0,0,0.05)]' style={{ padding: U(28), gap: U(12), borderRadius: U(18) }}>
+                <div className='flex items-center' style={{ gap: U(18) }}>
+                  <Bone className='shrink-0' style={{ width: U(82), height: U(88), borderRadius: U(16) }} />
+                  <div className='flex flex-1 flex-col' style={{ gap: U(8) }}>
+                    <Bone className='w-3/5 rounded-full' style={{ height: U(39) }} />
+                    <Bone className='w-4/5 rounded-full' style={{ height: U(20) }} />
+                    <Bone className='w-2/5 rounded-full' style={{ height: U(20) }} />
+                  </div>
+                </div>
+                <div className='flex' style={{ gap: U(8) }}>
+                  <Bone className='rounded-full' style={{ width: U(160), height: U(38) }} />
+                  <Bone className='rounded-full' style={{ width: U(40), height: U(40) }} />
+                  <Bone className='rounded-full' style={{ width: U(40), height: U(40) }} />
+                </div>
+                <div className='mt-auto flex' style={{ gap: U(16) }}>
+                  <Bone className='rounded-full' style={{ width: U(200), height: U(48) }} />
+                  <Bone className='rounded-full' style={{ width: U(200), height: U(48) }} />
+                </div>
+              </div>
+              <Bone style={{ height: U(109), borderRadius: U(18) }} />
+            </div>
+          </div>
+        </div>
+
+        {/* phones: MobileTitleCard and its status row */}
+        <div className='md:hidden'>
+          <div className='relative z-20 -mx-0.75 -mt-16.75 mb-1.5 rounded-[18px] bg-white px-3.25 py-3.5 shadow-[0_0_8px_rgba(44,35,53,0.10)]'>
+            <div className='flex items-center gap-3'>
+              <Bone className='size-14 shrink-0 rounded-xl' />
+              <div className='flex-1 space-y-2.5'>
+                <Bone className='h-6 w-3/5 rounded-full' />
+                <Line className='w-3/4' />
+                <Line className='w-2/5' />
+              </div>
+            </div>
+          </div>
+          <div className='mt-3 flex items-center gap-2'>
+            <Bone className='h-8 w-60 rounded-full' />
+            <Bone className='size-8 rounded-full' />
+            <Bone className='size-8 rounded-full' />
+          </div>
+        </div>
+
+        {/* DetailSectionTabs (wellness variant) */}
+        <div className='mt-6 flex gap-5 border-b border-[#ffd1bf] pb-3.5 md:gap-[calc(44*var(--u))] md:pb-[calc(12*var(--u))]'>
+          {['w-12', 'w-14', 'w-12', 'w-14', 'w-16'].map((w, i) => <Line key={i} className={cn('h-4 md:h-[calc(21*var(--u))]', w)} />)}
+        </div>
+
+        {/* desktop: WellnessDesktopSections — offers, services, vibes */}
+        <div className='hidden md:block'>
+          <Bone className='rounded-full' style={{ marginTop: U(28), width: U(160), height: U(23) }} />
+          <Bone style={{ marginTop: U(18), width: U(362), height: U(156), borderRadius: U(16) }} />
+          <Bone className='rounded-full' style={{ marginTop: U(40), width: U(90), height: U(26) }} />
+          <div className='flex' style={{ marginTop: U(20), gap: U(16) }}>
+            {Array.from({ length: 8 }, (_, i) => <Bone key={i} className='flex-1' style={{ height: U(186), borderRadius: U(12) }} />)}
+          </div>
+          <Bone className='rounded-full' style={{ marginTop: U(40), width: U(70), height: U(26) }} />
+          <div className='grid grid-cols-4' style={{ marginTop: U(20), gap: U(20), marginBottom: U(71) }}>
+            {[0, 1, 2, 3].map(i => <Bone key={i} style={{ height: U(320), borderRadius: U(18) }} />)}
+          </div>
+        </div>
+
+        {/* phones: first section */}
+        <div className='md:hidden'>
+          <Bone className='mt-8 h-6 w-32 rounded-full' />
+          <div className='mt-5 flex gap-3 overflow-hidden'>
+            {[0, 1].map(i => <Bone key={i} className='h-36 w-72 shrink-0 rounded-2xl' />)}
           </div>
         </div>
       </div>
@@ -935,6 +1269,104 @@ export function AccountPageSkeleton() {
           {[0, 1, 2].map(i => <LedgerRow key={i} />)}
         </div>
         <Bone className='mt-6 h-12 rounded-full' />
+      </div>
+    </main>
+  )
+}
+
+/**
+ * app/(account)/profile — same frame as the page: design px via PROFILE_UNIT,
+ * navy overview card, 3 stat cards, menu on the left (last on phones), then
+ * active bookings, category tiles and recent activity.
+ */
+export function ProfilePageSkeleton() {
+  const heading = 'h-28 w-260 rounded-[calc(8*var(--u))]'
+  return (
+    <main
+      aria-busy='true'
+      className={cn('min-h-screen bg-white px-16 pt-16 pb-76 lg:px-172 lg:pt-76', PROFILE_UNIT)}
+    >
+      {/* Back */}
+      <Bone className='h-40 w-100 rounded-[calc(10*var(--u))]' />
+
+      {/* overview */}
+      <div className='mt-16 flex h-224 flex-col justify-center gap-10 rounded-[calc(24*var(--u))] bg-[#0A1A4D] px-24 lg:mt-24 lg:px-40'>
+        <div className='h-36 w-260 animate-pulse rounded-[calc(8*var(--u))] bg-white/15' />
+        <div className='h-18 w-220 animate-pulse rounded-full bg-white/15' />
+        <div className='h-18 w-130 animate-pulse rounded-full bg-white/15' />
+        <div className='mt-14 h-27.5 w-122.5 animate-pulse rounded-full bg-white/25' />
+      </div>
+
+      {/* stat cards */}
+      <div className='-mx-16 mt-24 flex gap-12 overflow-hidden px-16 lg:mx-0 lg:mt-32 lg:grid lg:grid-cols-3 lg:gap-24 lg:px-0'>
+        {[0, 1, 2].map(i => <Bone key={i} className='h-200 w-[min(calc(509*var(--u)),82vw)] shrink-0 rounded-[calc(20*var(--u))] lg:w-auto' />)}
+      </div>
+
+      <div className='mt-32 flex flex-col gap-40 lg:mt-48 lg:flex-row lg:items-start'>
+        {/* menu */}
+        <div className='order-last flex flex-col gap-32 lg:order-first lg:w-356 lg:shrink-0'>
+          {[4, 3, 3].map((rows, g) => (
+            <div key={g} className='flex flex-col gap-16'>
+              <Bone className='mx-4 h-20 w-90 rounded-full' />
+              <div className='rounded-[calc(24*var(--u))] border border-[#F2F4F4] bg-white'>
+                {Array.from({ length: rows }, (_, r) => (
+                  <div key={r} className={cn('flex h-56 items-center gap-12 px-16', r > 0 && 'border-t border-[#F2F4F4]')}>
+                    <Bone className='size-24 rounded-[calc(6*var(--u))]' />
+                    <Bone className='h-16 w-160 rounded-full' />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className='min-w-0 flex-1'>
+          {/* active bookings */}
+          <Bone className={heading} />
+          <div className='-mx-16 mt-20 -mb-24 flex gap-20 overflow-hidden px-16 pb-24 lg:mx-0 lg:px-0'>
+            {[0, 1, 2].map(i => (
+              <div key={i} className='h-229 w-528 shrink-0 overflow-hidden rounded-[calc(25.83*var(--u))] bg-white shadow-[0_calc(6.46*var(--u))_calc(19.37*var(--u))_rgba(0,0,0,0.15)] max-lg:[--spacing:min(1px,calc((100vw_-_48px)/528))]'>
+                <Bone className='h-150 rounded-none' />
+                <div className='flex h-79 items-center gap-40 px-26'>
+                  {[0, 1, 2].map(j => <Bone key={j} className='h-22 w-110 rounded-full' />)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* bookings & transactions */}
+          <Bone className={cn(heading, 'mt-38')} />
+          <div className='-mx-16 mt-20 -mb-24 flex gap-18 overflow-hidden px-16 pb-24 lg:mx-0 lg:gap-30 lg:px-0'>
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className='flex size-172 shrink-0 flex-col items-center justify-center gap-17 rounded-[calc(20.65*var(--u))] bg-white shadow-[0_calc(6.6*var(--u))_calc(15.2*var(--u))_rgba(0,0,0,0.1)] max-lg:[--spacing:0.62px]'>
+                <Bone className='h-100 w-90 rounded-[calc(16*var(--u))]' />
+                <Bone className='h-20 w-80 rounded-full' />
+              </div>
+            ))}
+          </div>
+          <div className='mt-26 flex justify-end'>
+            <Bone className='h-43 w-300 rounded-full' />
+          </div>
+
+          {/* recent activity */}
+          <Bone className={cn(heading, 'mt-53')} />
+          <div className='mt-22 h-29 border-b border-[#FFD9C7]' />
+          <div className='mt-17 flex flex-col gap-6'>
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className='flex h-76 border-b border-[#F0F0F0] pt-4 pr-16 pl-16 lg:pr-57'>
+                <div className='flex flex-1 flex-col gap-8'>
+                  <Bone className='h-14 w-150 rounded-full' />
+                  <Bone className='h-12 w-230 rounded-full' />
+                  <Bone className='h-12 w-110 rounded-full' />
+                </div>
+                <div className='flex w-93 flex-col gap-10'>
+                  <Bone className='h-14 w-70 rounded-full' />
+                  <Bone className='h-26 w-93 rounded-full' />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </main>
   )

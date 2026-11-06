@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { getCardChips } from '@/lib/cardChips'
 import { SlidersHorizontal, ChevronDown, Percent } from 'lucide-react'
 import { cn, sortByMerchant, haversineKm } from '@/lib/utils'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from '@/components/sections/home/HScroll'
-import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
+import { MerchantCard } from '@/components/sections/home/MerchantCard'
+import { storeCardTags } from '@/lib/storeBadges'
 import type { StoreRow, StoreMoodCategory } from '@/lib/types/stores'
 
 interface Props {
@@ -222,12 +224,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
                 : discountText
               : undefined
 
-            const tags: MerchantCardTag[] = []
-            if (store.store_offers?.length) tags.push({ label: 'Sale is live' })
-            if (store.merchant_type === 'preferred') {
-              tags.push({ label: 'Exclusive', icon: 'exclusive' })
-            }
-
+            
             return (
               <MerchantCard
                 key={store.id}
@@ -240,7 +237,8 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
                 tagline={[store.category, store.subcategory].filter(Boolean).join(', ') || undefined}
                 offerLabel={offerLabel}
                 cardBadge={getCardBadge(store, plan)}
-                tags={tags}
+                chips={getCardChips(store, 3)}
+                tags={storeCardTags(store)}
               />
             )
           })}

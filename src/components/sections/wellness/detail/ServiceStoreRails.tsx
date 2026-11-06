@@ -3,18 +3,18 @@
 import { useMemo, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Flame, Gem, Grid2x2, Heart } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Gem, Heart } from 'lucide-react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
-import { getCardBadge } from '@/lib/cashback'
+import { getCardBadge, getCashbackPct } from '@/lib/cashback'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
 import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard } from '@/components/sections/home/MerchantCard'
-import { Section } from '@/components/sections/dining/RestaurantDesktopSections'
-import { t, tMin } from '@/components/sections/dining/designUnit'
-import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
 import { useSaveMerchant } from '@/components/shared/detail/MerchantActions'
 import type { StoreRow } from '@/lib/types/stores'
+import { storeCardTags } from '@/lib/storeBadges'
+import { getCardChips } from '@/lib/cardChips'
+import { CardChips } from '@/components/shared/CardChips'
 
 const MAX_CARDS = 12
 
@@ -48,71 +48,84 @@ function Rail({ title, stores }: { title: string; stores: WithDist[] }) {
             tagline={[s.category, s.subcategory].filter(Boolean).join(', ') || undefined}
             offerLabel={offerLabel(s)}
             cardBadge={getCardBadge(s, plan)}
+            chips={getCardChips(s, 3)}
+            tags={storeCardTags(s)}
           />
       ))}
     </HScroll>
   )
 }
 
-function WideTag({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string }) {
+/** Highlight tag — 26 tall, #FFF1EB, 12/16 Medium #FF4800. */
+function WideTag({ icon: Icon, label }: { icon?: React.ComponentType<{ className?: string }>; label: string }) {
   return (
-    <span className='inline-flex items-center rounded-full bg-[#fff1eb] font-medium whitespace-nowrap text-[#ff6a30]' style={{ height: tMin(24, 20), padding: `0 ${tMin(10, 7)}`, gap: tMin(4, 3), fontSize: tMin(12, 10) }}>
-      <Icon style={{ width: tMin(12, 10), height: tMin(12, 10) }} />
+    <span className='inline-flex h-[calc(26*var(--u))] items-center gap-[calc(5*var(--u))] rounded-full bg-[#fff1eb] px-[calc(12*var(--u))] text-[calc(12*var(--u))] leading-[calc(16*var(--u))] font-medium whitespace-nowrap text-[#ff4800]'>
+      {Icon && <Icon className='size-[calc(12*var(--u))]' />}
       {label}
     </span>
   )
 }
 
-/** A landscape store card: photo, offer strip, then details with the tags on the right. */
-function WideCard({ store, stampSheet }: { store: WithDist; stampSheet: boolean }) {
+/** Figma draws the top "Stamp sheet" pill without an icon and "Exclusive" with the gem. */
+const TAG_ICON: Record<string, React.ComponentType<{ className?: string }> | undefined> = { exclusive: Gem, stamp: undefined, trending: undefined }
+
+const GLASS = 'flex items-center rounded-full bg-white/86 text-[calc(12*var(--u))] leading-[calc(18*var(--u))] font-medium text-[#454040] whitespace-nowrap'
+
+/** Recommended salon — Figma: 10px-padded card, 250-tall photo, offer strip, then the details. */
+function WideCard({ store }: { store: WithDist }) {
   const plan = useUserPlan()
   const saver = useSaveMerchant(store.id, 'STORE')
   const label = offerLabel(store)
   const extra = (store.store_offers?.length ?? 0) - 1
+  const pct = getCardBadge(store, plan)?.arts.length ? getCashbackPct(store, plan) : 0
   const meta = [store.dist != null ? formatDistanceKm(store.dist) : null, store.location_name ?? store.city].filter(Boolean).join(' • ')
   const tagline = [store.category, store.subcategory].filter(Boolean).join(', ')
-  const exclusive = String(store.merchant_type ?? '').toLowerCase() === 'preferred'
+  // app parity: the detail page's rails draw StoresCard, whose tags are getTags()
+  const tags = storeCardTags(store)
   return (
-    <div className='group relative w-full shrink-0 snap-start overflow-hidden bg-white' style={{ borderRadius: t(24), padding: tMin(10, 7) }}>
+    <div className='group relative w-full shrink-0 snap-start rounded-[calc(18*var(--u))] bg-white p-[calc(10*var(--u))] shadow-[0_calc(4*var(--u))_calc(24*var(--u))_rgba(0,0,0,0.05)]'>
       <Link href={`/wellness/${store.slug ?? store.id}`} aria-label={store.name} className='absolute inset-0 z-10' />
-      <div className='relative overflow-hidden bg-[#ff6a30]' style={{ borderRadius: t(16) }}>
-        <div className='relative aspect-746/250 overflow-hidden' style={{ borderRadius: t(16) }}>
-          {store.cover_image ? (
-            <Image src={store.cover_image} alt={store.name} fill sizes='(min-width: 1024px) 40vw, 90vw' className='object-cover' />
-          ) : (
-            <div className='absolute inset-0 bg-linear-to-br from-gray-200 to-gray-300' />
+      <div className={cn('relative h-[calc(250*var(--u))] overflow-hidden bg-gray-200', label ? 'rounded-t-[calc(12*var(--u))]' : 'rounded-[calc(12*var(--u))]')}>
+        {store.cover_image && <Image src={store.cover_image} alt={store.name} fill sizes='40vw' className='object-cover' />}
+        <div className='absolute inset-x-0 top-0 flex items-center gap-[calc(8*var(--u))] p-[calc(16*var(--u))]'>
+          {pct > 0 && (
+            <span className={cn(GLASS, 'gap-[calc(5*var(--u))] px-[calc(10*var(--u))] py-[calc(5*var(--u))]')}>
+              <Image src='/assets/deals/deal-coin.png' alt='' width={21} height={21} className='size-[calc(21*var(--u))]' />
+              {pct}% Cashback
+            </span>
           )}
-          <CardBadgeArt badge={getCardBadge(store, plan)} />
           <button
             type='button'
             aria-label={saver.saved ? 'Edit saved lists' : 'Save'}
             aria-pressed={saver.saved}
             onClick={saver.onSave}
-            className='absolute top-2.5 right-2.5 z-20 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)] transition-transform hover:scale-110'
+            className='relative z-20 ml-auto flex size-[calc(40*var(--u))] items-center justify-center rounded-[calc(20*var(--u))] bg-[rgba(217,217,217,0.1)] text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]'
           >
-            <Heart className={cn('size-6', saver.saved && 'fill-brand text-brand')} />
+            <Heart className={cn('size-[calc(22*var(--u))]', saver.saved && 'fill-brand text-brand')} strokeWidth={1.4} />
           </button>
         </div>
-        {label ? (
-          <div className='flex items-center justify-between text-white' style={{ padding: `${tMin(8, 5)} ${tMin(16, 10)}`, gap: 8, fontSize: tMin(13, 11) }}>
-            <span className='truncate font-medium'>{label}</span>
-            {extra > 0 && <span className='shrink-0 font-semibold'>+ {extra} offer{extra > 1 ? 's' : ''}</span>}
-          </div>
-        ) : (
-          <div className='h-1.25' />
-        )}
       </div>
-      <div className='flex items-end justify-between' style={{ padding: `${tMin(14, 9)} ${tMin(14, 9)} ${tMin(8, 5)}`, gap: 12 }}>
-        <div className='min-w-0'>
-          <p className='truncate font-bold text-[#2c2d32]' style={{ fontSize: tMin(19, 14) }}>{store.name}</p>
-          {meta && <p className='truncate font-medium text-[#5b5a5a]' style={{ marginTop: t(4), fontSize: tMin(14, 12) }}>{meta}</p>}
-          {tagline && <p className='truncate text-[#878787]' style={{ marginTop: t(2), fontSize: tMin(14, 12) }}>{tagline}</p>}
+      {label && (
+        <div className='flex items-start justify-between gap-[calc(8*var(--u))] rounded-b-[calc(12*var(--u))] bg-[#ff6a30] px-[calc(16*var(--u))] py-[calc(9*var(--u))] text-white'>
+          <span className='truncate text-[calc(12*var(--u))] leading-[calc(18*var(--u))] font-medium'>{label}</span>
+          {extra > 0 && <span className='shrink-0 text-[calc(12*var(--u))] leading-[calc(16*var(--u))] font-bold'>+ {extra} offer{extra > 1 ? 's' : ''}</span>}
         </div>
-        {(stampSheet || store.is_promoted || exclusive) && (
-          <div className='flex shrink-0 flex-wrap justify-end' style={{ maxWidth: '55%', gap: tMin(8, 5) }}>
-            {stampSheet && <WideTag icon={Grid2x2} label='Stamp sheet' />}
-            {store.is_promoted && <WideTag icon={Flame} label='Trending' />}
-            {exclusive && <WideTag icon={Gem} label='Exclusive' />}
+      )}
+      <div className='flex items-center justify-between gap-[calc(12*var(--u))] px-[calc(14*var(--u))] pt-[calc(18*var(--u))] pb-[calc(12*var(--u))]'>
+        <div className='flex min-w-0 flex-1 flex-col gap-[calc(5*var(--u))]'>
+          <p className='truncate text-[calc(18*var(--u))] leading-[calc(26*var(--u))] font-bold text-[#383838]'>{store.name}</p>
+          {meta && <p className='truncate text-[calc(14*var(--u))] leading-[calc(20*var(--u))] font-medium text-[#717171]'>{meta}</p>}
+          {tagline && <p className='truncate text-[calc(14*var(--u))] leading-[calc(20*var(--u))] font-medium text-[#717171]'>{tagline}</p>}
+          <CardChips chips={getCardChips(store, 3)} height='calc(21*var(--u))' className='mt-[calc(3*var(--u))] gap-[calc(6*var(--u))]' />
+        </div>
+        {tags.length > 0 && (
+          <div className='flex shrink-0 flex-col items-end gap-[calc(6*var(--u))]'>
+            {tags.slice(0, 1).map(t => <WideTag key={t.label} icon={TAG_ICON[t.icon ?? '']} label={t.label} />)}
+            {tags.length > 1 && (
+              <div className='flex gap-[calc(6*var(--u))]'>
+                {tags.slice(1).map(t => <WideTag key={t.label} icon={TAG_ICON[t.icon ?? '']} label={t.label} />)}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -121,26 +134,28 @@ function WideCard({ store, stampSheet }: { store: WithDist; stampSheet: boolean 
   )
 }
 
-/** One card at a time, with arrows to page through the rest. */
-function WideRail({ title, stores, stampIds }: { title: string; stores: WithDist[]; stampIds: string[] }) {
+/** One card at a time — heading 18/26, 20 above the card; arrows page through the rest. */
+function WideRail({ title, stores }: { title: string; stores: WithDist[] }) {
   const ref = useRef<HTMLDivElement>(null)
   if (!stores.length) return null
   const page = (dir: number) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth, behavior: 'smooth' })
-  const arrow = { width: tMin(32, 26), height: tMin(32, 26) }
+  const arrow = 'flex size-[calc(32*var(--u))] items-center justify-center rounded-full border border-[#e4e4e4] bg-white text-[#424144] hover:bg-gray-50'
   return (
-    <Section id={`rail-${title}`} title={title} top={44} gap={20} className='relative min-w-0'>
-      {stores.length > 1 && (
-        <div className='absolute top-0 right-0 flex' style={{ gap: tMin(8, 6) }}>
-          <button type='button' aria-label={`Previous in ${title}`} onClick={() => page(-1)} className='flex items-center justify-center rounded-full border border-[#e4e4e4] bg-white text-[#424144] hover:bg-gray-50' style={arrow}><ChevronLeft className='size-4' /></button>
-          <button type='button' aria-label={`Next in ${title}`} onClick={() => page(1)} className='flex items-center justify-center rounded-full border border-[#e4e4e4] bg-white text-[#424144] hover:bg-gray-50' style={arrow}><ChevronRight className='size-4' /></button>
-        </div>
-      )}
-      <div className='drop-shadow-[0_0_20px_rgba(0,0,0,0.08)]'>
-        <div ref={ref} className='scrollbar-hide flex snap-x snap-mandatory overflow-x-auto' style={{ borderRadius: t(24) }}>
-          {stores.map(s => <WideCard key={s.id} store={s} stampSheet={stampIds.includes(s.id)} />)}
-        </div>
+    <section className='flex min-w-0 flex-1 flex-col gap-[calc(20*var(--u))]'>
+      <div className='flex items-center justify-between'>
+        <h2 className='text-[calc(18*var(--u))] leading-[calc(26*var(--u))] font-bold text-[#2c2d32]'>{title}</h2>
+        {stores.length > 1 && (
+          <div className='flex gap-[calc(8*var(--u))]'>
+            <button type='button' aria-label={`Previous in ${title}`} onClick={() => page(-1)} className={arrow}><ChevronLeft className='size-[calc(16*var(--u))]' /></button>
+            <button type='button' aria-label={`Next in ${title}`} onClick={() => page(1)} className={arrow}><ChevronRight className='size-[calc(16*var(--u))]' /></button>
+          </div>
+        )}
       </div>
-    </Section>
+      {/* the scroller clips, so it carries room for the cards' shadow */}
+      <div ref={ref} className='scrollbar-hide -m-[calc(24*var(--u))] flex snap-x snap-mandatory gap-[calc(48*var(--u))] overflow-x-auto p-[calc(24*var(--u))] [scroll-padding:calc(24*var(--u))]'>
+        {stores.map(s => <WideCard key={s.id} store={s} />)}
+      </div>
+    </section>
   )
 }
 
@@ -197,13 +212,14 @@ export function ServiceStoreRails(props: RailProps & { className?: string }) {
   )
 }
 
-/** Desktop: the same two lists, side by side. */
-export function ServiceStoreColumns({ stampIds, ...props }: RailProps & { stampIds: string[] }) {
+/** Desktop: Explore nearby salons — the two lists side by side, 32 apart, 40 under the sections. */
+export function ServiceStoreColumns(props: RailProps) {
   const { explore, nearby } = useStoreRails(props)
+  if (!explore.length && !nearby.length) return null
   return (
-    <div className='hidden font-(family-name:--font-dm-sans) md:block lg:grid lg:grid-cols-2 lg:gap-x-[calc(30*var(--u))]' style={{ paddingBottom: t(70) }}>
-      <WideRail title='Explore more salons' stores={explore} stampIds={stampIds} />
-      <WideRail title='Nearby stores' stores={nearby} stampIds={stampIds} />
+    <div className='mt-[calc(40*var(--u))] hidden gap-[calc(32*var(--u))] pb-[calc(71*var(--u))] font-(family-name:--font-dm-sans) md:flex'>
+      <WideRail title='Explore more salons' stores={explore} />
+      <WideRail title='Nearby stores' stores={nearby} />
     </div>
   )
 }

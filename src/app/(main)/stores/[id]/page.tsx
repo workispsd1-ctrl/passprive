@@ -1,7 +1,8 @@
 import { cache } from 'react'
+import { getCardChips } from '@/lib/cardChips'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { getStoreBySlugOrId, getStoreReviews } from '@/lib/services/stores'
 import { PhotoGalleryProvider, PhotoGrid } from '@/components/sections/dining/PhotoGalleryClient'
 import { MenuGalleryProvider, MenuGalleryImageButton } from '@/components/sections/dining/MenuGalleryClient'
@@ -20,6 +21,7 @@ import { HelpCard } from '@/components/shared/detail/HelpCard'
 import { MobileTitleCard } from '@/components/shared/detail/MobileTitleCard'
 import { UpsellBannerPager } from '@/components/shared/detail/UpsellBannerPager'
 import { getDiscountCaps } from '@/lib/services/membershipCaps'
+import { isWellnessStore, storeHref } from '@/lib/storeType'
 import type { StoreOffer } from '@/lib/types/stores'
 
 const fetchStore = cache((id: string) => getStoreBySlugOrId(id))
@@ -79,6 +81,8 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
   const { id } = await params
   const [data, caps] = await Promise.all([fetchStore(id), getDiscountCaps()])
   if (!data) notFound()
+  // wellness stores have one screen: /wellness/[id] (app parity: storeDetailsRouting)
+  if (isWellnessStore(data.store)) permanentRedirect(storeHref(data.store))
 
   const { store, gallery, hours, items, tags, offers } = data
   const reviews = await getStoreReviews(store.id)
@@ -90,6 +94,8 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
   const allPhotos = [store.cover_image, ...gallery.map(g => g.file_url)].filter(Boolean) as string[]
   const categories = [store.category, store.subcategory].filter(Boolean) as string[]
   const address = store.address_line1 ?? [store.location_name, store.city].filter(Boolean).join(', ')
+  // app parity: MerchantInfoCard.jsx — getCardChips(entity), with the review summary as its rating
+  const chips = getCardChips({ ...store, store_type: store.store_type ?? 'PRODUCT', rating: reviewSummary.avg, rating_count: reviewSummary.count, store_offers: offers })
   const tickets = offers.map(offerTicket)
   const tagValues = tags.map(t => t.tag_value)
 
@@ -151,8 +157,10 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
                 hours={hours}
                 trending={store.is_promoted === true}
                 offerZone={tickets.length > 0}
+                chips={chips}
               />
               <DetailTitleBlock
+                chips={chips}
                 className='hidden md:block'
                 name={store.name}
                 eyebrow={categories.join(' · ') || 'Store'}

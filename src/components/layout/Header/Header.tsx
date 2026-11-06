@@ -5,9 +5,9 @@ import { getAllAppBanners, getWebsiteBanners } from '@/lib/services/websiteBanne
 import { getUserMembership } from '@/lib/services/subscription'
 
 /**
- * Site header. `minimal` (account + static pages) keeps the top bar — logo,
+ * Site header. `minimal` (account + static pages) keeps the top bar — logo, location,
  * search, Privé credits, membership badge, favourites, profile — and drops
- * the location picker and the category nav/hero, which are for browsing.
+ * the category nav/hero, which are for browsing.
  */
 export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
   // Home/wellness/tourist hero banners live in the header so the category-nav

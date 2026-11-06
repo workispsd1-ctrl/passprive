@@ -11,6 +11,8 @@ export default function TouristLoading() {
       <BannerSkeleton aspect='aspect-[1432/500] md:aspect-[6304/500]' className='max-w-3xl md:max-w-7xl' />
       <RailSkeleton titleWidth='w-48' count={8} gap='gap-3 md:gap-4'>{i => <CategoryChipSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton titleWidth='w-60' subtitle>{i => <PlaceCardSkeleton key={i} />}</RailSkeleton>
+      {/* the desktop-only ad banner (TouristAdBanner / house ad) */}
+      <BannerSkeleton aspect='aspect-[6304/656]' className='hidden md:block' />
       <RailSkeleton titleWidth='w-36'>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton titleWidth='w-56' subtitle>{i => <PlaceCardSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton titleWidth='w-48' count={6}>{i => <CircleCardSkeleton key={i} size='w-36 md:w-52 2xl:w-72' />}</RailSkeleton>

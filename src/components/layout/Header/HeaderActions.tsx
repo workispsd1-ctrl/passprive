@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { Heart } from 'lucide-react'
+import { Heart, User } from 'lucide-react'
 import LoginDialog from '@/components/LoginDialog'
-import { ProfileDrawer } from '@/components/ProfileDrawer'
 
 interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
+  /** desktop header: Figma 1920 sizes in the header's --u unit, person icon instead of initial */
+  scaled?: boolean
 }
 
 function getInitial(name?: string | null, email?: string) {
@@ -28,37 +28,45 @@ export const actionCircleStyle = {
   backgroundClip: 'padding-box, border-box',
 } as const
 
-export function HeaderActions({ user }: Props) {
-  const [drawerOpen, setDrawerOpen] = useState(false)
+// 48 × 48 circle with a 30 × 30 icon box, in the desktop header's --u unit
+const scaledCircleClass =
+  'flex h-[calc(var(--u)*48)] w-[calc(var(--u)*48)] shrink-0 items-center justify-center rounded-[calc(var(--u)*75)] border-[0.75px] border-transparent text-[#FF6A19] transition-colors hover:brightness-95'
+
+export function HeaderActions({ user, scaled = false }: Props) {
+  const circle = scaled ? scaledCircleClass : actionCircleClass
 
   return (
-    <>
-      <div className="flex items-center gap-2 shrink-0 min-[120rem]:gap-6">
+    <div className={scaled ? 'flex shrink-0 items-center gap-[calc(var(--u)*24)]' : 'flex items-center gap-2 shrink-0 min-[120rem]:gap-6'}>
+      <Link
+        href="/saved"
+        aria-label="Favourites"
+        className={circle}
+        style={actionCircleStyle}
+      >
+        <Heart
+          className={scaled ? 'h-[calc(var(--u)*28)] w-[calc(var(--u)*28)]' : 'h-4.5 w-4.5 2xl:h-[18.75px] 2xl:w-[18.75px]'}
+          strokeWidth={scaled ? 1.5 : 2}
+        />
+      </Link>
+
+      {user ? (
         <Link
-          href="/saved"
-          aria-label="Favourites"
-          className={actionCircleClass}
+          href="/profile"
+          aria-label="Profile"
+          className={`${circle} text-[13px] font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-light/40 2xl:text-[14px]`}
           style={actionCircleStyle}
         >
-          <Heart className="h-4.5 w-4.5 2xl:h-[18.75px] 2xl:w-[18.75px]" />
+          {scaled
+            ? <User className="h-[calc(var(--u)*28)] w-[calc(var(--u)*28)]" strokeWidth={1.5} />
+            : getInitial(user.name, user.email)}
         </Link>
-
-        {user ? (
-          <button
-            type="button"
-            aria-label="Open profile"
-            onClick={() => setDrawerOpen(true)}
-            className={`${actionCircleClass} text-[13px] font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-light/40 2xl:text-[14px]`}
-            style={actionCircleStyle}
-          >
-            {getInitial(user.name, user.email)}
-          </button>
-        ) : (
-          <LoginDialog triggerClassName="h-10 rounded-full border border-brand-light/30 bg-brand-tint px-4 text-[13px] font-semibold text-brand-light hover:bg-brand-tint-strong 2xl:h-12 2xl:text-[14px]" />
-        )}
-      </div>
-
-      {user && <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} user={user} />}
-    </>
+      ) : (
+        <LoginDialog
+          triggerClassName={scaled
+            ? 'h-[calc(var(--u)*48)] rounded-full border border-brand-light/30 bg-brand-tint px-[calc(var(--u)*20)] text-[length:calc(var(--u)*16)] font-semibold text-brand-light hover:bg-brand-tint-strong'
+            : 'h-10 rounded-full border border-brand-light/30 bg-brand-tint px-4 text-[13px] font-semibold text-brand-light hover:bg-brand-tint-strong 2xl:h-12 2xl:text-[14px]'}
+        />
+      )}
+    </div>
   )
 }

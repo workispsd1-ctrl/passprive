@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { isRepeatRewardOffer } from '@/lib/deals'
 import { sortByMerchant } from '@/lib/utils'
+import { isWellnessStore } from '@/lib/storeType'
 import { scopeStoresToRadius, scopeToRadius } from '@/lib/nearby'
 import type {
   StoreRow,
@@ -45,11 +46,16 @@ export async function getNewKickInStores(
   return scopeToRadius(rows, (s) => s.distance_km, hasCoords).slice(0, requestedLimit)
 }
 
+/**
+ * Every active store, shopping and wellness (`store_type` included). Shopping
+ * lists must drop wellness ones with `isWellnessStore` — app parity: the
+ * StoresHome rails all query `store_type: 'PRODUCT'`.
+ */
 export async function getActiveStores(): Promise<StoreRow[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_offers(id, title, badge_text, discount_value, offer_type)')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_type, is_advertised, booking_service_type, store_subscriptions(status, repeat_rewards_enabled, starts_at, expires_at), store_offers(id, title, badge_text, discount_value, offer_type)')
     .eq('is_active', true)
     .order('sort_order')
     .order('name')
@@ -119,17 +125,18 @@ export async function getShoppingPromotionalCollections(): Promise<StorePromotio
 }
 
 /**
- * Wellness stores — app parity: WellnessHome.jsx's `isSalonStore` /
- * WellnessPromotionalCards.jsx's `isWellnessStore` — both filter on the exact
- * `category` value "Salon & Wellness".
+ * Wellness stores — app parity: utils/wellnessStore.js `isWellnessStore`,
+ * which keeps every store whose `store_type` is "SERVICE". (Filtering on
+ * `category = 'Salon & Wellness'` drops spas, nail bars, hair salons etc.
+ * whose category is their service list.)
  */
 export async function getWellnessStores(): Promise<StoreRow[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_offers(id, title, badge_text, discount_value, offer_type)')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, is_advertised, store_type, booking_service_type, store_subscriptions(status, repeat_rewards_enabled, starts_at, expires_at), store_offers(id, title, badge_text, discount_value, offer_type)')
     .eq('is_active', true)
-    .eq('category', 'Salon & Wellness')
+    .eq('store_type', 'SERVICE')
     .order('sort_order')
     .order('name')
   return (data ?? []) as StoreRow[]
@@ -180,7 +187,7 @@ export async function getStoreMoodCategories(): Promise<StoreMoodCategory[]> {
 
 export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail | null> {
   const supabase = await createClient()
-  const SELECT = 'id,name,slug,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted'
+  const SELECT = 'id,name,slug,store_type,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted,is_advertised,booking_service_type,store_subscriptions(status,repeat_rewards_enabled,starts_at,expires_at)'
 
   let { data: store } = await supabase
     .from('stores')
@@ -242,7 +249,7 @@ function isActiveNow(start: string | null | undefined, end: string | null | unde
  */
 export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<ServiceStoreDetail | null> {
   const supabase = await createClient()
-  const SELECT = 'id,name,slug,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted,top_items'
+  const SELECT = 'id,name,slug,store_type,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted,is_advertised,top_items,booking_service_type,store_subscriptions(status,pickup_premium_enabled,repeat_rewards_enabled,starts_at,expires_at)'
 
   let { data: store } = await supabase
     .from('stores')
@@ -501,14 +508,15 @@ export async function getHomeSections(): Promise<HomeSection[]> {
 
   const { data: items } = await supabase
     .from('stores_home_section_items')
-    .select('section_id, store_id, sort_order, stores(name, slug, logo_url, cover_image, location_name, city, lat, lng, store_offers(discount_value, badge_text, offer_type))')
+    .select('section_id, store_id, sort_order, stores(name, slug, store_type, logo_url, cover_image, location_name, city, lat, lng, store_offers(discount_value, badge_text, offer_type))')
     .in('section_id', sections.map(s => s.id))
     .eq('is_active', true)
     .order('sort_order')
 
   return sections.map(section => ({
     ...section,
-    items: ((items ?? []) as unknown as SectionStore[]).filter(i => i.section_id === section.id),
+    // shopping rail: wellness stores live under /wellness only
+    items: ((items ?? []) as unknown as SectionStore[]).filter(i => i.section_id === section.id && !isWellnessStore(i.stores)),
   }))
 }
 

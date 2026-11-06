@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getMembershipPlans, getUserMembership } from '@/lib/services/subscription'
 import { getNewRestaurants } from '@/lib/services/dining'
 import { getActiveStores, getWellnessStores } from '@/lib/services/stores'
+import { isWellnessStore } from '@/lib/storeType'
 import { getUserCoords } from '@/lib/location'
 import { scopeStoresToRadius } from '@/lib/nearby'
 import { amountOf, canUpgradeTo, currentPlanOf, dealsPoint, tierOf, visualOf } from '@/lib/membershipPlans'
@@ -55,7 +56,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     getActiveStores().then(s => scopeStoresToRadius(s, coords)),
     getWellnessStores().then(s => scopeStoresToRadius(s, coords)),
   ])
-  const stores = allStores.filter(s => (s.category ?? '').trim().toLowerCase() !== 'salon & wellness').slice(0, 10)
+  const stores = allStores.filter(s => !isWellnessStore(s)).slice(0, 10)
 
   const tier = tierOf(plan)
   const v = visualOf(plan)

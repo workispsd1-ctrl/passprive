@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
+import { getCardChips, type CardChipKey } from '@/lib/cardChips'
 import { useLocation } from '@/lib/context/LocationContext';
 import { useUserPlan } from '@/lib/context/PlanContext';
 import { formatDistanceKm, haversineKm, scopeByLocation, sortByMerchant } from '@/lib/utils';
+import { storeHref } from '@/lib/storeType';
 import { getCardBadge, type CardBadge, type CashbackPlan } from '@/lib/cashback';
 import { HScroll } from './HScroll';
 import { MerchantCard } from './MerchantCard';
@@ -24,6 +26,7 @@ type FeedCard = {
   offerLabel?: string;
   merchant_type: string | null;
   cardBadge: CardBadge | null;
+  chips: CardChipKey[];
   city: string | null;
   lat: number | null;
   lng: number | null;
@@ -42,6 +45,7 @@ function restaurantToCard(r: FeaturedRestaurant, plan: CashbackPlan): FeedCard {
     offerLabel: r.offer_badge ?? undefined,
     merchant_type: r.merchant_type,
     cardBadge: getCardBadge(r, plan),
+    chips: getCardChips(r),
     city: r.city,
     lat: r.latitude,
     lng: r.longitude,
@@ -51,7 +55,7 @@ function restaurantToCard(r: FeaturedRestaurant, plan: CashbackPlan): FeedCard {
 function storeToCard(s: StoreRow, plan: CashbackPlan): FeedCard {
   return {
     key: `s-${s.id}`,
-    href: `/stores/${s.slug ?? s.id}`,
+    href: storeHref(s),
     saveId: s.id,
     saveType: 'STORE',
     image: s.cover_image ?? s.logo_url,
@@ -61,6 +65,7 @@ function storeToCard(s: StoreRow, plan: CashbackPlan): FeedCard {
     offerLabel: s.store_offers?.[0]?.badge_text ?? undefined,
     merchant_type: s.merchant_type,
     cardBadge: getCardBadge(s, plan),
+    chips: getCardChips(s),
     city: s.city,
     lat: s.lat,
     lng: s.lng,
@@ -92,7 +97,7 @@ export function NewlyFeaturedSection({
   );
 
   const cards = useMemo(() => {
-    const scopedStores = scopeByLocation(stores, userCoords, location.city, 15);
+    const scopedStores = scopeByLocation(stores, userCoords, location.city, 15, [location.city, location.state]);
     const r = restaurants.map((item) => restaurantToCard(item, plan));
     const s = scopedStores.map((item) => storeToCard(item, plan));
 
@@ -111,7 +116,7 @@ export function NewlyFeaturedSection({
     });
 
     return sortByMerchant(cityBias).slice(0, MAX_CARDS);
-  }, [restaurants, stores, userCity, userCoords, location.city, plan]);
+  }, [restaurants, stores, userCity, userCoords, location.city, location.state, plan]);
 
   if (!cards.length) return null;
 
@@ -138,6 +143,7 @@ export function NewlyFeaturedSection({
             tagline={card.tagline}
             offerLabel={card.offerLabel}
             cardBadge={card.cardBadge}
+            chips={card.chips}
           />
         );
       })}

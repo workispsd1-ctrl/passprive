@@ -7,6 +7,7 @@ import { PageBackTitle } from '@/components/shared/PolicyPage'
 import { getHeaderLocation, getUserCoords } from '@/lib/location'
 import { MAX_NEARBY_KM, scopeStoresToRadius } from '@/lib/nearby'
 import { getActiveStores, getStoreMoodCategories } from '@/lib/services/stores'
+import { isWellnessStore } from '@/lib/storeType'
 import { cn } from '@/lib/utils'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -32,7 +33,7 @@ export default async function StoreCategoryPage({ params }: Props) {
   // the place named in the header — every distance here is measured from it
   const place = headerLocation?.city || 'you'
   const [stores, categories] = await Promise.all([
-    getActiveStores().then((all) => scopeStoresToRadius(all, coords, MAX_NEARBY_KM)),
+    getActiveStores().then((all) => scopeStoresToRadius(all.filter((s) => !isWellnessStore(s)), coords, MAX_NEARBY_KM)),
     getStoreMoodCategories(),
   ])
   const category = categories.find((c) => c.slug === slug)

@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { getCardChips } from '@/lib/cardChips'
+import { CardChips } from '@/components/shared/CardChips'
 import Image from 'next/image';
 import { useMemo } from 'react';
 import { useLocation } from '@/lib/context/LocationContext';
@@ -112,6 +114,8 @@ export function NowTrendingSection({
           <p className="mt-1.5 w-full truncate text-xs font-medium leading-none text-[#717171] 2xl:text-sm min-[120rem]:mt-2 min-[120rem]:text-base">
             {r.area ?? r.city}
           </p>
+          {/* app parity: NowTrending.jsx CardChips */}
+          <CardChips chips={getCardChips(r)} className="mt-2 justify-center" />
         </Link>
       ))}
     </HScroll>

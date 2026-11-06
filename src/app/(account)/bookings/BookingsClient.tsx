@@ -218,11 +218,14 @@ function tabLabel(t: string): string {
 export function BookingsClient({
   diningBookings,
   storeBookings,
+  initialTab = 'all',
 }: {
   diningBookings: DiningBooking[]
   storeBookings: StoreBooking[]
+  /** from `?tab=` — falls back to "All" when that tab has no bookings */
+  initialTab?: string
 }) {
-  const [tab, setTab] = useState('all')
+  const [tab, setTab] = useState(initialTab)
 
   const items: Item[] = [
     ...diningBookings.map(b => ({

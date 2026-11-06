@@ -41,7 +41,7 @@ export function SpaNearYouSection({ stores }: { stores: StoreRow[] }) {
   const list = useMemo(() => {
     const spas = stores.filter(isSpaStore)
     const pool = spas.length ? spas : stores
-    const scoped = scopeByLocation(pool, userCoords, location.city, RADIUS_KM)
+    const scoped = scopeByLocation(pool, userCoords, location.city, RADIUS_KM, [location.city, location.state])
     return scoped
       .map((s) => ({
         s,
@@ -51,7 +51,7 @@ export function SpaNearYouSection({ stores }: { stores: StoreRow[] }) {
       }))
       .sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity))
       .slice(0, MAX_CARDS)
-  }, [stores, userCoords, location.city])
+  }, [stores, userCoords, location.city, location.state])
 
   if (!list.length) return null
 

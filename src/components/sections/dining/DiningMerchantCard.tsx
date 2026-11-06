@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { CardChips } from '@/components/shared/CardChips'
+import type { CardChipKey } from '@/lib/cardChips'
 import Link from 'next/link'
 import Image from 'next/image'
 import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
@@ -21,6 +23,8 @@ interface Props {
   trending: boolean
   /** repeat-rewards / "stamp" mood tag — app parity: RestaurantCard.jsx getTags() */
   stampSheet: boolean
+  /** app parity: RestaurantCard.jsx — CardChips under the tags */
+  chips?: CardChipKey[]
   rating?: number
   ratingCount?: number
   meta?: string
@@ -66,6 +70,7 @@ export function DiningMerchantCard({
   ratingCount,
   meta,
   tagline,
+  chips = [],
 }: Props) {
   const { isSaved, toggle, setSaved } = useSaved()
   const saved = isSaved(id)
@@ -171,6 +176,7 @@ export function DiningMerchantCard({
             )}
           </div>
         )}
+        <CardChips chips={chips} className="mt-2" />
       </div>
 
       <SaveListSheet

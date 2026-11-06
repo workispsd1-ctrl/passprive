@@ -1,6 +1,8 @@
 'use client'
 
 import Image from 'next/image'
+import type { CardChipKey } from '@/lib/cardChips'
+import { CardChips } from '@/components/shared/CardChips'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -110,6 +112,7 @@ export function RestaurantTitleCard({
   stampSheet,
   trending,
   exclusive,
+  chips = [],
 }: {
   name: string
   cuisines: string[]
@@ -125,6 +128,8 @@ export function RestaurantTitleCard({
   stampSheet: boolean
   trending: boolean
   exclusive: boolean
+  /** app parity: MerchantInfoCard.jsx — getCardChips(entity) */
+  chips?: CardChipKey[]
 }) {
   const { location } = useLocation()
   const [showAddress, setShowAddress] = useState(false)
@@ -192,6 +197,7 @@ export function RestaurantTitleCard({
           {exclusive && <Tag icon='tag-exclusive.svg' label='Exclusive' color='#ff6a30' iconW={10.98} iconH={9.61} />}
         </span>
       </div>
+      <CardChips chips={chips} height='max(17px, calc(21*var(--t)))' className='mt-[max(8px,calc(12*var(--t)))]' />
     </section>
   )
 }

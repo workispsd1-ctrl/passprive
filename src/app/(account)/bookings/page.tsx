@@ -9,13 +9,14 @@ export const metadata: Metadata = {
   title: 'My Bookings | PassPrivé',
 }
 
-export default async function BookingsPage() {
+export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/')
 
-  const [diningBookings, storeBookings] = await Promise.all([
+  const [{ tab }, diningBookings, storeBookings] = await Promise.all([
+    searchParams,
     getUserDiningBookings(user.id),
     getUserStoreBookings(user.id),
   ])
@@ -23,7 +24,7 @@ export default async function BookingsPage() {
   return (
     <main className="min-h-screen">
       <SetPageTitle title="Your bookings" />
-      <BookingsClient diningBookings={diningBookings} storeBookings={storeBookings} />
+      <BookingsClient diningBookings={diningBookings} storeBookings={storeBookings} initialTab={tab} />
     </main>
   )
 }

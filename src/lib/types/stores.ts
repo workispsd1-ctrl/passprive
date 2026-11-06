@@ -20,6 +20,12 @@ export type StoreRow = {
   cashback_enabled?: boolean | null
   is_promoted?: boolean | null
   store_offers?: StoreOffer[]
+  /** 'SERVICE' = wellness store (see lib/storeType) */
+  store_type?: string | null
+  /** app parity: storesApi.js — `subscribed` / `pickup_premium_enabled` come from these */
+  store_subscriptions?: { status: string | null; pickup_premium_enabled?: boolean | null; repeat_rewards_enabled?: boolean | null; starts_at?: string | null; expires_at?: string | null }[] | null
+  is_advertised?: boolean | null
+  booking_service_type?: string | null
 }
 
 export type NewKickInStore = {
@@ -55,6 +61,7 @@ export type StoreMoodCategory = {
 
 export type Store = {
   id: string
+  store_type?: string | null
   name: string
   slug: string | null
   description: string | null
@@ -128,6 +135,7 @@ export type SectionStore = {
     city: string | null
     lat: number | null
     lng: number | null
+    store_type?: string | null
     store_offers?: StoreOffer[]
   }
 }
@@ -176,6 +184,10 @@ export type ServiceStore = Store & {
   service_level: string | null
   on_boarded: boolean | null
   top_items: string[]
+  /** app parity: storesApi.js — `subscribed` / `pickup_premium_enabled` come from these */
+  store_subscriptions?: { status: string | null; pickup_premium_enabled?: boolean | null; repeat_rewards_enabled?: boolean | null; starts_at?: string | null; expires_at?: string | null }[] | null
+  is_advertised?: boolean | null
+  booking_service_type?: string | null
 }
 
 export type ServiceItem = {

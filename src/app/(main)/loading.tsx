@@ -1,4 +1,4 @@
-import { MerchantCardSkeleton, CircleCardSkeleton, OfferCardSkeleton, PosterCardSkeleton, RailSkeleton, Bone } from '@/components/shared/Skeletons'
+import { MerchantCardSkeleton, CircleCardSkeleton, OfferCardSkeleton, PosterCardSkeleton, RailSkeleton, Bone, MallCardSkeleton, CollectionCardSkeleton } from '@/components/shared/Skeletons'
 
 /**
  * Home page skeleton, in the page's section order (see app/(main)/page.tsx).
@@ -23,6 +23,10 @@ export default function MainLoading() {
         {i => <MerchantCardSkeleton key={i} />}
       </RailSkeleton>
       <RailSkeleton count={4}>{i => <PosterCardSkeleton key={i} />}</RailSkeleton>
+      {/* MallsNearYou */}
+      <RailSkeleton titleWidth='w-40'>{i => <MallCardSkeleton key={i} />}</RailSkeleton>
+      {/* HotOnPassprive */}
+      <RailSkeleton titleWidth='w-48' count={4}>{i => <CollectionCardSkeleton key={i} />}</RailSkeleton>
     </main>
   )
 }

@@ -1,4 +1,5 @@
 import { HScroll } from './HScroll'
+import { getCardChips } from '@/lib/cardChips'
 import { MerchantCard } from './MerchantCard'
 import type { NewKickInStore } from '@/lib/types/stores'
 
@@ -29,6 +30,7 @@ export function NewKickInStores({ stores }: { stores: NewKickInStore[] }) {
             // The get_new_kick_in_stores RPC doesn't return merchant_type /
             // pay_bill_enabled, so cashback eligibility can't be evaluated
             // here — cardBadge omitted hides the badge.
+            chips={getCardChips({ store_type: 'PRODUCT', store_offers: store.offers })}
           />
         )
       })}

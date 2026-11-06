@@ -1,9 +1,11 @@
 'use client'
 
 import { useMemo } from 'react'
+import { getCardChips } from '@/lib/cardChips'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm, scopeByLocation } from '@/lib/utils'
+import { isWellnessStore } from '@/lib/storeType'
 import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from './HScroll'
 import { MerchantCard } from './MerchantCard'
@@ -52,9 +54,11 @@ export function SalonVisitSection({
   )
 
   const list = useMemo(() => {
-    const salon = stores.filter(isSalonStore)
-    const pool = salon.length ? salon : stores
-    const scoped = scopeByLocation(pool, userCoords, location.city, radiusKm)
+    // wellness stores only — they open /wellness/[id]
+    const wellness = stores.filter(isWellnessStore)
+    const salon = wellness.filter(isSalonStore)
+    const pool = salon.length ? salon : wellness
+    const scoped = scopeByLocation(pool, userCoords, location.city, radiusKm, [location.city, location.state])
 
     return [...scoped]
       .sort((a, b) => {
@@ -63,7 +67,7 @@ export function SalonVisitSection({
         return ac - bc
       })
       .slice(0, MAX_CARDS)
-  }, [stores, userCity, userCoords, location.city, radiusKm])
+  }, [stores, userCity, userCoords, location.city, location.state, radiusKm])
 
   if (!list.length) return null
 
@@ -93,6 +97,7 @@ export function SalonVisitSection({
             tagline={s.description ?? undefined}
             offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
             cardBadge={getCardBadge(s, plan)}
+            chips={getCardChips(s)}
           />
         )
       })}

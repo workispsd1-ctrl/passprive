@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { CardChips } from '@/components/shared/CardChips'
+import type { CardChipKey } from '@/lib/cardChips'
 import Link from 'next/link'
 import Image from 'next/image'
 import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
@@ -45,6 +47,8 @@ interface Props {
   badge?: string
   /** app parity: CardChips.jsx tag pills — "Sale is live", "Trending", "Exclusive" */
   tags?: MerchantCardTag[]
+  /** app parity: CardChips.jsx chip artwork (Recommended, Best value…), drawn before the tags */
+  chips?: CardChipKey[]
 }
 
 /** Frame + offer-strip colour — fixed across every card, no per-card variation. */
@@ -79,6 +83,7 @@ export function MerchantCard({
   offerLabel,
   badge,
   tags,
+  chips,
 }: Props) {
   const { isSaved, toggle, setSaved } = useSaved()
   const saved = saveId ? isSaved(saveId) : false
@@ -170,9 +175,10 @@ export function MerchantCard({
             {tagline}
           </p>
         )}
-        {tags && tags.length > 0 && (
+        {((tags && tags.length > 0) || (chips && chips.length > 0)) && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {tags.map((tag) => {
+            {chips && <CardChips chips={chips} />}
+            {tags?.map((tag) => {
               const Icon = tag.icon ? TAG_ICONS[tag.icon] : null
               return (
                 <span

@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { getCardChips } from '@/lib/cardChips'
 import { SlidersHorizontal, ChevronDown, Percent } from 'lucide-react'
 import { cn, sortByMerchant, haversineKm, scopeByLocation } from '@/lib/utils'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from '@/components/sections/home/HScroll'
-import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
+import { MerchantCard } from '@/components/sections/home/MerchantCard'
+import { storeCardTags } from '@/lib/storeBadges'
 import type { StoreRow } from '@/lib/types/stores'
 
 const DISTANCE_OPTIONS = [
@@ -39,16 +41,18 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
   const [showSortOptions, setShowSortOptions] = useState(false)
 
   const storesWithDist = useMemo(() => {
-    // app parity: WellnessHome.jsx's `matchesUserLocation(s, locationMeta, null, 50)`
-    // — the main list scopes by city match only, not GPS radius.
-    const scoped = scopeByLocation(stores, null, location.city, 50)
+    // app parity: WellnessHome.jsx's `matchesUserLocation(s, locationMeta, null, 50)`.
+    // The `null` there is misleading: each store already carries `distance_km`
+    // from the user's GPS (loadWellnessStores), so the app keeps stores within
+    // 50 km and only falls back to a city match for stores without coordinates.
+    const scoped = scopeByLocation(stores, userCoords, location.city, 50, [location.city, location.state])
     return scoped.map(s => ({
       ...s,
       dist: userCoords && s.lat != null && s.lng != null
         ? haversineKm(userCoords.lat, userCoords.lng, s.lat, s.lng)
         : null,
     }))
-  }, [stores, userCoords, location.city])
+  }, [stores, userCoords, location.city, location.state])
 
   const filtered = useMemo(() => {
     let result = storesWithDist
@@ -201,12 +205,7 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
                 : discountText
               : undefined
 
-            const tags: MerchantCardTag[] = []
-            if (store.store_offers?.length) tags.push({ label: 'Sale is live' })
-            if (store.merchant_type === 'preferred') {
-              tags.push({ label: 'Exclusive', icon: 'exclusive' })
-            }
-
+            
             return (
               <MerchantCard
                 key={store.id}
@@ -219,7 +218,8 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
                 tagline={[store.category, store.subcategory].filter(Boolean).join(', ') || undefined}
                 offerLabel={offerLabel}
                 cardBadge={getCardBadge(store, plan)}
-                tags={tags}
+                chips={getCardChips(store, 3)}
+                tags={storeCardTags(store)}
               />
             )
           })}

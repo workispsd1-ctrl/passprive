@@ -1,4 +1,4 @@
-import { Bone, CircleCardSkeleton, MerchantCardSkeleton, OfferCardSkeleton, RailSkeleton, TileSkeleton } from '@/components/shared/Skeletons'
+import { Bone, CircleCardSkeleton, CollectionCardSkeleton, MerchantCardSkeleton, OfferCardSkeleton, RailSkeleton, TileSkeleton } from '@/components/shared/Skeletons'
 
 /** Dining home skeleton, in the page's section order (see dining/page.tsx). */
 export default function DiningLoading() {
@@ -23,6 +23,8 @@ export default function DiningLoading() {
       <RailSkeleton>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
       <RailSkeleton count={6}>{i => <OfferCardSkeleton key={i} />}</RailSkeleton>
+      {/* HotOnPassprive */}
+      <RailSkeleton titleWidth='w-48' count={4}>{i => <CollectionCardSkeleton key={i} />}</RailSkeleton>
     </main>
   )
 }

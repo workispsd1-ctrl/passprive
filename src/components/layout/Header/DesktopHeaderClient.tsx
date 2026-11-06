@@ -19,7 +19,7 @@ interface Props {
   touristBanners: WebsiteBanner[]
   /** 'black' | 'premium' | 'none' — app parity: PackageBadge.jsx */
   membershipTier: string
-  /** account/static pages: no location picker, no category nav */
+  /** account/static pages: no category nav / hero banners */
   minimal?: boolean
 }
 
@@ -28,13 +28,13 @@ const MEMBERSHIP_BADGE: Record<string, string> = {
   premium: '/assets/membership/PlusBadge.webp',
 }
 
-// The Figma spec is drawn for a 16" MacBook (~1728pt wide). The full-size values
-// only kick in at 2xl (>=1536px); smaller laptops get a scaled-down bar.
+// Figma spec is drawn at 1920px wide. Every size below is `calc(var(--u)*N)`
+// where N is the Figma px value and --u = header width / 1920, so the bar is
+// pixel-exact at 1920 and scales proportionally on every other width.
+// --u never drops below 0.5px (≈960px wide); under that the search pill
+// absorbs the difference so nothing overflows on tablets.
 //
-// Home gets the orange "light" theme (full inline search bar, coin ticket art).
-// Every other page gets the white "default" theme (small logo, colored logo,
-// peach-tinted action circles) — the search bar is always inline on every
-// page now, just restyled to a light-grey pill off the orange home theme.
+// Home gets the orange "light" theme; every other page the white one.
 export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBanners, membershipTier, minimal = false }: Props) {
   const isHome = usePathname() === '/'
   const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/assets/membership/FreeBadge.webp'
@@ -46,103 +46,94 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
   }, [])
 
   return (
-    <div className="hidden bg-white md:block">
+    <div className="hidden bg-white @container md:block [--u:max(100cqw/1920,0.5px)]">
       <div
         className={cn(
-          'flex h-18 items-center gap-3 px-6 2xl:h-24 2xl:gap-[14.51px] 2xl:px-12 min-[120rem]:gap-[30px]',
+          'flex h-[calc(var(--u)*96)] items-center justify-between gap-[calc(var(--u)*64)] px-[calc(var(--u)*48)]',
           isHome
             ? 'bg-brand border-b-2 border-[rgba(206,68,14,0.14)]'
-            : 'border-b border-gray-100',
+            : 'border-b border-[#EAEAEA]',
         )}
       >
-        <Link
-          href="/"
-          aria-label="PassPrive home"
-          className="flex shrink-0 items-center"
-        >
-          <Image
-            src={isHome ? '/assets/brand/passprive-logo-white.png' : '/assets/brand/passprive-logo-orange.png'}
-            alt="PassPrive"
-            width={218}
-            height={52}
-            priority
-            className='h-6.25 w-auto object-contain 2xl:h-9.25'
-          />
-        </Link>
-
-        {!minimal && (
-          <>
-            <span
-              className={cn(
-                'h-8 w-px shrink-0 2xl:h-11',
-                isHome ? 'bg-[#B53B0B]' : 'bg-gray-200',
-              )}
-              aria-hidden="true"
+        {/* Logo · divider · location — 521.39 wide, gap 30 */}
+        <div className="flex shrink-0 items-center gap-[calc(var(--u)*30)]">
+          <Link href="/" aria-label="PassPrive home" className="flex shrink-0 items-center">
+            <Image
+              src={isHome ? '/assets/brand/passprive-logo-white.png' : '/assets/brand/passprive-logo-orange.png'}
+              alt="PassPrive"
+              width={885}
+              height={208}
+              priority
+              className="h-[calc(var(--u)*52)] w-auto object-contain"
             />
-            <LocationButton variant="desktop" theme={isHome ? 'light' : 'default'} />
-          </>
-        )}
+          </Link>
 
-        {isHome ? (
-          <div className="mx-auto w-full max-w-160 flex-1 2xl:max-w-196">
-            <SearchBar variant="hero" />
-          </div>
-        ) : (
-          <div className="mx-auto w-full max-w-160 flex-1 2xl:max-w-196">
-            <SearchBar variant="desktop-full" />
-          </div>
-        )}
+          <span
+            className={cn('h-[calc(var(--u)*44)] w-px shrink-0', isHome ? 'bg-[#B53B0B]' : 'bg-[#E4E4E4]')}
+            aria-hidden="true"
+          />
+          <LocationButton variant="desktop" theme={isHome ? 'light' : 'default'} />
+        </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {/* Privé credits balance — opens the Privé Credits page. Coin = app asset. */}
+        {/* Search — 784 × 64 */}
+        <div className="min-w-0 max-w-[calc(var(--u)*784)] flex-1">
+          <SearchBar variant={isHome ? 'hero' : 'desktop-full'} scaled />
+        </div>
+
+        {/* Credits · badge · favourites · profile — gap 8, then 24 */}
+        <div className="flex shrink-0 items-center gap-[calc(var(--u)*8)]">
+          {/* Privé credits — 127 × 55: 55px wallet coin over a 120 × 48 pill */}
           <Link
             href="/prive-credits"
             aria-label="Privé credits"
-            className="relative ml-3 flex h-10 min-w-21.5 items-center rounded-[75px] border-[0.75px] border-transparent pl-12 pr-5 2xl:h-12 2xl:min-w-30 2xl:pl-16 min-[120rem]:pl-12"
-            style={{
-              // The fill layer must be opaque (pre-composited rgba(255,106,25,0.04)
-              // over white) — a translucent fill lets the border-gradient layer
-              // behind it bleed through the whole interior instead of just the
-              // border ring, since padding-box sits inside border-box.
-              backgroundImage:
-                'linear-gradient(#FFF9F6, #FFF9F6), linear-gradient(151.63deg, #FF6A19 -48.58%, #F7F0EC 82.47%)',
-              backgroundOrigin: 'border-box',
-              backgroundClip: 'padding-box, border-box',
-            }}
             title="Privé credits"
+            className="relative flex h-[calc(var(--u)*55)] min-w-[calc(var(--u)*127)] items-center pl-[calc(var(--u)*55)] pr-[calc(var(--u)*12)]"
           >
+            <span
+              aria-hidden="true"
+              className="absolute top-[calc(var(--u)*3.93)] right-0 left-[calc(var(--u)*7)] h-[calc(var(--u)*48)] rounded-[calc(var(--u)*75)] border-[0.75px] border-transparent"
+              style={{
+                // opaque pre-composite of rgba(255,106,25,0.04) on white, so the
+                // gradient border layer doesn't bleed through the fill
+                backgroundImage:
+                  'linear-gradient(#FFF9F6, #FFF9F6), linear-gradient(151.63deg, #FF6A19 -48.58%, #F7F0EC 82.47%)',
+                backgroundOrigin: 'border-box',
+                backgroundClip: 'padding-box, border-box',
+              }}
+            />
             <Image
               src="/assets/membership/Wallet.webp"
               alt=""
               width={129}
               height={129}
-              className="absolute -left-3 top-1/2 h-10 w-10 -translate-y-1/2 2xl:h-12 2xl:w-12 min-[120rem]:-left-[7px] min-[120rem]:h-[55px] min-[120rem]:w-[55px]"
+              className="absolute top-0 left-0 h-[calc(var(--u)*55)] w-[calc(var(--u)*55)]"
             />
-            <span className="leading-tight">
-              <span className="block font-(family-name:--font-inter) text-[28px] leading-none font-bold tracking-[-0.89px] text-[#606366]">
+            <span className="relative flex min-w-[calc(var(--u)*60)] flex-col">
+              <span className="-my-[calc(var(--u)*4)] font-(family-name:--font-inter) text-[length:calc(var(--u)*28)] leading-[calc(var(--u)*34)] font-bold tracking-[calc(var(--u)*-0.888479)] text-[#606366]">
                 {credits == null ? '—' : Math.round(credits).toLocaleString()}
               </span>
-              <span className="block font-(family-name:--font-dm-sans) text-[10.24px] leading-[8px] font-normal tracking-normal text-brand-light">
+              <span className="font-(family-name:--font-dm-sans) text-[length:calc(var(--u)*10.2376)] leading-[calc(var(--u)*8)] font-normal whitespace-nowrap text-[#FF6A19]">
                 Priv&eacute; credits
               </span>
             </span>
           </Link>
 
-          {/* App membership badge (Free/Plus/Black), 308×132 — app parity: PackageBadge.jsx.
-              Signed-in users only: a logged-out visitor has no membership to show. */}
-          {user && (
-            <Link href="/membership" aria-label="Membership" className="min-[120rem]:mr-4">
-              <Image
-                src={badgeSrc}
-                alt="Privé membership"
-                width={308}
-                height={132}
-                className="h-10 w-auto 2xl:h-12"
-              />
-            </Link>
-          )}
+          <div className="flex items-center gap-[calc(var(--u)*24)]">
+            {/* Membership badge (Free/Plus/Black) — 112 × 48. Signed-in users only. */}
+            {user && (
+              <Link href="/membership" aria-label="Membership" className="shrink-0">
+                <Image
+                  src={badgeSrc}
+                  alt="Privé membership"
+                  width={308}
+                  height={132}
+                  className="h-[calc(var(--u)*48)] w-auto"
+                />
+              </Link>
+            )}
 
-          <HeaderActions user={user} />
+            <HeaderActions user={user} scaled />
+          </div>
         </div>
       </div>
 

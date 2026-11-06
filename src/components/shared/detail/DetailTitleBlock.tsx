@@ -1,6 +1,8 @@
 'use client'
 
 import Image from 'next/image'
+import type { CardChipKey } from '@/lib/cardChips'
+import { CardChips } from '@/components/shared/CardChips'
 import { MapPin, Star } from 'lucide-react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
@@ -27,6 +29,7 @@ export function DetailTitleBlock({
   address,
   actions,
   className,
+  chips = [],
 }: {
   name: string
   /** category / cuisines line above the name */
@@ -44,6 +47,8 @@ export function DetailTitleBlock({
   address?: string | null
   actions?: React.ReactNode
   className?: string
+  /** app parity: MerchantInfoCard.jsx — getCardChips(entity) */
+  chips?: CardChipKey[]
 }) {
   const { location } = useLocation()
   const distance =
@@ -102,6 +107,7 @@ export function DetailTitleBlock({
           )}
         </div>
       )}
+      <CardChips chips={chips} className='mt-3' />
 
       {actions && <div className='mt-5'>{actions}</div>}
     </header>

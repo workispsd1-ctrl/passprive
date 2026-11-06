@@ -63,7 +63,7 @@ export function WeekHours({ hours, today, className }: { hours: HoursRow[]; toda
  * "Open · Closes 10 PM ▾" — app parity: the detail screens' status pill; it
  * opens the week's hours.
  */
-export function OpeningHoursPill({ hours, variant = 'web' }: { hours: HoursRow[]; /** 'app' — the app's grey "Open till 10 PM" pill */ variant?: 'web' | 'app' | 'figma' }) {
+export function OpeningHoursPill({ hours, variant = 'web' }: { hours: HoursRow[]; /** 'app' — the app's grey "Open till 10 PM" pill */ variant?: 'web' | 'app' | 'figma' | 'wellness' }) {
   const { status, today } = useOpenStatus(hours)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -110,6 +110,19 @@ export function OpeningHoursPill({ hours, variant = 'web' }: { hours: HoursRow[]
             className={cn('shrink-0 transition-transform', open ? 'rotate-90' : '-rotate-90')}
             style={{ width: tMin(5, 4), height: tMin(10, 8) }}
           />
+        </button>
+      ) : variant === 'wellness' ? (
+        // desktop salon page — Figma "Salon details – Desktop" hours pill, in --u design px
+        <button
+          type='button'
+          onClick={() => setOpen(v => !v)}
+          aria-expanded={open}
+          className='inline-flex h-[calc(38*var(--u))] max-w-full items-center gap-[calc(4*var(--u))] rounded-full bg-[#f4f4f4] px-[calc(14*var(--u))] text-left text-[calc(14*var(--u))] leading-[calc(18*var(--u))] font-semibold'
+        >
+          <span className={cn('truncate', status.isOpen ? 'text-[#3aa456]' : 'text-[#C62828]')}>
+            {status.isOpen ? `Open ${status.detail.replace(/^Closes /, 'till ')}` : `Closed · ${status.detail}`}
+          </span>
+          <ChevronDown className={cn('size-[calc(14*var(--u))] shrink-0 text-[#717171] transition-transform', open && 'rotate-180')} strokeWidth={1.6} />
         </button>
       ) : variant === 'app' ? (
         <button

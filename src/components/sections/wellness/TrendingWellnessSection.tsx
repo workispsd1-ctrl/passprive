@@ -1,12 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
+import { getCardChips } from '@/lib/cardChips'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm, scopeByLocation, sortByMerchant } from '@/lib/utils'
 import { getCardBadge } from '@/lib/cashback'
 import { HScroll } from '@/components/sections/home/HScroll'
-import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
+import { MerchantCard } from '@/components/sections/home/MerchantCard'
 import type { StoreRow } from '@/lib/types/stores'
 
 const MAX_CARDS = 15
@@ -25,9 +26,9 @@ export function TrendingWellnessSection({ stores }: { stores: StoreRow[] }) {
   )
 
   const list = useMemo(() => {
-    const scoped = scopeByLocation(stores, userCoords, location.city, RADIUS_KM)
+    const scoped = scopeByLocation(stores, userCoords, location.city, RADIUS_KM, [location.city, location.state])
     return sortByMerchant(scoped).slice(0, MAX_CARDS)
-  }, [stores, userCoords, location.city])
+  }, [stores, userCoords, location.city, location.state])
 
   if (!list.length) return null
 
@@ -42,10 +43,6 @@ export function TrendingWellnessSection({ stores }: { stores: StoreRow[] }) {
           .filter(Boolean)
           .join(' • ')
 
-        const tags: MerchantCardTag[] = []
-        if (s.store_offers?.length) tags.push({ label: 'Sale is live' })
-        if (s.merchant_type === 'preferred') tags.push({ label: 'Exclusive', icon: 'exclusive' })
-
         return (
           <MerchantCard
             key={s.id}
@@ -58,7 +55,7 @@ export function TrendingWellnessSection({ stores }: { stores: StoreRow[] }) {
             tagline={s.description ?? ([s.category, s.subcategory].filter(Boolean).join(', ') || undefined)}
             offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
             cardBadge={getCardBadge(s, plan)}
-            tags={tags}
+            chips={getCardChips(s)}
           />
         )
       })}

@@ -101,7 +101,14 @@ export function UpsellBannerPager({
   caps,
   className,
   variant = 'default',
+  eligible,
 }: {
+  /**
+   * Overrides the Preferred-Partner rule. The app's salon screen
+   * (ServiceStoreDetails.jsx `showCashbackUpsell`) shows the pager on any
+   * cashback-enabled store; Black members never see it either way.
+   */
+  eligible?: boolean
   merchantType: string | null | undefined
   merchantId: string
   kind: 'restaurant' | 'store'
@@ -113,7 +120,7 @@ export function UpsellBannerPager({
   variant?: 'default' | 'figma'
 }) {
   const plan = useUserPlan()
-  const show = String(merchantType ?? '').toLowerCase() === 'preferred' && plan !== 'black'
+  const show = (eligible ?? String(merchantType ?? '').toLowerCase() === 'preferred') && plan !== 'black'
   const [quote, setQuote] = useState<ReceiptMerchantState['quote']>(null)
   const [page, setPage] = useState(0)
   const [sheet, setSheet] = useState(false)
@@ -155,7 +162,7 @@ export function UpsellBannerPager({
 
   return (
     <div
-      className={cn('font-(family-name:--font-dm-sans)', className)}
+      className={cn('font-(family-name:--font-dm-sans)', variant === 'figma' && 'relative', className)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onTouchStart={() => setHover(true)}
@@ -164,28 +171,35 @@ export function UpsellBannerPager({
       <div
         ref={railRef}
         onScroll={e => setPage(Math.round(e.currentTarget.scrollLeft / (e.currentTarget.clientWidth || 1)))}
-        className='scrollbar-hide flex snap-x snap-mandatory overflow-x-auto'
+        className={cn(
+          'scrollbar-hide flex snap-x snap-mandatory overflow-x-auto',
+          // room above the card for the coin that pokes out of it (a scroller clips both axes)
+          variant === 'figma' && 'mt-[calc(-23*var(--u))] pt-[calc(23*var(--u))]',
+        )}
         aria-roledescription='carousel'
       >
         {earnMore && variant === 'figma' && (
+          // Figma "Salon details – Desktop" › Cashback promotion: 568×109, in --u design px
           <button
             type='button'
             onClick={() => setSheet(true)}
             aria-label={`Earn ${Math.round(quote.blackPct / quote.pct)}x more cashback`}
-            className='relative flex aspect-358/73 w-full shrink-0 snap-start items-center justify-between overflow-hidden rounded-xl bg-[linear-gradient(95deg,#EF7A2C,#F39A2F_55%,#EE5A24)] pr-3.5 pl-4 text-left text-white'
+            className='relative flex w-full shrink-0 snap-start flex-col rounded-[calc(18*var(--u))] bg-[linear-gradient(90deg,#FF9900_0%,#FF4800_60%,#FF7A00_100%)] p-[calc(24*var(--u))] text-left text-white'
           >
-            <span className='min-w-0'>
-              <span className='block truncate text-[17px] leading-5 font-bold'>
-                Earn {Math.round(quote.blackPct / quote.pct)}x <span className={`${SERIF} font-normal italic`}>more</span> cashback
-              </span>
-              <span className='mt-0.5 block truncate text-[11.5px] 2xl:text-[12.5px] leading-4'>{formatPct(quote.blackPct)} Privé Credits on every payment</span>
-              <span className='mt-1 block text-[10.5px] text-white/85'>
+            <span className='relative z-10 block truncate text-[calc(22*var(--u))] leading-[calc(29*var(--u))] font-extrabold'>
+              Earn {Math.round(quote.blackPct / quote.pct)}x <span className={`${SERIF} font-normal italic`}>more</span> cashback
+            </span>
+            <span className='relative z-10 block truncate text-[calc(14*var(--u))] leading-[calc(18*var(--u))] text-[#FFF1CF]'>{formatPct(quote.blackPct)} Privé Credits on every payment</span>
+            <span className='relative z-10 flex w-full items-center justify-between'>
+              <span className='text-[calc(12*var(--u))] leading-[calc(16*var(--u))] font-semibold'>
                 1 <span className={`${SERIF} italic`}>Privé</span>Credit = MUR 1
               </span>
+              <span className='shrink-0 rounded-full bg-[#2247FF] px-[calc(17*var(--u))] py-[calc(8*var(--u))] text-[calc(14*var(--u))] leading-[calc(18*var(--u))] font-extrabold whitespace-nowrap'>Claim now →</span>
             </span>
-            <span className='shrink-0 mb-2.5 self-end rounded-full bg-[#2247FF] px-2.5 py-1 text-[11.5px] font-semibold whitespace-nowrap 2xl:px-3 2xl:text-[12.5px]'>Claim now →</span>
             {/* the coin's art says "6x" */}
-            {Math.round(quote.blackPct / quote.pct) === 6 && <Image src='/assets/merchant-detail/earn-coin.png' alt='' width={47} height={47} className='absolute -top-1 right-1.5 size-7' />}
+            {Math.round(quote.blackPct / quote.pct) === 6 && (
+              <Image src='/assets/merchant-detail/earn-coin.png' alt='' width={60} height={60} className='absolute top-[calc(-22.5*var(--u))] right-[calc(15*var(--u))] size-[calc(60*var(--u))] -rotate-20' />
+            )}
           </button>
         )}
         {earnMore && variant === 'default' && (
@@ -214,7 +228,7 @@ export function UpsellBannerPager({
         <button
           type='button'
           onClick={() => setSheet(true)}
-          className='relative aspect-1436/296 w-full shrink-0 snap-start overflow-hidden rounded-xl text-left @container'
+          className={cn('relative aspect-1436/296 w-full shrink-0 snap-start overflow-hidden text-left @container', variant === 'figma' ? 'rounded-[calc(18*var(--u))]' : 'rounded-xl')}
         >
           {/* the artwork carries the card, its shines and the Know More CTA */}
           <Image src='/assets/merchant-detail/Merchant-Cap.webp' alt='' fill sizes='(min-width: 768px) 560px, 100vw' className='object-fill' />
@@ -228,7 +242,13 @@ export function UpsellBannerPager({
 
       {count > 1 && (
         // app parity: BannerPagerIndicator — the active dot stretches, its neighbours taper
-        <div className='mt-2.5 flex items-center justify-center gap-2'>
+        <div
+          className={cn(
+            'flex items-center justify-center',
+            // the salon frame hangs the indicator 13px under the hero row, outside the column's height
+            variant === 'figma' ? 'absolute inset-x-0 top-full mt-[calc(13*var(--u))] gap-[calc(8*var(--u))]' : 'mt-2.5 gap-2',
+          )}
+        >
           {Array.from({ length: count }, (_, i) => {
             const d = Math.abs(i - page)
             return (
@@ -237,7 +257,12 @@ export function UpsellBannerPager({
                 type='button'
                 aria-label={`Banner ${i + 1}`}
                 onClick={() => goTo(i)}
-                className={cn('h-0.5 rounded-full transition-all', d === 0 ? 'w-6.5 bg-[#979393]' : d === 1 ? 'w-2.25 bg-[#ADADAD]/50' : 'w-0.5 bg-[#ADADAD]/50')}
+                className={cn(
+                  'rounded-full transition-all',
+                  variant === 'figma'
+                    ? cn('h-[calc(2*var(--u))]', d === 0 ? 'w-[calc(26*var(--u))] bg-[#979393]' : d === 1 ? 'w-[calc(9*var(--u))] bg-[#ADADAD]/50' : 'w-[calc(2*var(--u))] bg-[#ADADAD]/50')
+                    : cn('h-0.5', d === 0 ? 'w-6.5 bg-[#979393]' : d === 1 ? 'w-2.25 bg-[#ADADAD]/50' : 'w-0.5 bg-[#ADADAD]/50'),
+                )}
               />
             )
           })}

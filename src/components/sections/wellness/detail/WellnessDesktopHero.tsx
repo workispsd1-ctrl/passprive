@@ -1,34 +1,38 @@
 'use client'
 
 import { useState } from 'react'
+import type { CardChipKey } from '@/lib/cardChips'
+import { CardChips } from '@/components/shared/CardChips'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Check, ChevronDown, Heart, Share2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Check, ChevronDown, ChevronLeft, Flame, Gem, Heart, Phone, Share, Signpost } from 'lucide-react'
 import { useGallery } from '@/components/sections/dining/PhotoGalleryClient'
-import { t, tMin, u } from '@/components/sections/dining/designUnit'
 import { OpeningHoursPill } from '@/components/shared/detail/OpeningHours'
 import { areaLabel } from '@/components/shared/detail/MobileTitleCard'
 import { directionsUrl, shareLink, useSaveMerchant } from '@/components/shared/detail/MerchantActions'
 import { UpsellBannerPager } from '@/components/shared/detail/UpsellBannerPager'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { canPayBill, getCashbackPct } from '@/lib/cashback'
+import { canPayBill, getCashbackPct, isCashbackEnabled } from '@/lib/cashback'
 import { useLocation } from '@/lib/context/LocationContext'
 import type { HoursRow } from '@/lib/openingHours'
 import type { DiscountCaps } from '@/lib/services/membershipCaps'
 import type { ServiceStore } from '@/lib/types/stores'
+import { isPickupPremium, isSubscribed } from '@/lib/storeBadges'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
 
-const A = '/assets/merchant-detail'
-const INTER = 'font-(family-name:--font-inter)'
-const ICON_BUTTON = 'flex shrink-0 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40'
+/*
+ * Figma "Salon details – Desktop" (1920 frame). Every length is in design px
+ * via `--u` (1px at 1920, proportional at any other width) — see the page.
+ */
 
-function Tag({ icon, label, iconW, iconH }: { icon: string; label: string; iconW: number; iconH: number }) {
+const A = '/assets/merchant-detail'
+const ROUND = 'flex size-[calc(40*var(--u))] shrink-0 items-center justify-center rounded-full bg-[#f4f4f4] text-[#717171] hover:bg-[#ebebeb]'
+
+function Tag({ icon: Icon, label }: { icon: typeof Flame; label: string }) {
   return (
-    <span
-      className='inline-flex items-center border border-[#e4e4e4] bg-white font-medium whitespace-nowrap text-[#5b5a5a]'
-      style={{ height: tMin(24, 20), borderRadius: t(16), padding: `0 ${tMin(10, 7)}`, gap: tMin(4, 3), fontSize: tMin(12, 10) }}
-    >
-      <Image src={`${A}/${icon}`} alt='' width={iconW} height={iconH} style={{ width: tMin(iconW, iconW * 0.8), height: tMin(iconH, iconH * 0.8) }} />
+    <span className='inline-flex h-[calc(26*var(--u))] items-center gap-[calc(5*var(--u))] rounded-full border-[calc(0.7*var(--u))] border-[#dcceb6] bg-white px-[calc(12*var(--u))] text-[calc(12*var(--u))] leading-[calc(16*var(--u))] font-medium whitespace-nowrap text-[#717171]'>
+      <Icon className='size-[calc(12*var(--u))]' />
       {label}
     </span>
   )
@@ -40,29 +44,28 @@ function Actions({ store, bookHref }: { store: ServiceStore; bookHref: string | 
   const showPay = canPayBill(store)
   // "up to" — what a Black member earns here
   const upTo = showPay ? getCashbackPct(store, 'black') : 0
-  const button = { height: tMin(48, 36), fontSize: tMin(16, 13) }
+  const button = 'flex h-[calc(48*var(--u))] w-[calc(200*var(--u))] items-center justify-center rounded-full px-[calc(28*var(--u))] text-[calc(16*var(--u))] leading-[calc(21*var(--u))] font-bold whitespace-nowrap transition-colors'
   if (!bookHref && !showPay) return null
 
   return (
     <>
       {upTo > 0 && (
-        <p className={`flex items-center font-medium text-[#424144] ${INTER}`} style={{ marginTop: tMin(18, 11), gap: tMin(10, 6), fontSize: tMin(15, 12) }}>
+        <p className='flex items-center gap-[calc(16*var(--u))]'>
           {/* the coin's art says "6x": Black's 3% against the free 0.5% */}
-          {upTo === 3 && <Image src={`${A}/earn-coin.png`} alt='' width={47} height={47} className='shrink-0' style={{ width: tMin(36, 24), height: tMin(36, 24) }} />}
-          <span className='min-w-0'>Earn up to <span className='font-semibold text-[#0248f6]'>{upTo}% cashback</span> on bill payment</span>
-          <Link href='/membership' aria-label='How cashback works' className='shrink-0'>
-            <Image src={`${A}/info.svg`} alt='' width={18} height={18} style={{ width: tMin(15, 12), height: tMin(15, 12) }} />
-          </Link>
+          {upTo === 3 && <Image src={`${A}/earn-coin.png`} alt='' width={52} height={52} className='size-[calc(52*var(--u))] shrink-0' />}
+          <span className='min-w-0 text-[calc(18*var(--u))] leading-[calc(23*var(--u))] font-semibold text-[#424144]'>
+            Earn up to <span className='text-[#0248f6]'>{upTo}% cashback</span> on bill payment
+          </span>
         </p>
       )}
-      <div className='flex flex-wrap' style={{ marginTop: tMin(18, 11), gap: tMin(12, 8) }}>
+      <div className='flex gap-[calc(16*var(--u))]'>
         {bookHref && (
-          <Link href={bookHref} className='flex min-w-fit flex-1 items-center justify-center rounded-full border border-[#ff4800] bg-white px-3 font-semibold whitespace-nowrap text-[#ff4800] transition-colors hover:bg-[#fff1eb]' style={button}>
+          <Link href={bookHref} className={cn(button, 'border border-[#ff4800] bg-white text-[#ff4800] hover:bg-[#fff1eb]')}>
             Book a slot
           </Link>
         )}
         {showPay && (
-          <button type='button' onClick={() => setPayInfo(true)} className={`flex min-w-fit flex-1 items-center justify-center rounded-full bg-[#ff4800] px-3 font-semibold whitespace-nowrap text-[#fffbff] transition-colors hover:bg-brand-dark ${INTER}`} style={button}>
+          <button type='button' onClick={() => setPayInfo(true)} className={cn(button, 'bg-[#ff4800] text-white hover:bg-brand-dark')}>
             Pay bill
           </button>
         )}
@@ -80,26 +83,42 @@ function Actions({ store, bookHref }: { store: ServiceStore; bookHref: string | 
   )
 }
 
-/** Top of the salon page on desktop: the photo beside the details and the membership banner. */
+/** "‹ Back" above the hero — Figma: 24/31 SemiBold #FF4800 beside a 40px chevron. */
+export function WellnessBackLink() {
+  const router = useRouter()
+  return (
+    <button
+      type='button'
+      onClick={() => (history.length > 1 ? router.back() : router.push('/wellness'))}
+      className='hidden h-[calc(40*var(--u))] items-center self-start text-[calc(24*var(--u))] leading-[calc(31*var(--u))] font-semibold text-[#ff4800] hover:opacity-80 md:mt-[calc(60*var(--u))] md:ml-[calc(-10*var(--u))] md:flex'
+    >
+      <ChevronLeft className='size-[calc(40*var(--u))]' strokeWidth={1.8} />
+      Back
+    </button>
+  )
+}
+
+/** Top of the salon page on desktop: the photo beside the details and the cashback banner. */
 export function WellnessDesktopHero({
   store,
   address,
   hours,
   bookHref,
-  offerZone,
   offerPct,
   caps,
+  chips = [],
 }: {
   store: ServiceStore
   address: string
   hours: HoursRow[]
   bookHref: string | null
-  offerZone: boolean
   offerPct: number
   caps: DiscountCaps
+  chips?: CardChipKey[]
 }) {
   const { openAt } = useGallery()
   const { location } = useLocation()
+  const router = useRouter()
   const saver = useSaveMerchant(store.id, 'STORE')
   const [copied, setCopied] = useState(false)
   const [showAddress, setShowAddress] = useState(false)
@@ -112,86 +131,115 @@ export function WellnessDesktopHero({
   const subtitle = [store.category, store.subcategory].filter(Boolean).join(' • ')
   const place = [distance, areaLabel(store.location_name, store.city)].filter(Boolean).join(' • ')
   const logo = store.logo_url ?? store.cover_image
-  const round = { width: tMin(31.73, 26), height: tMin(30.8, 25) }
-  const iconSize = { width: tMin(22, 17), height: tMin(22, 17) }
-  const iconBox = { width: tMin(44, 34), height: tMin(44, 34) }
+  const trending = store.is_advertised === true
+  const exclusiveZone = isPickupPremium(store)
+  // the same "Exclusive" tag this salon's card shows
+  const exclusive = isSubscribed(store)
 
   return (
-    <section className='hidden font-(family-name:--font-dm-sans) md:block lg:grid lg:grid-cols-[minmax(0,973fr)_minmax(0,565fr)]' style={{ paddingTop: t(40), columnGap: u(27) }}>
-      <div className='relative overflow-hidden bg-[#f1f1f1]' style={{ minHeight: u(476), borderRadius: t(18) }}>
+    <section className='hidden grid-cols-[minmax(0,980fr)_minmax(0,568fr)] gap-x-[calc(28*var(--u))] pt-[calc(24*var(--u))] font-(family-name:--font-dm-sans) md:grid'>
+      {/* Salon photograph — 980×480, 18 radius, actions in a 24px-padded row */}
+      <div className='relative min-h-[calc(480*var(--u))] overflow-hidden rounded-[calc(18*var(--u))] bg-[#f1f1f1]'>
         <button type='button' onClick={() => openAt(0)} aria-label={`View photos of ${name}`} className='group absolute inset-0'>
-          {store.cover_image && <Image src={store.cover_image} alt={name} fill priority sizes='(min-width: 1024px) 55vw, 90vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.02]' />}
+          {store.cover_image && <Image src={store.cover_image} alt={name} fill priority sizes='52vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.02]' />}
         </button>
-        <div className='absolute flex' style={{ top: tMin(24, 12), right: tMin(24, 12), gap: tMin(12, 8) }}>
-          <button type='button' onClick={saver.onSave} aria-label={saver.saved ? 'Edit saved lists' : 'Save'} aria-pressed={saver.saved} className={ICON_BUTTON} style={iconBox}>
-            <Heart className={cn(saver.saved && 'fill-brand text-brand')} style={iconSize} />
-          </button>
+        <div className='pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-[calc(24*var(--u))]'>
           <button
             type='button'
-            onClick={async () => { if (await shareLink(name)) { setCopied(true); setTimeout(() => setCopied(false), 2000) } }}
-            aria-label={copied ? 'Link copied' : 'Share'}
-            className={ICON_BUTTON}
-            style={iconBox}
+            onClick={() => (history.length > 1 ? router.back() : router.push('/wellness'))}
+            aria-label='Back'
+            className='pointer-events-auto flex size-[calc(44*var(--u))] items-center justify-center rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]'
           >
-            {copied ? <Check style={iconSize} /> : <Share2 style={iconSize} />}
+            <ChevronLeft className='size-[calc(24*var(--u))]' strokeWidth={2} />
           </button>
+          <div className='pointer-events-auto flex items-center gap-[calc(12*var(--u))]'>
+            <button
+              type='button'
+              onClick={saver.onSave}
+              aria-label={saver.saved ? 'Edit saved lists' : 'Save'}
+              aria-pressed={saver.saved}
+              className='flex size-[calc(40*var(--u))] items-center justify-center rounded-[calc(20*var(--u))] bg-[rgba(217,217,217,0.1)] text-white'
+            >
+              <Heart className={cn('size-[calc(22*var(--u))]', saver.saved && 'fill-brand text-brand')} strokeWidth={1.4} />
+            </button>
+            <button
+              type='button'
+              onClick={async () => { if (await shareLink(name)) { setCopied(true); setTimeout(() => setCopied(false), 2000) } }}
+              aria-label={copied ? 'Link copied' : 'Share'}
+              className='flex size-[calc(40*var(--u))] items-center justify-center rounded-full bg-white/20 text-white'
+            >
+              {copied ? <Check className='size-[calc(18*var(--u))]' strokeWidth={1.4} /> : <Share className='size-[calc(18*var(--u))]' strokeWidth={1.4} />}
+            </button>
+          </div>
         </div>
         {saver.sheet(name)}
       </div>
 
-      <div className='flex min-w-0 flex-col max-lg:mt-4' style={{ gap: tMin(24, 14) }}>
-        <div className='flex-1 bg-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.1)]' style={{ padding: tMin(26, 14), borderRadius: t(18) }}>
-          <div className='flex items-start' style={{ gap: tMin(18, 11) }}>
+      {/* Salon information and reward — 568 wide, 20 apart */}
+      <div className='flex min-w-0 flex-col gap-[calc(20*var(--u))]'>
+        <div className='flex flex-1 flex-col gap-[calc(12*var(--u))] rounded-[calc(18*var(--u))] bg-white px-[calc(28*var(--u))] pt-[calc(28*var(--u))] pb-[calc(14*var(--u))] shadow-[0_calc(4*var(--u))_calc(24*var(--u))_rgba(0,0,0,0.05)]'>
+          <div className='flex items-center gap-[calc(18*var(--u))]'>
             {logo && (
-              <span className='relative shrink-0 overflow-hidden bg-gray-100' style={{ width: tMin(83, 52), height: tMin(83, 52), borderRadius: t(14) }}>
-                <Image src={logo} alt='' fill sizes='83px' className='object-cover' />
+              <span className='relative h-[calc(88*var(--u))] w-[calc(82*var(--u))] shrink-0 overflow-hidden rounded-[calc(16*var(--u))] bg-gray-100'>
+                <Image src={logo} alt='' fill sizes='82px' className='object-cover' />
               </span>
             )}
-            <div className='min-w-0'>
-              <h1 className='font-bold wrap-break-word text-[#2c2d32]' style={{ fontSize: tMin(30, 20), lineHeight: 1.3, letterSpacing: t(-0.5) }}>{name}</h1>
-              {subtitle && <p className='font-medium wrap-break-word text-[#5b5a5a]' style={{ marginTop: t(2), fontSize: tMin(14, 12), lineHeight: 1.43 }}>{subtitle}</p>}
+            <div className='flex min-w-0 flex-1 flex-col gap-[calc(8*var(--u))]'>
+              <h1 className='text-[calc(30*var(--u))] leading-[calc(39*var(--u))] font-bold tracking-[calc(-0.7*var(--u))] wrap-break-word text-[#2c2d32]'>{name}</h1>
+              {subtitle && <p className='text-[calc(14*var(--u))] leading-[calc(20*var(--u))] font-medium wrap-break-word text-[#717171]'>{subtitle}</p>}
               {place && (
                 <button
                   type='button'
                   onClick={() => setShowAddress(v => !v)}
                   aria-expanded={showAddress}
                   disabled={!address}
-                  className='flex items-center text-left font-medium text-[#777]'
-                  style={{ marginTop: tMin(4, 2), gap: tMin(8, 6), fontSize: tMin(14, 12), lineHeight: 1.43 }}
+                  className='flex items-center gap-[calc(8*var(--u))] text-left text-[calc(14*var(--u))] leading-[calc(20*var(--u))] font-medium text-[#9b969d]'
                 >
                   <span className='min-w-0 wrap-break-word'>{place}</span>
-                  {address && <ChevronDown className={cn('shrink-0 text-[#ff4800] transition-transform', showAddress && 'rotate-180')} style={{ width: tMin(16, 13), height: tMin(16, 13) }} />}
+                  {address && <ChevronDown className={cn('size-[calc(14*var(--u))] shrink-0 text-[#ff4800] transition-transform', !showAddress && '-rotate-90')} strokeWidth={2.4} />}
                 </button>
               )}
-              {showAddress && address && <p className='wrap-break-word text-[#767677]' style={{ marginTop: t(4), fontSize: tMin(14, 12) }}>{address}</p>}
+              {showAddress && address && <p className='text-[calc(14*var(--u))] leading-[calc(20*var(--u))] wrap-break-word text-[#767677]'>{address}</p>}
             </div>
           </div>
 
-          <div className='flex flex-wrap items-center' style={{ marginTop: tMin(16, 10), columnGap: tMin(12, 8), rowGap: tMin(8, 6) }}>
-            <OpeningHoursPill hours={hours} variant='figma' />
+          <div className='flex flex-wrap items-center gap-[calc(8*var(--u))]'>
+            <OpeningHoursPill hours={hours} variant='wellness' />
             {(address || (lat != null && lng != null)) && (
-              <a href={directionsUrl(lat, lng, address)} target='_blank' rel='noreferrer' aria-label='Get directions' className='shrink-0 hover:opacity-80' style={round}>
-                <Image src={`${A}/Direction.webp`} alt='' width={64} height={62} className='size-full' />
+              <a href={directionsUrl(lat, lng, address)} target='_blank' rel='noreferrer' aria-label='Get directions' className={ROUND}>
+                <Signpost className='size-[calc(18*var(--u))]' strokeWidth={1.3} />
               </a>
             )}
             {phone && (
-              <a href={`tel:${phone}`} aria-label={`Call ${name}`} className='shrink-0 hover:opacity-80' style={round}>
-                <Image src={`${A}/Call.webp`} alt='' width={64} height={62} className='size-full' />
+              <a href={`tel:${phone}`} aria-label={`Call ${name}`} className={ROUND}>
+                <Phone className='size-[calc(18*var(--u))]' strokeWidth={1.3} />
               </a>
             )}
           </div>
 
-          {(store.is_promoted || offerZone) && (
-            <div className='flex flex-wrap items-center' style={{ marginTop: tMin(14, 9), gap: tMin(10, 6) }}>
-              {store.is_promoted && <Tag icon='tag-trending.svg' label='Trending' iconW={8.13} iconH={11} />}
-              {offerZone && <Tag icon='tag-exclusive.svg' label='Exclusive Zone' iconW={10.98} iconH={9.61} />}
+          {/* app parity: ServiceStoreDetails.jsx MerchantInfoCard pills */}
+          {(trending || exclusive || exclusiveZone) && (
+            <div className='flex flex-wrap items-center gap-[calc(8*var(--u))]'>
+              {trending && <Tag icon={Flame} label='Trending' />}
+              {exclusive && <Tag icon={Gem} label='Exclusive' />}
+              {exclusiveZone && <Tag icon={Gem} label='Exclusive Zone' />}
             </div>
           )}
+          {/* app parity: MerchantInfoCard.jsx CardChips */}
+          <CardChips chips={chips} height='calc(21*var(--u))' className='gap-[calc(6*var(--u))]' />
 
-          <Actions store={store} bookHref={bookHref} />
+          {/*
+            pinned to the card's foot: the card stretches to the photo's 480 when
+            the cashback banner below isn't showing (Black members, no cashback),
+            so the gap opens above the actions instead of under them
+          */}
+          <div className='mt-auto flex flex-col gap-[calc(12*var(--u))]'>
+            <Actions store={store} bookHref={bookHref} />
+          </div>
         </div>
 
         <UpsellBannerPager
+          eligible={isCashbackEnabled(store)}
           merchantType={store.merchant_type}
           merchantId={store.id}
           kind='store'

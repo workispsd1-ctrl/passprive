@@ -1,7 +1,5 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { HeaderActions } from './HeaderActions'
 import { HeaderHeroNav } from './HeaderHeroNav'
@@ -71,13 +69,7 @@ export function MobileHeaderClient({ user, banners, wellnessBanners, touristBann
   return (
     <div className={cn(isHome ? 'bg-brand' : 'border-b border-gray-100 bg-white')}>
       <div className='flex items-center justify-between px-4 pt-3 pb-1'>
-        {minimal ? (
-          <Link href='/' aria-label='PassPrive home'>
-            <Image src='/assets/brand/passprive-logo-orange.png' alt='PassPrive' width={218} height={52} className='h-5.5 w-auto object-contain' priority />
-          </Link>
-        ) : (
-          <LocationButton variant='mobile' theme={isHome ? 'light' : 'default'} />
-        )}
+        <LocationButton variant='mobile' theme={isHome ? 'light' : 'default'} />
         <HeaderActions user={user} />
       </div>
 
