@@ -9,13 +9,14 @@ import {
   PhotoStrip,
 } from '@/components/sections/dining/PhotoGalleryClient';
 import { RestaurantMenuSection } from '@/components/sections/dining/RestaurantMenuSection';
-import { MerchantRewardsSection } from '@/components/shared/MerchantRewardsSection';
 import { DetailSectionTabs, type DetailTab } from '@/components/shared/detail/DetailSectionTabs';
 import { CtaMobileBar, type CtaAction } from '@/components/shared/detail/DetailCtaBar';
 import { OffersForToday, type OfferBody } from '@/components/shared/detail/OffersForToday';
 import { RestaurantCtaCard, RestaurantDesktopHero, RestaurantTitleCard } from '@/components/sections/dining/RestaurantDesktopHero';
 import { RestaurantDesktopSections } from '@/components/sections/dining/RestaurantDesktopSections';
-import { HelpSideCard, SavingsReceipt, StampSideCard } from '@/components/sections/dining/RestaurantSidebar';
+import { HelpSideCard, SampleBillCard, StampSideCard } from '@/components/sections/dining/RestaurantSidebar';
+import { RestaurantRewards } from '@/components/sections/dining/RestaurantRewards';
+import { DealQuotaGauge } from '@/components/shared/deals/DealQuotaGauge';
 import { getRestaurantStampCard } from '@/lib/services/visitRewards';
 import { billOffers, type RestaurantOfferRow } from '@/lib/payBill';
 import { DetailReviews } from '@/components/shared/detail/DetailReviews';
@@ -23,8 +24,9 @@ import { DetailAbout, type Fact } from '@/components/shared/detail/DetailAbout';
 import { DetailLocation } from '@/components/shared/detail/DetailLocation';
 import { HelpCard } from '@/components/shared/detail/HelpCard';
 import { MobileTitleCard } from '@/components/shared/detail/MobileTitleCard';
-import { UpsellBannerPager } from '@/components/shared/detail/UpsellBannerPager';
 import { getDiscountCaps } from '@/lib/services/membershipCaps';
+import { getOffersTableRows } from '@/lib/services/billOffersTable';
+import { getRestaurantDealRows } from '@/lib/services/merchantDeals';
 import { canPayBill } from '@/lib/cashback';
 import { OrderCollectBanner } from '@/components/sections/dining/order/OrderCollectBanner';
 import { cn } from '@/lib/utils';
@@ -99,8 +101,13 @@ export default async function RestaurantPage({
   const [{ restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages, allHours }, caps] =
     await Promise.all([fetchRestaurant(id), getDiscountCaps()]);
   if (!restaurant) notFound();
-  const [orderCollect, stampCard] = await Promise.all([getOrderCollect(restaurant.id), getRestaurantStampCard(restaurant.id)]);
-  const printedAt = new Date().toLocaleString('en-US', { timeZone: 'Indian/Mauritius', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const [orderCollect, stampCard, offersTable, dealRows] = await Promise.all([
+    getOrderCollect(restaurant.id),
+    getRestaurantStampCard(restaurant.id),
+    // the sample bill's offers + deals — the same sources pay-bill and the app's SampleBill use
+    getOffersTableRows(),
+    getRestaurantDealRows(restaurant.id),
+  ]);
 
   const tagsOf = (type: string) => tags.filter((t) => t.tag_type === type).map((t) => t.tag_value);
   const cuisineTags = tagsOf('cuisine');
@@ -129,7 +136,6 @@ export default async function RestaurantPage({
   const tabs = [
     // the tab drops out on its own when the section isn't on the page
     { id: 'offers', label: 'Offers' },
-    { id: 'deals', label: 'Deals' },
     hasMenu && { id: 'menu', label: 'Menu' },
     galleryPhotos.length > 1 && { id: 'gallery', label: 'Photos' },
     { id: 'reviews', label: 'Reviews' },
@@ -155,6 +161,16 @@ export default async function RestaurantPage({
   const payHref = canPayBill(restaurant)
     ? `/pay-bill?restaurant_id=${restaurant.id}&restaurant_name=${encodeURIComponent(restaurant.name)}`
     : null;
+  // app parity: SampleBill — the restaurant's offers and tier deals on its cost for two
+  const sampleBill = {
+    costForTwo: restaurant.cost_for_two,
+    offers: billOffers(restaurant.id, offers as RestaurantOfferRow[], offersTable),
+    caps,
+    merchant: restaurant,
+    payHref,
+    bookHref,
+    dealRows,
+  };
   const stampSheet = tagsOf('mood').some((m) => m.toLowerCase().includes('stamp'));
   const exclusive = String(restaurant.merchant_type ?? '').toLowerCase() === 'preferred';
   // the first section after the tabs sits right under them (no divider)
@@ -188,6 +204,7 @@ export default async function RestaurantPage({
           >
           <div className='contents md:block md:min-w-0'>
           <RestaurantTitleCard
+            id={restaurant.id}
             chips={chips}
             name={restaurant.name}
             cuisines={cuisineTags}
@@ -221,6 +238,7 @@ export default async function RestaurantPage({
             hours={allHours}
             trending={restaurant.is_advertised}
             offerZone={exclusiveOffers.length > 0}
+            gauge={<DealQuotaGauge restaurantId={restaurant.id} className='ml-2.5 w-18 text-[10px]' />}
           />
 
           {/* phones follow the app (deals → banners → tabs → sections); desktop reads top-down */}
@@ -234,6 +252,8 @@ export default async function RestaurantPage({
           />
           <div className={`max-md:order-3 md:hidden ${firstUnderTabs}`}>
             <OffersForToday restaurantOffers={exclusiveOffers} bankOffers={bankOffers} merchant={restaurant} />
+            {/* app parity: SampleBill sits right after the offers */}
+            <SampleBillCard {...sampleBill} className='mt-6' />
           </div>
           {orderCollect.items.length > 0 && (
             <OrderCollectBanner
@@ -243,16 +263,8 @@ export default async function RestaurantPage({
               className='mt-4 max-md:order-1 md:hidden'
             />
           )}
-          {/* phones: the app's deals stack; desktop draws Deals & cashback as offer cards in RestaurantDesktopSections */}
-          <MerchantRewardsSection merchant={restaurant} kind='restaurant' name={restaurant.name} className='max-md:order-1 md:hidden' />
-          <UpsellBannerPager
-            merchantType={restaurant.merchant_type}
-            merchantId={restaurant.id}
-            kind='restaurant'
-            offerPct={offerPct}
-            caps={caps}
-            className='mt-4 max-md:order-1 md:hidden'
-          />
+          {/* phones: the app's deals → "+ Additional" → cashback row, straight under the title card */}
+          <RestaurantRewards merchant={restaurant} name={restaurant.name} offerPct={offerPct} caps={caps} className='mt-5 max-md:order-1 md:hidden' />
           <RestaurantDesktopSections
             restaurantId={restaurant.id}
             slug={slug}
@@ -303,13 +315,8 @@ export default async function RestaurantPage({
 
           <aside className='hidden flex-col font-(family-name:--font-dm-sans) md:flex lg:mt-[calc(24*var(--t))]' style={{ gap: tMin(24, 14), paddingBottom: t(90) }}>
             <RestaurantCtaCard merchant={restaurant} bookHref={bookHref} payHref={payHref} className='hidden lg:block' />
-            <UpsellBannerPager
-              merchantType={restaurant.merchant_type}
-              merchantId={restaurant.id}
-              kind='restaurant'
-              offerPct={offerPct}
-              caps={caps}
-            />
+            {/* Figma "Restaurant details": reveal tickets, "+ Additional", receipt cashback */}
+            <RestaurantRewards merchant={restaurant} name={restaurant.name} offerPct={offerPct} caps={caps} />
             {orderCollect.items.length > 0 && (
               <OrderCollectBanner href={`/dining/${slug}/order`} orderEnabled={orderCollect.enabled} count={orderCollect.items.length} />
             )}
@@ -321,14 +328,7 @@ export default async function RestaurantPage({
                 total={stampCard.total}
               />
             )}
-            <SavingsReceipt
-              costForTwo={restaurant.cost_for_two}
-              offers={billOffers(restaurant.id, offers as RestaurantOfferRow[], [])}
-              caps={caps}
-              merchant={restaurant}
-              printedAt={printedAt}
-              calculateHref={payHref}
-            />
+            <SampleBillCard {...sampleBill} />
             <HelpSideCard />
           </aside>
           </div>

@@ -9,26 +9,24 @@ import { t, tMin } from './designUnit'
 export function OfferCard({
   children,
   className,
-  compact = false,
   as: Tag = 'div',
   ...rest
 }: {
   children: React.ReactNode
   className?: string
-  /** badge-headed cards: 20px top/bottom padding, 12 gap (the frame's cashback card) */
-  compact?: boolean
   as?: 'div' | 'button'
 } & React.ButtonHTMLAttributes<HTMLElement>) {
   return (
     <Tag
       data-offer-card
       {...rest}
-      className={cn('relative flex w-full min-w-0 flex-col bg-white text-left drop-shadow-[0_0_20px_rgba(0,0,0,0.08)]', className)}
+      // css.txt "Offers for today" card: 360×170, padding 20, gap 14.16, radius 18.88, 0 0 23.6px rgba(0,0,0,.08)
+      className={cn('relative flex w-full min-w-0 flex-col bg-white text-left shadow-[0_0_calc(23.6*var(--t))_rgba(0,0,0,0.08)]', className)}
       style={{
         minHeight: tMin(170, 112),
-        padding: tMin(22, 13),
-        gap: tMin(compact ? 10 : 16, 8),
-        borderRadius: t(24),
+        padding: tMin(20, 13),
+        gap: tMin(14.16, 8),
+        borderRadius: t(18.88),
         ...rest.style,
       }}
     >
@@ -40,22 +38,22 @@ export function OfferCard({
 /** Card head — icon + 24 Bold uppercase label on the left, `aside` (dots, an action) on the right. */
 export function OfferHead({ icon, label, color, aside }: { icon: React.ReactNode; label: string; color: string; aside?: React.ReactNode }) {
   return (
-    <div className='flex items-center justify-between' style={{ gap: t(12), minHeight: t(26) }}>
-      <span className='flex min-w-0 items-center uppercase' style={{ gap: t(10) }}>
+    <div className='flex items-center justify-between' style={{ gap: t(12), minHeight: t(18.84) }}>
+      <span className='flex min-w-0 items-center uppercase' style={{ gap: t(9.44) }}>
         {icon}
-        <span className='truncate font-bold' style={{ fontSize: tMin(14, 11), color }}>{label}</span>
+        <span className='truncate font-bold' style={{ fontSize: tMin(14.16, 11), lineHeight: tMin(18, 14), color }}>{label}</span>
       </span>
       {aside}
     </div>
   )
 }
 
-/** Headline 36 Bold #111 over a 26 #767677 line. */
+/** css.txt: headline 21.24/28 Bold over a 15.34/20 Regular line, 4.72 apart. */
 export function OfferText({ main, sub, className }: { main: React.ReactNode; sub?: React.ReactNode; className?: string }) {
   return (
-    <span className={cn('flex min-w-0 flex-col whitespace-nowrap', className)} style={{ gap: t(8) }}>
-      <span className='max-w-full truncate font-bold text-[#111]' style={{ fontSize: tMin(23, 15) }}>{main}</span>
-      {sub && <span className='max-w-full truncate text-[#767677]' style={{ fontSize: tMin(15, 12) }}>{sub}</span>}
+    <span className={cn('flex min-w-0 flex-col whitespace-nowrap', className)} style={{ gap: t(4.72) }}>
+      <span className='max-w-full truncate font-bold text-[#111]' style={{ fontSize: tMin(21.24, 15), lineHeight: tMin(28, 20) }}>{main}</span>
+      {sub && <span className='max-w-full truncate text-[#767677]' style={{ fontSize: tMin(15.34, 12), lineHeight: tMin(20, 16) }}>{sub}</span>}
     </span>
   )
 }

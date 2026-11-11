@@ -48,5 +48,13 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, saved: !!add })
+  // whether the entity is still in any list (drives the heart elsewhere)
+  const { data: rest } = await supabase
+    .from(ITEMS_TABLE)
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('entity_id', entityId)
+    .limit(1)
+
+  return NextResponse.json({ ok: true, saved: !!add, savedAnywhere: !!rest?.length })
 }

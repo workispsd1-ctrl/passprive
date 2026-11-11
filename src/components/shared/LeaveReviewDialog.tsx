@@ -120,11 +120,12 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
         <button
           type="button"
           onClick={() => start('images')}
-          className={cn('flex items-center justify-between border border-[#d5d5d5] bg-white font-medium text-[#252427] hover:bg-gray-50', className)}
-          style={{ width: tMin(300, 180), height: tMin(44, 34), borderRadius: t(24), padding: `0 ${tMin(16, 12)}`, gap: 8, fontSize: tMin(14, 12) }}
+          // css.txt "Group 2085664820": 300×43.75, 1.25 #E5E5E5, radius 24.62, 14.22/20 regular
+          className={cn('flex items-center justify-between border-solid border-[#e5e5e5] bg-white text-[#252427] hover:bg-gray-50', className)}
+          style={{ width: tMin(300, 180), height: tMin(43.75, 34), borderWidth: 1.25, borderRadius: t(24.62), padding: `0 ${tMin(12, 10)} 0 ${tMin(17.5, 12)}`, gap: 8, fontSize: tMin(14.22, 12), lineHeight: tMin(20, 16) }}
         >
-          <span className="flex items-center" style={{ gap: tMin(10, 8) }}>
-            <ImageIcon className="shrink-0 text-[#6B686D]" style={{ width: tMin(18, 14), height: tMin(18, 14) }} /> Add image
+          <span className="flex items-center" style={{ gap: tMin(9.5, 8) }}>
+            <ImageIcon className="shrink-0 text-[#6B686D]" strokeWidth={1.5} style={{ width: tMin(21, 14), height: tMin(21, 14) }} /> Add image
           </span>
           <ChevronRight className="shrink-0 text-[#666]" style={{ width: tMin(18, 14), height: tMin(18, 14) }} />
         </button>
@@ -133,10 +134,11 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
         <button
           type="button"
           onClick={() => start()}
+          // css.txt "Group 2085664795": 320×44, 1.25 #E5E5E5, radius 24.62; the 30.73×30 #E5E5E5 pencil disc; 14.22/20 regular
           className={cn('flex items-center border-solid border-[#e5e5e5] bg-white text-left text-[#252427] transition-colors hover:border-[#cfcfcf]', className)}
-          style={{ width: tMin(320, 200), height: tMin(44, 36), borderWidth: 1, borderRadius: t(24), paddingLeft: tMin(6, 4), paddingRight: tMin(16, 12), gap: tMin(10, 8), fontSize: tMin(14, 12) }}
+          style={{ width: tMin(320, 200), height: tMin(44, 36), borderWidth: 1.25, borderRadius: t(24.62), paddingLeft: tMin(8.75, 4), paddingRight: tMin(17, 12), gap: tMin(11.5, 8), fontSize: tMin(14.22, 12), lineHeight: tMin(20, 16) }}
         >
-          <span className="flex shrink-0 items-center justify-center rounded-full bg-[#e5e5e5]" style={{ width: tMin(32, 26), height: tMin(32, 26) }}>
+          <span className="flex shrink-0 items-center justify-center rounded-full bg-[#e5e5e5]" style={{ width: tMin(30.73, 26), height: tMin(30, 25) }}>
             <Image src="/assets/merchant-detail/pencil.svg" alt="" width={24} height={24} style={{ width: tMin(16, 13), height: tMin(16, 13) }} />
           </span>
           <span className="flex-1">Leave a review</span>

@@ -1,19 +1,21 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Roboto_Mono } from 'next/font/google'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check, ChevronRight, Tag } from 'lucide-react'
 import { useUserPlan } from '@/lib/context/PlanContext'
-import { getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
-import { applyOffers, fmtMur, primaryOffer, shareOffer, type BillOffer } from '@/lib/payBill'
+import type { MerchantCapabilityFields } from '@/lib/cashback'
+import type { BillOffer } from '@/lib/payBill'
+import { computeSampleBill, sampleBase } from '@/lib/sampleBill'
+import { cn } from '@/lib/utils'
 import type { DiscountCaps } from '@/lib/services/membershipCaps'
+import type { RestaurantDeal } from '@/lib/deals'
 import { stampColor } from '@/lib/stamps'
+import { SampleBillDialog } from './sampleBill/SampleBillDialog'
 import { t, tMin } from './designUnit'
 
 const CARD = 'relative bg-white drop-shadow-[0_8px_23.8px_rgba(0,0,0,0.1)]'
-const receiptFont = Roboto_Mono({ subsets: ['latin'], display: 'swap' })
-const DASHED = 'border-t border-dashed border-[#C9D6FF]'
 
 /** "Collect stamps here" — how far the member is, linking to the stamp card. */
 export function StampSideCard({ href, image, visits, total }: { href: string; image: string | null; visits: number; total: number }) {
@@ -48,97 +50,134 @@ export function StampSideCard({ href, image, visits, total }: { href: string; im
   )
 }
 
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+const money = (n: number) => `MUR ${Math.round(Number(n) || 0).toLocaleString('en-US')}`
+
+/** app parity: SampleBill.jsx savingsLine */
+function savingsLine(bill: { saved: number; credits: number }) {
+  if (bill.saved > 0 && bill.credits > 0) return `${money(bill.saved)} + get ${bill.credits} Privé Credits`
+  if (bill.saved > 0) return money(bill.saved)
+  return `${bill.credits} Privé Credits`
+}
+
+/** The ticket's scalloped edge — a row of white bites (app: Scallops, 12px). */
+function Scallops({ edge }: { edge: 'top' | 'bottom' }) {
   return (
-    <div className='flex justify-between' style={{ gap: tMin(14, 10) }}>
-      <span className='min-w-0'>{label}</span>
-      <span className={strong ? 'shrink-0 text-right font-bold text-[#1A1A1A]' : 'shrink-0 text-right'}>{value}</span>
-    </div>
+    <span
+      aria-hidden='true'
+      className='pointer-events-none absolute inset-x-0 h-3'
+      style={{
+        [edge]: -6,
+        backgroundImage: 'radial-gradient(circle, #fff 5.5px, transparent 6px)',
+        backgroundSize: '12.4px 12px',
+        backgroundRepeat: 'repeat-x',
+        backgroundPosition: 'center',
+      }}
+    />
   )
 }
 
 /**
- * "This is how much you could save" — an estimate for this restaurant's cost
- * for two, with the member's share of its offer and their cashback rate, worked
- * out the way the bill summary does. Hidden when there's nothing to show.
+ * "Sample Bill" — app parity: SampleBill.jsx (the inline ticket: estimated
+ * bill for 2 guests, what you pay, "Save up to" and "Calculate savings on any
+ * bill amount", which opens the full sample bill). Only where bills can be
+ * paid (app: showPayBillCta); hidden when there's nothing to save or earn.
  */
-export function SavingsReceipt({
-  costForTwo,
+export function SampleBillCard({
+  costForTwo: listedCost,
   offers,
   caps,
   merchant,
-  printedAt,
-  calculateHref,
+  payHref,
+  bookHref,
+  dealRows,
+  className,
 }: {
   costForTwo: number | null
   offers: BillOffer[]
   caps: DiscountCaps
   merchant: MerchantCapabilityFields
-  printedAt: string
-  calculateHref: string | null
+  payHref: string | null
+  bookHref: string | null
+  dealRows: RestaurantDeal[]
+  className?: string
 }) {
   const plan = useUserPlan()
-  if (!costForTwo || costForTwo <= 0 || !calculateHref) return null
-  const offer = primaryOffer(offers.filter(o => o.source === 'MERCHANT'))
-  const shared = offer ? shareOffer(offer, caps[plan]) : null
-  const discount = shared ? applyOffers(costForTwo, [shared]).discount : 0
-  const toPay = Math.max(0, costForTwo - discount)
-  const pct = getCashbackPct(merchant, plan)
-  const cashback = Math.round(toPay * pct) / 100
-  if (discount <= 0 && cashback <= 0) return null
-  const total = [discount > 0 ? `MUR ${fmtMur(discount)}` : null, cashback > 0 ? `${fmtMur(cashback)} Privé credits` : null].filter(Boolean).join(' + ')
+  const [billOpen, setBillOpen] = useState(false)
+  // app: listedCost falls back to 2000 when the restaurant has none
+  const cost = listedCost && listedCost > 0 ? listedCost : 2000
+  const subtotal = sampleBase(cost, offers.filter(o => o.source === 'MERCHANT'))
+  const bill = useMemo(
+    () => computeSampleBill({ subtotal, merchant, offers, dealRows, plan, caps }),
+    [subtotal, merchant, offers, dealRows, plan, caps],
+  )
+  if (!payHref || (bill.saved <= 0 && bill.credits <= 0)) return null
 
   return (
-    <section className='flex flex-col items-center'>
-      <h2 className='text-center text-[#5b5a5a]' style={{ fontSize: tMin(15, 13) }}>This is how much you could save</h2>
-      {/* the blank paper artwork, stretched through its middle so the scalloped edge keeps its shape;
-          its shadow falls to the left, so the box is pulled over to centre the paper itself */}
-      <div
-        className={`${receiptFont.className} flex w-full flex-col text-[#4B5A8C]`}
-        style={{
-          boxSizing: 'content-box',
-          width: `calc(100% - ${t(34)})`,
-          marginTop: tMin(10, 6),
-          marginLeft: t(-35),
-          marginBottom: t(-30),
-          borderStyle: 'solid',
-          borderWidth: `${t(20)} ${t(17)} ${t(66)} ${t(52)}`,
-          borderImage: "url('/assets/merchant-detail/receipt-paper.webp') 40 34 132 104 fill / 1 / 0 stretch",
-          borderImageWidth: `${t(20)} ${t(17)} ${t(66)} ${t(52)}`,
-          fontSize: tMin(13, 11),
-          lineHeight: 1.45,
-        }}
-      >
-        <div className='flex flex-col' style={{ padding: `${tMin(14, 10)} ${tMin(14, 8)} 0` }}>
-          <p className='text-center'>{printedAt}</p>
-          <div style={{ marginTop: tMin(20, 12) }}><Row label='Estimated amount (2 guests)' value={`MUR ${fmtMur(costForTwo)}`} /></div>
-          {discount > 0 && shared && (
-            <div className={DASHED} style={{ marginTop: tMin(12, 8), paddingTop: tMin(12, 8) }}>
-              <Row label={shared.benefitType === 'percent' ? `${Number(shared.value.toFixed(1))}% off, your share` : 'Restaurant offer'} value={`-${fmtMur(discount)}`} />
-            </div>
-          )}
-          <div className={DASHED} style={{ marginTop: tMin(12, 8), paddingTop: tMin(12, 8) }}><Row label='Amount to pay' value={`MUR ${fmtMur(toPay)}`} /></div>
-          {cashback > 0 && (
-            <div className={DASHED} style={{ marginTop: tMin(12, 8), paddingTop: tMin(12, 8) }}><Row label={`Cashback* received (${pct}%)`} value={`MUR ${fmtMur(cashback)}`} /></div>
-          )}
-          <div className={DASHED} style={{ marginTop: tMin(12, 8), paddingTop: tMin(12, 8) }}><Row label='Total savings' value={total} strong /></div>
-          {cashback > 0 && <p style={{ marginTop: tMin(20, 12) }}>*Cashback will be added as Privé credits. 1 credit = MUR 1</p>}
+    // phones: the app's fixed sizes; md+: the design scale (--t), floored for laptops
+    <section className={cn('flex flex-col gap-3 font-(family-name:--font-dm-sans) text-[14px] md:text-[length:max(12px,calc(14*var(--t)))]', className)}>
+      {/* css.txt "Sample Bill": 16/22 Regular */}
+      <h2 className='text-center text-[16px] leading-[1.375] text-[#2c2d32] md:text-[length:max(13px,calc(16*var(--t)))]'>Sample Bill</h2>
+      <div className='relative overflow-hidden bg-[#FFF3EC] text-[#1C1C1E]'>
+        <Scallops edge='top' />
+        <div className='flex flex-col gap-3 px-4 pt-5.5 pb-3.5 md:px-[max(10px,calc(16*var(--t)))]'>
+          <div className='flex items-center justify-between gap-3'>
+            <span className='min-w-0'>Estimated bill for 2 guests</span>
+            <span className='shrink-0 font-medium'>{money(bill.subtotal)}</span>
+          </div>
+          <div className='flex items-center justify-between gap-3'>
+            <span className='min-w-0'>You pay</span>
+            <span className='shrink-0 font-medium'>{money(bill.youPay)}</span>
+          </div>
+          <span className='h-px bg-black/8' />
+          <div className='flex items-center justify-between gap-3'>
+            <span className='flex shrink-0 items-center gap-2 font-medium whitespace-nowrap text-[#FF6A30]'>
+              <Tag className='size-4 shrink-0 fill-[#FF6A30]' />
+              {bill.saved > 0 ? 'Save up to' : 'Earn'}
+            </span>
+            <span className='min-w-0 rounded bg-[#FF6A30] px-2 py-1 text-right text-[13px] font-bold text-white md:text-[length:max(11px,calc(13*var(--t)))]'>{savingsLine(bill)}</span>
+          </div>
         </div>
+        <button
+          type='button'
+          onClick={() => setBillOpen(true)}
+          className='flex w-full items-center justify-center gap-1.5 bg-[#FFE6D9] pt-3 pb-4.5 font-bold transition-colors hover:bg-[#FFDCCB]'
+        >
+          Calculate savings on any bill amount
+          <ChevronRight className='size-4 shrink-0' strokeWidth={2.5} />
+        </button>
+        <Scallops edge='bottom' />
       </div>
-      <Link href={calculateHref} className='flex w-full items-center justify-between border border-[#d5d5d5] bg-white font-medium text-[#252427] hover:bg-gray-50' style={{ marginTop: tMin(18, 10), minHeight: tMin(44, 36), borderRadius: t(24), padding: `0 ${tMin(18, 12)}`, gap: 8, fontSize: tMin(14, 12) }}>
-        Calculate savings on any amount
-        <ChevronRight className='shrink-0 text-[#666]' style={{ width: tMin(18, 14), height: tMin(18, 14) }} />
-      </Link>
+      <SampleBillDialog
+        open={billOpen}
+        onClose={() => setBillOpen(false)}
+        merchant={merchant}
+        costForTwo={cost}
+        offers={offers}
+        dealRows={dealRows}
+        caps={caps}
+        bookHref={bookHref}
+        payHref={payHref}
+      />
     </section>
   )
 }
 
-/** "Have queries or need help?" */
+/** "Have queries or need help?" — Figma "Help and support": #FFF1CF, the faint "!" badge on the right. */
 export function HelpSideCard() {
   return (
-    <Link href='/help' className='block bg-[#FFF3D6] hover:bg-[#FFEDC2]' style={{ padding: tMin(18, 12), borderRadius: t(16) }}>
-      <span className='block font-medium text-[#252427]' style={{ fontSize: tMin(14, 13) }}>Have queries or need help?</span>
-      <span className='block font-medium text-[#ff4800]' style={{ marginTop: t(2), fontSize: tMin(13, 12) }}>Contact help &amp; support</span>
+    <Link
+      href='/help'
+      className='flex items-center justify-between bg-[#FFF1CF] font-(family-name:--font-dm-sans) font-medium leading-5 transition-colors hover:bg-[#FFEBB8]'
+      style={{ minHeight: tMin(60, 52), padding: `${tMin(10, 8)} ${tMin(24, 14)}`, borderRadius: t(12), gap: 12, fontSize: tMin(14, 13) }}
+    >
+      <span className='flex min-w-0 flex-col'>
+        <span className='text-[#2c2d32]'>Have queries or need help?</span>
+        <span className='flex items-center gap-2 text-[#FF4800]'>
+          Contact help &amp; support
+          <ChevronRight className='size-3.5 shrink-0' strokeWidth={2.5} />
+        </span>
+      </span>
+      <span aria-hidden='true' className='flex size-10.5 shrink-0 items-center justify-center rounded-full border-2 border-[#FFE29E] text-[28px] leading-none text-[#FFD887]'>!</span>
     </Link>
   )
 }

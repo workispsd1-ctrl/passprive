@@ -127,7 +127,10 @@ export function DetailSectionTabs({
         aria-label='Sections'
         className={cn(
           'sticky top-0 z-30 -mx-4 border-b bg-white/95 px-4 backdrop-blur transition-shadow md:mx-0 md:px-0',
-          figma && 'md:mt-[calc(32*var(--t))] md:border-b-[calc(2*var(--t))] md:border-[#dfdfdf]',
+          figma && 'md:mt-[calc(32*var(--t))] md:border-b md:border-[#ffd1bf]',
+          // css.txt "Group 2085665162" has no fill: at rest the title card's shadow fades through the
+          // tab row (a white bar would cut it off in a hard line); it only turns white once it sticks
+          figma && !stuck && 'md:bg-transparent md:backdrop-blur-none',
           stuck ? 'border-gray-100 shadow-[0_6px_16px_-10px_rgba(0,0,0,0.18)] md:-mx-4 md:px-4' : 'border-gray-100',
           wellness && 'md:mt-[calc(40*var(--u))] md:border-b md:border-[#ffd1bf]',
           orderClassName,
@@ -156,7 +159,7 @@ export function DetailSectionTabs({
         )}
         <div
           ref={rowRef}
-          className={cn('scrollbar-hide flex gap-7 overflow-x-auto md:gap-11', figma && 'md:gap-[max(20px,calc(56*var(--t)))] md:pl-[calc(8*var(--t))]', wellness && 'md:gap-[calc(44*var(--u))]')}
+          className={cn('scrollbar-hide flex gap-7 overflow-x-auto md:gap-11', figma && 'md:gap-[max(16px,calc(28*var(--t)))]', wellness && 'md:gap-[calc(44*var(--u))]')}
         >
           {present.map(t => (
             <a
@@ -168,7 +171,8 @@ export function DetailSectionTabs({
               className={cn(
                 'relative shrink-0 py-3.5 text-[14px] font-semibold transition-colors md:py-4 md:text-[17px] md:font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand',
                 active === t.id ? 'text-brand' : 'text-gray-600 hover:text-gray-900',
-                figma && 'md:pt-0 md:pb-[calc(10*var(--t))] md:text-[length:max(14px,calc(18*var(--t)))] md:leading-[1.4] md:tracking-[calc(0.5*var(--t))]',
+                // css.txt tab row: 110-wide labels 138 apart, 18/25, the underline 10 under the text and 5 above the divider
+                figma && 'md:min-w-[calc(110*var(--t))] md:pt-0 md:pb-[calc(18*var(--t))] md:text-[length:max(14px,calc(18*var(--t)))] md:leading-[calc(25*var(--t))]',
                 figma && (active === t.id ? 'md:font-semibold md:text-[#ff4800]' : 'md:font-medium md:text-[#424144]'),
                 wellness && 'md:flex md:h-[calc(45*var(--u))] md:items-center md:py-0 md:px-[calc(4*var(--u))] md:text-[length:calc(16*var(--u))] md:leading-[calc(21*var(--u))]',
                 wellness && (active === t.id ? 'md:font-bold md:text-[#ff4800]' : 'md:font-medium md:text-[#2c2d32]'),
@@ -178,7 +182,7 @@ export function DetailSectionTabs({
               <span
                 className={cn(
                   'absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-brand transition-opacity md:h-[3px]',
-                  figma && 'md:-inset-x-[calc(6*var(--t))] md:-bottom-[calc(2*var(--t))] md:h-[calc(6*var(--t))] md:rounded-[calc(5*var(--t))] md:bg-[#ff4800]',
+                  figma && 'md:right-auto md:bottom-[calc(5*var(--t))] md:h-[calc(3*var(--t))] md:w-[calc(64*var(--t))] md:rounded-[calc(2.5*var(--t))] md:bg-[#ff4800]',
                   wellness && 'md:h-[calc(3*var(--u))] md:rounded-none md:bg-[#ff4800]',
                   active === t.id ? 'opacity-100' : 'opacity-0',
                 )}

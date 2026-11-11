@@ -44,7 +44,10 @@ export function MobileTitleCard({
   offerZone = false,
   exclusive = false,
   chips = [],
+  gauge,
 }: {
+  /** app parity: MerchantInfoCard's DealQuotaGauge, left of the rating */
+  gauge?: React.ReactNode
   name: string
   subtitle?: string | null
   logo?: string | null
@@ -94,6 +97,7 @@ export function MobileTitleCard({
               </a>
             )}
           </div>
+          {gauge}
           {rating.avg > 0 && (
             <a href='#reviews' className='ml-2.5 flex shrink-0 flex-col items-center'>
               <span className='flex h-5.5 items-center rounded-[11px] bg-[#3AA456] px-2.25 text-[13px] font-bold tracking-[0.24px] text-white'>

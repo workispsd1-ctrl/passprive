@@ -1,4 +1,5 @@
 import { NewKickInStores } from '@/components/sections/home/NewKickInStores';
+import { ServiceAreaGate } from '@/components/shared/ServiceAreaGate';
 import { NewlyFeaturedSection } from '@/components/sections/home/NewlyFeaturedSection';
 import { NowTrendingSection } from '@/components/sections/home/NowTrendingSection';
 import { StoresNearYouSection } from '@/components/sections/home/StoresNearYouSection';
@@ -56,6 +57,7 @@ export default async function Home() {
   const featured = restaurants.slice(0, 8);
 
   return (
+    <ServiceAreaGate>
     <main className='min-h-screen bg-white pb-10'>
       <UpcomingBookings bookings={upcoming} />
       {featured.length > 0 && (
@@ -74,5 +76,6 @@ export default async function Home() {
       {mallsTitle && <MallsNearYou malls={malls} title={mallsTitle} />}
       <HotOnPassprive collections={collections} />
     </main>
+    </ServiceAreaGate>
   );
 }

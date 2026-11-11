@@ -102,7 +102,13 @@ export function UpsellBannerPager({
   className,
   variant = 'default',
   eligible,
+  bare = false,
 }: {
+  /**
+   * Just the banners, as siblings — for a parent pager that pages them
+   * alongside other cards (app parity: CashbackRow's `pager` slot).
+   */
+  bare?: boolean
   /**
    * Overrides the Preferred-Partner rule. The app's salon screen
    * (ServiceStoreDetails.jsx `showCashbackUpsell`) shows the pager on any
@@ -159,6 +165,35 @@ export function UpsellBannerPager({
 
   if (!show) return null
   const copy = tierCopy(plan, offerPct, caps)
+
+  if (bare) {
+    return (
+      <>
+        {earnMore && (
+          <button
+            type='button'
+            onClick={() => setSheet(true)}
+            aria-label={`Earn ${Math.round(quote.blackPct / quote.pct)}x more with Black`}
+            className='relative flex aspect-358/73 w-full shrink-0 snap-start items-center justify-between overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#E46A12,#B5370A_60%,#A52E06)] pr-3.5 pl-4 text-left font-(family-name:--font-dm-sans) text-white'
+          >
+            <span className='min-w-0'>
+              <span className='block truncate text-[17px] leading-5 font-bold'>Earn {Math.round(quote.blackPct / quote.pct)}x more with Black</span>
+              <span className='mt-0.5 block truncate text-[12.5px] leading-4'>Get {formatPct(quote.blackPct)} Privé Credits instead of {formatPct(quote.pct)}</span>
+            </span>
+            <span className='shrink-0 rounded-full bg-white px-3 py-1 text-[13px] font-bold text-[#A52E06]'>Claim now →</span>
+          </button>
+        )}
+        <button type='button' onClick={() => setSheet(true)} className='relative aspect-1436/296 w-full shrink-0 snap-start overflow-hidden rounded-2xl text-left font-(family-name:--font-dm-sans) @container'>
+          <Image src='/assets/merchant-detail/Merchant-Cap.webp' alt='' fill sizes='(min-width: 768px) 400px, 100vw' className='object-fill' />
+          <span className='absolute inset-y-0 left-[6.1%] flex w-[58%] flex-col justify-center'>
+            <span className='truncate text-[min(3.6cqw,15px)] leading-tight font-bold text-white'>{copy.headline}</span>
+            <span className='mt-[1.6cqw] line-clamp-2 text-[min(3.1cqw,13px)] leading-snug font-medium text-[#FFF1CF]'>{copy.supporting}</span>
+          </span>
+        </button>
+        <UpsellSheet open={sheet} onClose={() => setSheet(false)} plan={plan} caps={caps} />
+      </>
+    )
+  }
 
   return (
     <div

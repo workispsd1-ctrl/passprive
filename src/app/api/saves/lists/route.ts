@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 
 const LISTS_TABLE = 'user_hotlists'
 const ITEMS_TABLE = 'user_hotlist_items'
+const THUMB_COUNT = 4
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** The user's hotlists, each flagged whether it contains `entityId`. */
 export async function GET(request: Request) {
@@ -19,22 +21,49 @@ export async function GET(request: Request) {
       .from(LISTS_TABLE)
       .select('id, name')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true }),
-    entityId
-      ? supabase
-          .from(ITEMS_TABLE)
-          .select('hotlist_id')
-          .eq('user_id', user.id)
-          .eq('entity_id', entityId)
-      : Promise.resolve({ data: [] as { hotlist_id: string }[] }),
+      // newest first — app parity: fetchRemoteHotlistsState
+      .order('created_at', { ascending: false }),
+    supabase
+      .from(ITEMS_TABLE)
+      .select('hotlist_id, entity_id')
+      .eq('user_id', user.id)
+      .order('added_at', { ascending: false }),
   ])
 
-  const savedIn = new Set((items ?? []).map((i) => String(i.hotlist_id)))
+  // per list: whether it holds `entityId`, and its newest few entities for the thumbnail stack
+  const savedIn = new Set<string>()
+  const firstIds = new Map<string, string[]>()
+  for (const i of items ?? []) {
+    const listId = String(i.hotlist_id)
+    const eid = String(i.entity_id)
+    if (entityId && eid === entityId) savedIn.add(listId)
+    const ids = firstIds.get(listId) ?? []
+    if (ids.length < THUMB_COUNT && !ids.includes(eid)) ids.push(eid)
+    firstIds.set(listId, ids)
+  }
+
+  const allIds = [...new Set([...firstIds.values()].flat())].filter((id) => UUID_RE.test(id))
+  const images = new Map<string, string>()
+  if (allIds.length) {
+    const [rests, stores] = await Promise.all([
+      supabase.from('restaurants').select('id, cover_image').in('id', allIds),
+      supabase.from('stores').select('id, cover_image, logo_url').in('id', allIds),
+    ])
+    for (const r of rests.data ?? []) if (r.cover_image) images.set(String(r.id), r.cover_image)
+    for (const s of stores.data ?? []) {
+      const img = s.cover_image ?? s.logo_url
+      if (img) images.set(String(s.id), img)
+    }
+  }
+
   return NextResponse.json({
     lists: (lists ?? []).map((l) => ({
       id: String(l.id),
       name: l.name as string,
       saved: savedIn.has(String(l.id)),
+      thumbs: (firstIds.get(String(l.id)) ?? [])
+        .map((id) => images.get(id))
+        .filter((u): u is string => !!u),
     })),
   })
 }

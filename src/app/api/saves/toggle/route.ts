@@ -46,13 +46,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ saved: false })
   }
 
-  // find or create the user's default hotlist
+  // find or create the target hotlist — app parity: the first of
+  // getHotlists(), which are ordered newest first
   let hotlistId: string | null = null
   const { data: lists } = await supabase
     .from(LISTS_TABLE)
     .select('id')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(1)
   if (lists?.[0]?.id) {
     hotlistId = String(lists[0].id)

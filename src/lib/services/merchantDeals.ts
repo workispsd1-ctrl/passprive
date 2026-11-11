@@ -102,3 +102,16 @@ export async function getRevealPlans(): Promise<RevealPlan[]> {
       deals_per_restaurant_per_month,
     }))
 }
+
+/** A restaurant's live deal rows with their tiers — app parity: dealReveals.js fetchRestaurantDealRows. */
+export async function getRestaurantDealRows(restaurantId: string): Promise<RestaurantDeal[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('restaurant_deals')
+    .select(DEAL_COLUMNS)
+    .eq('restaurant_id', restaurantId)
+    .eq('is_active', true)
+    .order('priority', { ascending: false })
+    .limit(10)
+  return (data ?? []) as RestaurantDeal[]
+}

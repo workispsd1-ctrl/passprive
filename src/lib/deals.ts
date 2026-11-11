@@ -81,6 +81,8 @@ export type RevealItem = {
   /** used to rank items best-first (≈ the saving on a MUR 1,000 bill) */
   score: number
   terms: DealTerms
+  /** the ticket stub's "UP TO 5%" — the best any tier gets (app: dealUpToLabel) */
+  upTo?: string
 }
 
 /** `redeem_precheck` / `redeem_with_pin` / `redeem_with_nfc` row. */
@@ -239,6 +241,29 @@ export function dealBenefitLabel(deal: RestaurantDeal): string {
   }
 }
 
+/** "5%" / "MUR 300" — the best benefit across a deal's active tiers. App parity: dealReveals.js dealUpToLabel. */
+export function dealUpToLabel(deal: RestaurantDeal): string {
+  const tiers = (deal.restaurant_deal_tiers ?? []).filter(row => row?.is_active !== false)
+  const best = (key: 'benefit_percent' | 'benefit_amount') => Math.max(0, ...tiers.map(row => Number(row?.[key]) || 0))
+  switch (String(deal.deal_type ?? '').toLowerCase()) {
+    case 'percentage':
+      return best('benefit_percent') > 0 ? `${trimNumber(best('benefit_percent'))}%` : ''
+    case 'flat':
+      return best('benefit_amount') > 0 ? `MUR ${trimNumber(best('benefit_amount'))}` : ''
+    default:
+      return ''
+  }
+}
+
+/** dealUpToLabel for a merchant offer (no tiers): its own value. */
+function offerUpToLabel(offer: MerchantOffer): string {
+  const value = Number(offer.discount_value)
+  if (!Number.isFinite(value) || value <= 0) return ''
+  const type = String(offer.offer_type ?? '').toLowerCase()
+  if (type === 'percentage' || type === 'percent') return `${trimNumber(value)}%`
+  return type === 'flat' ? `MUR ${trimNumber(value)}` : ''
+}
+
 export function offerBenefitLabel(offer: MerchantOffer): string {
   const value = Number(offer.discount_value)
   const type = String(offer.offer_type ?? '').toLowerCase()
@@ -282,6 +307,7 @@ export function dealItem(deal: RestaurantDeal): RevealItem | null {
     id: deal.id,
     benefit,
     score: benefitScore(deal.tierRow, String(deal.deal_type ?? '').toLowerCase(), null),
+    upTo: dealUpToLabel(deal),
     terms: {
       starts_at: deal.starts_at,
       ends_at: deal.ends_at,
@@ -302,6 +328,7 @@ export function offerItem(offer: MerchantOffer, kind: 'restaurant_offer' | 'stor
     id: offer.id,
     benefit,
     score: benefitScore(undefined, String(offer.offer_type ?? '').toLowerCase(), offer.discount_value),
+    upTo: offerUpToLabel(offer),
     terms: {
       starts_at: offer.start_at,
       ends_at: offer.end_at,

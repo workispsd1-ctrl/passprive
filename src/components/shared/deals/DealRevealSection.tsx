@@ -21,8 +21,11 @@ import {
 } from '@/lib/deals'
 import type { MerchantDealsState } from '@/lib/services/merchantDeals'
 import { DealRevealCard } from './DealRevealCard'
+import { DealTicket } from './DealTicket'
+import { SnapPager } from '@/components/shared/detail/SnapPager'
 import { DealQuotaDialog, DealTermsDialog } from './DealSheets'
 import { DealRedeemDialog } from './DealRedeemDialog'
+import { DownloadAppDialog, isDesktopRedeem } from './RedeemFlowPopups'
 import { OfferAction, OfferCard, OfferHead, OfferText } from '@/components/sections/dining/OfferCard'
 import { t } from '@/components/sections/dining/designUnit'
 
@@ -152,7 +155,8 @@ export function DealRevealSection({
   onHasItems?: (has: boolean) => void
   className?: string
   /** 'figma' — desktop restaurant page: each piece is an "Offers for today" card, placed by the parent rail */
-  variant?: 'default' | 'figma'
+  /** 'ticket' — the app's current ticket rail (restaurant page sidebar and phones) */
+  variant?: 'default' | 'figma' | 'ticket'
 }) {
   const { promptLogin } = useAuthPrompt()
   const [state, setState] = useState<MerchantDealsState | null>(null)
@@ -162,6 +166,7 @@ export function DealRevealSection({
   const [terms, setTerms] = useState<DealTerms | null>(null)
   const [quotaSheet, setQuotaSheet] = useState<{ open: boolean; reason: string }>({ open: false, reason: '' })
   const [redeemItem, setRedeemItem] = useState<RevealItem | null>(null)
+  const [appPrompt, setAppPrompt] = useState(false)
   const checkingRef = useRef(false)
 
   const load = useCallback(() => {
@@ -186,6 +191,8 @@ export function DealRevealSection({
   /** app parity: applyRevealResult — keep the unlocks card in step with the RPC. */
   const applyUsed = useCallback((result: RedeemResult | null) => {
     if (result?.monthly_used == null) return
+    // the title card's unlocks gauge follows along
+    window.dispatchEvent(new CustomEvent('pp:deal-quota', { detail: result.monthly_used }))
     setState(prev => (prev?.quota ? { ...prev, quota: { ...prev.quota, monthly_used: result.monthly_used ?? null } } : prev))
   }, [])
 
@@ -233,6 +240,11 @@ export function DealRevealSection({
   }, [applyUsed])
 
   const closeRedeem = useCallback(() => setRedeemItem(null), [])
+  // Figma "Flow Redeem Deal": NFC / PIN redeeming happens at the counter, so desktop gets the app QR
+  const startRedeem = useCallback((item: RevealItem) => {
+    if (isDesktopRedeem()) setAppPrompt(true)
+    else setRedeemItem(item)
+  }, [])
   const onLimit = useCallback((reason: string) => { openQuota(reason); load() }, [openQuota, load])
 
   if (!items.length) return null
@@ -255,8 +267,54 @@ export function DealRevealSection({
         onRedeemed={onRedeemed}
         onLimit={onLimit}
       />
+      <DownloadAppDialog open={appPrompt} onClose={() => setAppPrompt(false)} />
     </>
   )
+
+  if (variant === 'ticket') {
+    const locked = isQuotaExhausted(quota)
+    return (
+      <div className={cn('font-(family-name:--font-dm-sans)', className)}>
+        <SnapPager label='Deal'>
+          {items.map(item => {
+            const open = revealed.has(item.key)
+            return (
+              <div key={item.key} className='flex flex-col'>
+                <DealTicket
+                  item={item}
+                  revealed={open}
+                  locked={locked && !open}
+                  busy={checking === `reveal:${item.key}`}
+                  onReveal={() => (locked ? openQuota() : precheck(item, 'reveal', () => setRevealed(prev => new Set(prev).add(item.key))))}
+                  onTerms={() => setTerms(item.terms)}
+                />
+                {open && (
+                  <button
+                    type='button'
+                    onClick={() => precheck(item, 'redeem', () => startRedeem(item))}
+                    disabled={!!checking}
+                    className={cn(
+                      'mt-3 flex h-11 w-full items-center justify-center gap-2.5 rounded-full bg-[linear-gradient(109.78deg,#FF4800,#001FE7)] text-[15px] font-semibold text-white transition-opacity',
+                      checking === `redeem:${item.key}` && 'opacity-70',
+                    )}
+                  >
+                    {checking === `redeem:${item.key}` ? <Loader2 className='size-5 animate-spin' /> : <Ticket className='size-5' />} Redeem Deal <ArrowRight className='size-5' />
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </SnapPager>
+        {!state?.loggedIn && (
+          <p className='mt-2 text-center text-[12px] text-[#767677]'>
+            <button type='button' onClick={promptLogin} className='font-semibold text-brand hover:underline'>Sign in</button> to reveal {items.length === 1 ? 'this deal' : `${items.length} deals`}
+          </p>
+        )}
+        {message && <p role='alert' className='mt-1 text-[13px] font-semibold text-[#E5484D]'>{message}</p>}
+        {dialogs}
+      </div>
+    )
+  }
 
   if (variant === 'figma') {
     const coin = <Image src="/assets/deals/deal-coin.png" alt="" width={36} height={36} style={{ width: t(36), height: t(36) }} />
@@ -265,7 +323,7 @@ export function DealRevealSection({
     return (
       <>
         {quota ? (
-          <OfferCard as="button" compact onClick={locked ? () => openQuota() : undefined} className={cn(!locked && 'cursor-default')}>
+          <OfferCard as="button" onClick={locked ? () => openQuota() : undefined} className={cn(!locked && 'cursor-default')}>
             <div className="flex items-center justify-between" style={{ gap: t(16) }}>
               {badge && <Image src={badge} alt="" width={133} height={57} className={cn('w-auto', locked && 'opacity-50')} style={{ height: t(57) }} />}
               {resetLabel(quota.period_end) && (
@@ -299,7 +357,7 @@ export function DealRevealSection({
                 color="#ff4800"
                 aside={
                   open ? (
-                    <OfferAction gradient disabled={!!checking} onClick={() => precheck(item, 'redeem', () => setRedeemItem(item))}>
+                    <OfferAction gradient disabled={!!checking} onClick={() => precheck(item, 'redeem', () => startRedeem(item))}>
                       {checking === `redeem:${item.key}` ? <Loader2 className="animate-spin" style={{ width: t(20), height: t(20) }} /> : <Ticket style={{ width: t(20), height: t(20) }} />}
                       Redeem
                     </OfferAction>
@@ -382,7 +440,7 @@ export function DealRevealSection({
               {open && (
                 <button
                   type="button"
-                  onClick={() => precheck(item, 'redeem', () => setRedeemItem(item))}
+                  onClick={() => precheck(item, 'redeem', () => startRedeem(item))}
                   disabled={!!checking}
                   className={cn(
                     'mt-4 flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-[linear-gradient(109.78deg,#FF4800,#001FE7)] text-[16px] font-semibold text-white transition-opacity',

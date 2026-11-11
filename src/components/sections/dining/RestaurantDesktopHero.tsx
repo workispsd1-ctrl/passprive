@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { DealQuotaGauge } from '@/components/shared/deals/DealQuotaGauge'
 import type { CardChipKey } from '@/lib/cardChips'
 import { CardChips } from '@/components/shared/CardChips'
 import Link from 'next/link'
@@ -35,7 +36,8 @@ function Tag({ icon, label, color, iconW, iconH }: { icon: string; label: string
   )
 }
 
-const ICON_BUTTON = 'flex shrink-0 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40'
+// css.txt "Heart Icon - Glass": 48 round, rgba(217,217,217,0.1) glass
+const ICON_BUTTON = 'flex shrink-0 items-center justify-center rounded-full bg-[rgba(217,217,217,0.1)] text-white backdrop-blur-md hover:bg-[rgba(217,217,217,0.25)]'
 
 /**
  * Top of the restaurant page on desktop — Figma "Dining": Back, then the full
@@ -75,8 +77,8 @@ export function RestaurantDesktopHero({ id, name, cover }: { id: string; name: s
           <button type='button' onClick={() => openAt(0)} aria-label={`View photos of ${name}`} className='group absolute inset-0'>
             {cover && <Image src={cover} alt={name} fill priority sizes='(min-width: 1920px) 1576px, 90vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.02]' />}
           </button>
-          <div className='absolute flex' style={{ top: tMin(24, 12), right: tMin(24, 12), gap: tMin(12, 8) }}>
-            <button type='button' onClick={saver.onSave} aria-label={saver.saved ? 'Edit saved lists' : 'Save'} aria-pressed={saver.saved} className={ICON_BUTTON} style={{ width: tMin(44, 34), height: tMin(44, 34) }}>
+          <div className='absolute flex' style={{ top: tMin(32, 12), right: tMin(40, 12), gap: tMin(24, 8) }}>
+            <button type='button' onClick={saver.onSave} aria-label={saver.saved ? 'Edit saved lists' : 'Save'} aria-pressed={saver.saved} className={ICON_BUTTON} style={{ width: tMin(48, 34), height: tMin(48, 34) }}>
               <Heart className={cn(saver.saved && 'fill-brand text-brand')} style={{ width: tMin(22, 17), height: tMin(22, 17) }} />
             </button>
             <button
@@ -84,7 +86,7 @@ export function RestaurantDesktopHero({ id, name, cover }: { id: string; name: s
               onClick={async () => { if (await shareLink(name)) { setCopied(true); setTimeout(() => setCopied(false), 2000) } }}
               aria-label={copied ? 'Link copied' : 'Share'}
               className={ICON_BUTTON}
-              style={{ width: tMin(44, 34), height: tMin(44, 34) }}
+              style={{ width: tMin(48, 34), height: tMin(48, 34) }}
             >
               {copied ? <Check style={{ width: tMin(22, 17), height: tMin(22, 17) }} /> : <Share2 style={{ width: tMin(22, 17), height: tMin(22, 17) }} />}
             </button>
@@ -98,6 +100,7 @@ export function RestaurantDesktopHero({ id, name, cover }: { id: string; name: s
 
 /** The name, facts, hours, ways to reach the place and tags, on a card under the photo. */
 export function RestaurantTitleCard({
+  id,
   name,
   cuisines,
   costForTwo,
@@ -114,6 +117,8 @@ export function RestaurantTitleCard({
   exclusive,
   chips = [],
 }: {
+  /** restaurant id — the unlocks gauge loads this restaurant's deal quota */
+  id: string
   name: string
   cuisines: string[]
   costForTwo: number | null
@@ -168,6 +173,9 @@ export function RestaurantTitleCard({
           )}
           {showAddress && address && <p className='wrap-break-word text-[#767677]' style={{ marginTop: t(4), fontSize: tMin(14, 12) }}>{address}</p>}
         </div>
+        <div className='flex shrink-0 items-start' style={{ gap: tMin(29, 14) }}>
+        {/* app parity: MerchantInfoCard's DealQuotaGauge — Figma: a 120-wide slot left of the rating */}
+        <DealQuotaGauge restaurantId={id} className='relative z-10 -mb-[calc(44*var(--t))] w-[max(64px,calc(100*var(--t)))] text-[max(11px,calc(13*var(--t)))]' />
         {rating.avg > 0 && (
           <button type='button' onClick={() => findSection('reviews')?.scrollIntoView({ behavior: 'smooth' })} className='flex shrink-0 flex-col items-end' style={{ marginTop: t(8), gap: tMin(11, 5) }}>
             <span className={`flex items-center justify-center bg-[#3aa456] font-bold text-white ${INTER}`} style={{ width: tMin(68, 54), height: tMin(26, 22), borderRadius: t(20.9), gap: tMin(6, 4), fontSize: tMin(13.38, 12), letterSpacing: t(0.24) }}>
@@ -177,6 +185,7 @@ export function RestaurantTitleCard({
             <span className={`font-medium text-[#787575] underline ${INTER}`} style={{ fontSize: tMin(12, 11), lineHeight: 1.42, letterSpacing: t(0.12) }}>{ratingCount} ratings</span>
           </button>
         )}
+        </div>
       </div>
 
       <div className='flex flex-wrap items-center' style={{ marginTop: tMin(14, 10), columnGap: tMin(12, 8), rowGap: tMin(8, 6) }}>
@@ -207,26 +216,45 @@ export function RestaurantCtaCard({ merchant, bookHref, payHref, className }: { 
   // "up to" — what a Black member earns here
   const upTo = canPayBill(merchant) ? getCashbackPct(merchant, 'black') : 0
   if (!bookHref && !payHref && !upTo) return null
-  const button = { height: tMin(48, 36), fontSize: tMin(16, 13) }
+  const button = { height: tMin(45.2, 36), borderRadius: t(21.66), fontSize: tMin(16.9, 13), lineHeight: tMin(22, 17) }
   return (
-    <section className={cn('relative bg-white font-(family-name:--font-dm-sans) drop-shadow-[0_8px_23.8px_rgba(0,0,0,0.1)]', className)} style={{ padding: tMin(22, 12), borderRadius: t(24) }}>
+    // css.txt "Frame 2147223656": 390×120, radius 16, white 90%→70%, 0 4px 15.1px rgba(0,0,0,.1)
+    <section
+      className={cn('relative bg-[linear-gradient(180deg,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0.7)_100%)] font-(family-name:--font-dm-sans) shadow-[0_calc(4*var(--t))_calc(15.1*var(--t))_rgba(0,0,0,0.1)]', className)}
+      style={{ padding: `${tMin(12, 10)} ${tMin(23, 12)} ${tMin(30, 14)}`, borderRadius: t(16) }}
+    >
+      {/* css.txt "Ellipse 43772": rgba(255,72,0,0.4), 421×69 at -21,-67, blur 38.245 — clipped to the card */}
+      <span aria-hidden='true' className='pointer-events-none absolute inset-0 overflow-hidden' style={{ borderRadius: t(16) }}>
+        <span
+          className='absolute rounded-[50%] bg-[rgba(255,72,0,0.4)]'
+          style={{ left: '-5.4%', top: t(-67), width: '108%', height: t(69), filter: `blur(${t(38.245)})` }}
+        />
+      </span>
+      {/* Figma: the 6x coins on the card's top corners (56px left, 63px right, hanging past the edge) */}
       {upTo > 0 && (
-        <p className={`flex items-center justify-center font-medium text-[#424144] ${INTER}`} style={{ gap: tMin(6, 4), fontSize: tMin(13, 11) }}>
+        <>
+          {/* css.txt "image 4754": a 42.85 coin in a 56.08 box at -2.9,1.3 and a 50.37 coin in a 63.45 box at 342.6,4.65 (both turned) */}
+          <Image src='/assets/merchant-detail/earn-coin.png' alt='' width={96} height={96} className='pointer-events-none absolute -rotate-20' style={{ left: t(3.71), top: t(7.92), width: t(42.85), height: t(42.85) }} />
+          <Image src='/assets/merchant-detail/earn-coin.png' alt='' width={96} height={96} className='pointer-events-none absolute -rotate-16' style={{ right: t(-9.5), top: t(11.19), width: t(50.37), height: t(50.37) }} />
+        </>
+      )}
+      {upTo > 0 && (
+        <p className={`relative flex items-center justify-center font-semibold text-[#424144] ${INTER}`} style={{ gap: tMin(6, 4), fontSize: tMin(14, 11), lineHeight: tMin(20, 16), paddingInline: t(24) }}>
           <span className='min-w-0 text-center'>Earn up to <span className='font-semibold text-[#0248f6]'>{upTo}% cashback</span> on bill payment</span>
           <Link href='/membership' aria-label='How cashback works' className='shrink-0'>
-            <Image src={`${A}/info.svg`} alt='' width={18} height={18} style={{ width: tMin(15, 12), height: tMin(15, 12) }} />
+            <Image src={`${A}/info.svg`} alt='' width={18} height={18} style={{ width: tMin(16, 12), height: tMin(16, 12) }} />
           </Link>
         </p>
       )}
       {(bookHref || payHref) && (
-        <div className='flex flex-wrap' style={{ marginTop: upTo > 0 ? tMin(14, 10) : 0, gap: tMin(12, 8) }}>
+        <div className='relative flex flex-wrap' style={{ marginTop: upTo > 0 ? tMin(13, 10) : 0, gap: tMin(7, 6) }}>
           {bookHref && (
-            <Link href={bookHref} className='flex min-w-fit flex-1 items-center justify-center rounded-full border border-[#ff4800] bg-white px-3 font-semibold whitespace-nowrap text-[#ff4800] transition-colors hover:bg-[#fff1eb]' style={button}>
+            <Link href={bookHref} className='flex min-w-fit flex-1 items-center justify-center border-solid border-[#ff4800] bg-[rgba(217,217,217,0.1)] px-3 font-semibold whitespace-nowrap text-[#ff4800] transition-colors hover:bg-[#fff1eb]' style={{ ...button, borderWidth: 0.94 }}>
               Book table
             </Link>
           )}
           {payHref && (
-            <Link href={payHref} className={`flex min-w-fit flex-1 items-center justify-center rounded-full bg-[#ff4800] px-3 font-semibold whitespace-nowrap text-[#fffbff] transition-colors hover:bg-brand-dark ${INTER}`} style={button}>
+            <Link href={payHref} className={`flex min-w-fit flex-1 items-center justify-center bg-[#ff4800] px-3 font-semibold whitespace-nowrap text-[#fffbff] transition-colors hover:bg-brand-dark ${INTER}`} style={button}>
               Pay bill
             </Link>
           )}

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronRight, Clock, X } from 'lucide-react'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 import { hasBillCashback, isCashbackEnabled, type MerchantCapabilityFields } from '@/lib/cashback'
 import { earnOn } from '@/lib/platformFlags'
@@ -15,13 +14,13 @@ import {
   formatPct,
   isPendingStatus,
   uploadHref,
-  type BlackPlan,
   type ReceiptClaim,
 } from '@/lib/receipts'
 import type { ReceiptMerchantState } from '@/lib/services/receipts'
 import { cn } from '@/lib/utils'
 import { OfferCard, OfferHead, OfferText } from '@/components/sections/dining/OfferCard'
 import { t } from '@/components/sections/dining/designUnit'
+import { TodaysOfferDialog } from '@/components/shared/deals/RedeemFlowPopups'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -53,96 +52,28 @@ export function ReceiptStatusBanner({ claim, className }: { claim: ReceiptClaim;
   )
 }
 
-function formatMur(value: unknown) {
-  const n = Number(value)
-  return Number.isFinite(n) && n > 0 ? n.toLocaleString('en-US') : null
-}
-
-function periodLabel(type: string | null | undefined) {
-  const m = String(type ?? '').match(/(\d+)\s*(year|month)/i)
-  if (!m) return null
-  const count = Number(m[1])
-  const unit = m[2].toLowerCase()
-  return count === 1 ? `For 1 ${unit}` : `For next ${count} ${unit}s`
-}
-
-/** "Get 4% instead of 1%" — app parity: components/BlackUpgradeSheet.jsx. */
-function BlackUpgradeDialog({
-  open,
-  currentPct,
-  blackPct,
-  plan,
-  onClose,
-  onContinue,
-}: {
-  open: boolean
-  currentPct: number
-  blackPct: number
-  plan: BlackPlan | null
-  onClose: () => void
-  onContinue: () => void
-}) {
-  const price = formatMur(plan?.amount)
-  const struck = formatMur(plan?.original_amount)
-  const period = periodLabel(plan?.type)
-  const planName = String(plan?.plan_name ?? '').trim() || 'Privé Black'
-  return (
-    <Dialog open={open} onOpenChange={next => !next && onClose()}>
-      <DialogContent className="gap-0 rounded-3xl bg-white p-6 text-center font-(family-name:--font-dm-sans) sm:max-w-sm">
-        <p className="text-[11px] font-bold tracking-[2px] text-[#8E8E93]">TODAY’S OFFER</p>
-        <DialogTitle className="mt-2 bg-linear-to-r from-[#FF4800] to-[#7B2CF5] bg-clip-text text-[40px] leading-tight font-black text-transparent">
-          Get {formatPct(blackPct)}
-        </DialogTitle>
-        <p className="text-[16px] font-semibold text-[#5B5A5A]">instead of {formatPct(currentPct)}</p>
-        <DialogDescription className="mt-3 text-[14px] text-[#2C2D32]">
-          If you upgrade to <span className="font-bold">{planName}</span>
-          {price ? ' at a special rate of' : ''}
-        </DialogDescription>
-        {price && (
-          <div className="mt-3 flex flex-col items-center gap-1">
-            {struck && struck !== price && <span className="text-[13px] text-[#8E8E93] line-through">{struck} MUR</span>}
-            <span className="rounded-xl bg-[#F6F6F6] px-5 py-2 text-[28px] font-black text-[#2C2D32]">
-              {price}<span className="text-[16px] font-bold"> MUR</span>
-            </span>
-            <Image src="/assets/membership/BlackBadge.webp" alt="Privé Black" width={91} height={39} className="mt-1 h-auto w-22" />
-            {period && <span className="text-[12px] font-medium text-[#666666]">{period}</span>}
-          </div>
-        )}
-        <Link
-          href="/membership"
-          onClick={onClose}
-          className="mt-5 flex h-12 items-center justify-center rounded-full bg-brand text-[16px] font-semibold text-white hover:bg-brand-dark"
-        >
-          Upgrade Now
-        </Link>
-        <button type="button" onClick={onContinue} className="mt-3 text-[14px] font-semibold text-brand underline">
-          Upload receipt at {formatPct(currentPct)}
-        </button>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 /**
  * The purple receipt card — app parity: ReceiptCashbackBanner.jsx, laid out on
- * its 342×104 design frame. Everything is sized in container units (1cqw =
- * 3.42 design px) so the card scales as one piece: the receipt art is an
- * opaque square painted to sit in the right 40% of exactly this shape.
+ * the web Figma's 372×104 frame (css.txt "Frame 2147225018"). Everything is
+ * sized in container units (1cqw = 3.72 design px) so the card scales as one
+ * piece: the receipt art is an opaque square painted to sit in its right 40%.
  */
 function ReceiptArtCard({ children, className }: { children: React.ReactNode; className?: string }) {
   // the container is the wrapper: cqw resolves against an ancestor, never the element itself
   return (
     <span className={cn('block w-full @container', className)}>
-    <span className="relative block aspect-342/104 w-full overflow-hidden rounded-[4.68cqw] bg-[linear-gradient(196deg,#2A0C63_18%,#38107C_47%,#2F0E6D_76%)] text-left text-white">
-      <span className="pointer-events-none absolute top-[-37.4cqw] left-[-21.9cqw] size-[80.7cqw] rounded-full bg-[radial-gradient(closest-side,#20094C,rgba(32,9,76,0.75)_55%,transparent)]" />
-      <span className="pointer-events-none absolute top-[-7.3cqw] left-[44.4cqw] h-[45cqw] w-[26.3cqw] rounded-full bg-[radial-gradient(closest-side,#38117D,rgba(56,17,125,0.75)_55%,transparent)]" />
+    <span className="relative block aspect-372/104 w-full overflow-hidden rounded-[4.301cqw] bg-[linear-gradient(223.48deg,#2A0C63_18.2%,#38107C_46.93%,#2F0E6D_75.66%)] text-left text-white">
+      {/* "Ellipse 43908": #20094C, 160 at -17,-70, blur 29 */}
+      <span className="pointer-events-none absolute top-[-18.817cqw] left-[-4.57cqw] size-[43.011cqw] rounded-full bg-[#20094C] blur-[7.796cqw]" />
+      {/* "Ellipse 43907": #38117D, 40×104 at 177,0, blur 12.5 */}
+      <span className="pointer-events-none absolute top-0 left-[47.581cqw] h-[27.957cqw] w-[10.753cqw] rounded-full bg-[#38117D] blur-[3.36cqw]" />
       <Image
         src="/assets/receipts/cashback-upload-receipt.jpeg"
         alt=""
         width={340}
         height={340}
         sizes="(min-width: 768px) 240px, 50vw"
-        className="pointer-events-none absolute top-[-8.19cqw] left-[59.06cqw] size-[49.7cqw] max-w-none"
+        className="pointer-events-none absolute top-[-7.527cqw] left-[63.978cqw] size-[45.699cqw] max-w-none"
       />
       {children}
     </span>
@@ -258,13 +189,14 @@ export function ReceiptCashbackBanner({
     else openUpload()
   }
   const upgrade = upsell && (
-    <BlackUpgradeDialog
+    <TodaysOfferDialog
       open={sheetOpen}
       currentPct={pct}
       blackPct={quote.blackPct}
       plan={blackPlan}
       onClose={() => setSheetOpen(false)}
       onContinue={openUpload}
+      continueLabel={`Upload receipt at ${formatPct(pct)}`}
     />
   )
 
@@ -289,15 +221,17 @@ export function ReceiptCashbackBanner({
         className="block w-full rounded-2xl transition-transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(42,12,99,0.25)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         <ReceiptArtCard>
-          <span className="absolute top-[3.51cqw] left-[5.26cqw] flex items-end">
+          {/* "0.5%" 40/52 Black Italic, -3.6 tracking at 18,12; "Cashback" 20/26 Medium Italic at 112,32 */}
+          <span className="absolute top-[3.226cqw] left-[4.839cqw] flex items-baseline">
             {pct > 0 && (
-              <span className="text-[11.7cqw] leading-none font-bold tracking-[-1.05cqw] italic">{formatPct(pct)}</span>
+              <span className="text-[10.753cqw] leading-[13.978cqw] font-black tracking-[-0.968cqw] italic">{formatPct(pct)}</span>
             )}
-            <span className={cn('leading-none font-medium italic', pct > 0 ? 'mb-[1.75cqw] ml-[2.92cqw] text-[5.85cqw]' : 'mt-[2.5cqw] text-[8.2cqw] font-bold')}>
+            <span className={cn('font-medium italic', pct > 0 ? 'ml-[0.806cqw] text-[5.376cqw] leading-[6.989cqw]' : 'text-[8.2cqw] leading-[13.978cqw] font-bold')}>
               Cashback
             </span>
           </span>
-          <span className="absolute top-[17.84cqw] left-[5.26cqw] w-[53.8cqw] text-[4.09cqw] leading-[4.68cqw] text-[#DFBEFF]">
+          {/* 14/16 #DFBEFF at 18,61, 184 wide */}
+          <span className="absolute top-[16.398cqw] left-[4.839cqw] w-[49.462cqw] text-[3.763cqw] leading-[4.301cqw] text-[#DFBEFF]">
             When you upload the receipt today.
           </span>
         </ReceiptArtCard>

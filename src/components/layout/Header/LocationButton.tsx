@@ -12,11 +12,12 @@ interface Props {
 }
 
 export function LocationButton({ variant = 'desktop', theme = 'default' }: Props) {
-  const { location, detecting, setLocationByCity, detectFromGPS } = useLocation()
+  const { location, detecting, unavailable, setLocationByCity, detectFromGPS } = useLocation()
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const light = theme === 'light'
-  const cityLabel = location.city || (detecting ? 'Detecting…' : 'Set location')
+  // app parity: "Location unavailable" when GPS was denied or failed and nothing is saved
+  const cityLabel = location.city || (detecting ? 'Detecting…' : unavailable ? 'Location unavailable' : 'Set location')
   const stateLabel = location.state || ''
 
   if (variant === 'mobile') {

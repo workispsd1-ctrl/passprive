@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { isInServiceArea } from '@/lib/serviceArea'
 import { COORDS_COOKIE, LOCATION_COOKIE, encodeSavedLocation, type Coords, type SavedLocation } from '@/lib/locationCookie'
 
 interface LocationState {
@@ -19,6 +20,10 @@ interface LocationContextValue {
   location: LocationState
   /** true while the first GPS lookup is still running and nothing is saved yet */
   detecting: boolean
+  /** GPS was denied, timed out or failed and nothing is saved — app parity: "Location unavailable" */
+  unavailable: boolean
+  /** the location is known and outside Mauritius — app parity: ServiceAreaGate */
+  outsideServiceArea: boolean
   setLocationByCity: (city: string, region: string, countryCode?: string) => Promise<void>
   /** a saved address — its coordinates are already known */
   setLocationByPlace: (place: { city: string; state: string; lat: number | null; lng: number | null }) => void
@@ -36,6 +41,8 @@ const DEFAULT: LocationState = {
 const LocationContext = createContext<LocationContextValue>({
   location: DEFAULT,
   detecting: false,
+  unavailable: false,
+  outsideServiceArea: false,
   setLocationByCity: async () => {},
   setLocationByPlace: () => {},
   detectFromGPS: () => {},
@@ -55,16 +62,30 @@ async function reverseGeocode(lat: number, lng: number): Promise<{ city: string;
   }
 }
 
+/** A city from the picker → its coordinates, looked up in Mauritius only ("Ebene" alone resolves to Germany). */
 async function forwardGeocode(city: string): Promise<{ lat: number; lng: number } | null> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`,
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&countrycodes=mu&format=json&limit=1`,
       { headers: { 'Accept-Language': 'en' } }
     )
     const data = await res.json()
     if (data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
   } catch { /* silent */ }
   return null
+}
+
+/**
+ * One GPS fix — app parity: App.tsx tries high accuracy for 8s, then a coarse
+ * (cached up to 10 min) fix for 4s, so the header never waits forever.
+ */
+function getPosition(): Promise<GeolocationCoordinates> {
+  const once = (opts: PositionOptions) =>
+    new Promise<GeolocationCoordinates>((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(p => resolve(p.coords), reject, opts))
+  return once({ enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 }).catch((err: GeolocationPositionError) =>
+    // a denied permission won't change on a second try
+    err?.code === 1 ? Promise.reject(err) : once({ enableHighAccuracy: false, timeout: 4000, maximumAge: 600_000 }))
 }
 
 const COOKIE_OPTS = `path=/; max-age=${30 * 86400}; samesite=lax`
@@ -90,16 +111,18 @@ export function LocationProvider({ children, initial }: { children: React.ReactN
   // true = picked by hand in the header dialog; GPS must not replace it on load
   const [manual, setManual] = useState(initial?.manual ?? false)
   const [detecting, setDetecting] = useState(!initial)
+  const [failed, setFailed] = useState(false)
   const router = useRouter()
 
   const detectFromGPS = useCallback(() => {
     if (!navigator.geolocation) {
-      Promise.resolve().then(() => setDetecting(false))
+      Promise.resolve().then(() => { setDetecting(false); setFailed(true) })
       return
     }
-    navigator.geolocation.getCurrentPosition(
-      async pos => {
-        const { latitude: lat, longitude: lng } = pos.coords
+    // deferred like above: this also runs from the mount effect
+    Promise.resolve().then(() => { setFailed(false); setDetecting(true) })
+    getPosition().then(
+      async ({ latitude: lat, longitude: lng }) => {
         setManual(false)
         try {
           const info = await reverseGeocode(lat, lng)
@@ -109,7 +132,7 @@ export function LocationProvider({ children, initial }: { children: React.ReactN
         }
         setDetecting(false)
       },
-      () => setDetecting(false)
+      () => { setDetecting(false); setFailed(true) },
     )
   }, [])
 
@@ -117,6 +140,7 @@ export function LocationProvider({ children, initial }: { children: React.ReactN
     // Optimistically update city name immediately
     setManual(true)
     setDetecting(false)
+    setFailed(false)
     setLocation(prev => ({ ...prev, city, state: region, countryCode, lat: null, lng: null }))
     // Geocode in background to get coordinates
     const coords = await forwardGeocode(city)
@@ -133,6 +157,7 @@ export function LocationProvider({ children, initial }: { children: React.ReactN
   const setLocationByPlace = useCallback((place: { city: string; state: string; lat: number | null; lng: number | null }) => {
     setManual(true)
     setDetecting(false)
+    setFailed(false)
     setLocation({ city: place.city, state: place.state, countryCode: 'mu', lat: place.lat, lng: place.lng })
   }, [])
 
@@ -161,8 +186,12 @@ export function LocationProvider({ children, initial }: { children: React.ReactN
     router.refresh()
   }, [lat, lng, router])
 
+  // only a failure with nothing to fall back on is "unavailable"
+  const unavailable = failed && !city
+  const outsideServiceArea = !isInServiceArea(lat, lng)
+
   return (
-    <LocationContext.Provider value={{ location, detecting, setLocationByCity, setLocationByPlace, detectFromGPS }}>
+    <LocationContext.Provider value={{ location, detecting, unavailable, outsideServiceArea, setLocationByCity, setLocationByPlace, detectFromGPS }}>
       {children}
     </LocationContext.Provider>
   )
