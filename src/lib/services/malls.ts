@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public'
+import { cachedCatalog, unwrap } from '@/lib/catalogCache'
 import { floorLabel, isInMall, sortMalls, type Mall } from '@/lib/malls'
 import { haversineKm } from '@/lib/utils'
 import type { Coords } from '@/lib/locationCookie'
@@ -22,26 +24,37 @@ const withDistance = (mall: Mall, coords?: Coords | null): Mall => ({
  * useSectionOrder("Home Screen"): malls show only when enabled there, and aren't
  * in the app's default sections, so a failed read hides them too.
  */
-export async function getMallsSectionTitle(): Promise<string | null> {
-  const supabase = await createClient()
-  const { data: screen } = await supabase.from('session_sorting').select('id').eq('name', 'Home Screen').maybeSingle()
+export const getMallsSectionTitle = cachedCatalog('malls-section-title', async (): Promise<string | null> => {
+  const supabase = createPublicClient()
+  const screen = unwrap(await supabase.from('session_sorting').select('id').eq('name', 'Home Screen').maybeSingle())
   if (!screen) return null
-  const { data } = await supabase
+  const data = unwrap(await supabase
     .from('session_sorting_titles')
     .select('title')
     .eq('screen_id', screen.id)
     .eq('section_key', 'malls')
     .eq('enabled', true)
-    .maybeSingle()
+    .maybeSingle())
   return data ? data.title || 'Explore Malls' : null
-}
+}, null)
+
+const getMallRows = cachedCatalog('malls', async (): Promise<Mall[]> =>
+  (unwrap(await createPublicClient().from('malls').select(MALL_SELECT).eq('is_active', true)) ?? []) as Mall[], [])
 
 /** The malls rail, nearest first — app parity: components/Home/MallsNearYou.jsx. */
 export async function getActiveMalls(coords?: Coords | null): Promise<Mall[]> {
-  const supabase = await createClient()
-  const { data } = await supabase.from('malls').select(MALL_SELECT).eq('is_active', true)
-  return sortMalls(((data ?? []) as Mall[]).map(m => withDistance(m, coords)))
+  return sortMalls((await getMallRows()).map(m => withDistance(m, coords)))
 }
+
+type MallRestaurantRow = { id: string; full_address: string | null; area: string | null; latitude: number | null; longitude: number | null }
+type MallStoreRow = StoreRow & { store_type: string | null; is_top_brand: boolean | null; full_address: string | null; address_line1: string | null }
+
+/** Every active restaurant's address/coords — the same for every mall page, so shared. */
+const getRestaurantLocations = cachedCatalog('restaurant-locations', async (): Promise<MallRestaurantRow[]> =>
+  (unwrap(await createPublicClient().from('restaurants').select('id, full_address, area, latitude, longitude').eq('is_active', true)) ?? []) as MallRestaurantRow[], [])
+
+const getMallCandidateStores = cachedCatalog('mall-stores', async (): Promise<MallStoreRow[]> =>
+  (unwrap(await createPublicClient().from('stores').select(STORE_SELECT).eq('is_active', true)) ?? []) as unknown as MallStoreRow[], [])
 
 export async function getMallBySlugOrId(slugOrId: string, coords?: Coords | null): Promise<Mall | null> {
   const supabase = await createClient()
@@ -58,9 +71,9 @@ export async function getMallBySlugOrId(slugOrId: string, coords?: Coords | null
 /** What's inside — app parity: MallDetails.jsx loadMallPlaces. */
 export async function getMallPlaces(mall: Mall, coords?: Coords | null): Promise<MallPlaces> {
   const supabase = await createClient()
-  const [{ data: restaurantRows }, { data: storeRows }, { data: links }, { data: feed }] = await Promise.all([
-    supabase.from('restaurants').select('id, full_address, area, latitude, longitude').eq('is_active', true),
-    supabase.from('stores').select(STORE_SELECT).eq('is_active', true),
+  const [restaurantRows, storeRows, { data: links }, { data: feed }] = await Promise.all([
+    getRestaurantLocations(),
+    getMallCandidateStores(),
     supabase.from('mall_stores').select('store_id, floor').eq('mall_id', mall.id),
     supabase.rpc('restaurant_feed', {
       in_lat: coords?.lat ?? null,
@@ -72,13 +85,12 @@ export async function getMallPlaces(mall: Mall, coords?: Coords | null): Promise
   ])
 
   const inside = new Set(
-    (restaurantRows ?? [])
+    restaurantRows
       .filter(r => isInMall({ address: [r.full_address, r.area], lat: r.latitude, lng: r.longitude }, mall))
       .map(r => String(r.id)),
   )
   const floors = new Map((links ?? []).map(l => [String(l.store_id), floorLabel(l.floor)]))
-  type Row = StoreRow & { store_type: string | null; is_top_brand: boolean | null; full_address: string | null; address_line1: string | null }
-  const stores = ((storeRows ?? []) as unknown as Row[])
+  const stores = storeRows
     .filter(s => floors.has(String(s.id)) || isInMall({ address: [s.full_address, s.address_line1, s.location_name], lat: s.lat, lng: s.lng }, mall))
     .map(s => ({ ...s, floor: floors.get(String(s.id)) ?? null }))
 

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { HeroSection } from '@/components/sections'
 import { MoodCategoriesSection } from '@/components/sections/dining/MoodCategoriesSection'
 import { QuickFilterTiles } from '@/components/sections/dining/QuickFilterTiles'
@@ -66,7 +67,8 @@ export default async function Dining({
     ).toString()
 
     return (
-      <main>
+      <main className='relative'>
+        <HuntSpot slot='dining-top' />
         <HeroSection />
         <MoodCategoriesSection categories={moodCategories} />
         <QuickFilterTiles cuisineOptions={cuisineOptions} />
@@ -105,7 +107,8 @@ export default async function Dining({
     .slice(0, 10)
 
   return (
-    <main>
+    <main className='relative'>
+      <HuntSpot slot='dining-top' />
       <HeroSection />
       <MoodCategoriesSection categories={moodCategories} />
       <QuickFilterTiles cuisineOptions={cuisineOptions} />

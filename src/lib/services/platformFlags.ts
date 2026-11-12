@@ -7,7 +7,7 @@ export async function getPlatformFlags(): Promise<PlatformFlags> {
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('platform_settings')
-      .select('cashback_earn_enabled, cashback_burn_enabled, booking_reward_enabled, booking_reward_amount')
+      .select('cashback_earn_enabled, cashback_burn_enabled, booking_reward_enabled, booking_reward_amount, referral_enabled, referral_reward_amount, referral_referee_amount')
       .maybeSingle()
     if (error) return DEFAULT_PLATFORM_FLAGS
     const flags = flagsFromRow(data)

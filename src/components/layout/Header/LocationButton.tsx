@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import Link from 'next/link'
 import { MapPin } from 'lucide-react'
-import { LocationPickerDialog } from './LocationPickerDialog'
 import { useLocation } from '@/lib/context/LocationContext'
 
 interface Props {
@@ -12,8 +11,7 @@ interface Props {
 }
 
 export function LocationButton({ variant = 'desktop', theme = 'default' }: Props) {
-  const { location, detecting, unavailable, setLocationByCity, detectFromGPS } = useLocation()
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const { location, detecting, unavailable } = useLocation()
 
   const light = theme === 'light'
   // app parity: "Location unavailable" when GPS was denied or failed and nothing is saved
@@ -22,11 +20,9 @@ export function LocationButton({ variant = 'desktop', theme = 'default' }: Props
 
   if (variant === 'mobile') {
     return (
-      <>
-        <button
-          type="button"
+        <Link
+          href="/location"
           aria-label="Change location"
-          onClick={() => setDialogOpen(true)}
           className="flex items-center gap-1.5"
         >
           <MapPin
@@ -37,24 +33,14 @@ export function LocationButton({ variant = 'desktop', theme = 'default' }: Props
             <span className={`text-[13px] font-bold ${light ? 'text-white' : 'text-gray-900'}`}>{cityLabel}</span>
             {stateLabel && <span className={`text-[11px] ${light ? 'text-white/80' : 'text-gray-400'}`}>{stateLabel}</span>}
           </div>
-        </button>
-        <LocationPickerDialog
-          isOpen={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          countryCode="mu"
-          onSelect={(city, region) => { setLocationByCity(city, region, 'mu'); setDialogOpen(false) }}
-          onUseCurrentLocation={() => { detectFromGPS(); setDialogOpen(false) }}
-        />
-      </>
+        </Link>
     )
   }
 
   return (
-    <>
-      <button
-        type="button"
+      <Link
+        href="/location"
         aria-label="Change location"
-        onClick={() => setDialogOpen(true)}
         className="flex shrink-0 items-center gap-[calc(var(--u)*11)] transition-opacity hover:opacity-80"
       >
         {/* sizes use the desktop header's --u (1920 → 1px) — see DesktopHeaderClient */}
@@ -74,14 +60,6 @@ export function LocationButton({ variant = 'desktop', theme = 'default' }: Props
             </span>
           )}
         </div>
-      </button>
-      <LocationPickerDialog
-        isOpen={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        countryCode="mu"
-        onSelect={(city, region) => { setLocationByCity(city, region, 'mu'); setDialogOpen(false) }}
-        onUseCurrentLocation={() => { detectFromGPS(); setDialogOpen(false) }}
-      />
-    </>
+      </Link>
   )
 }

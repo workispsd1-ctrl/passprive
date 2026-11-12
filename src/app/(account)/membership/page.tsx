@@ -19,7 +19,7 @@ export default async function MembershipPage() {
 
   return (
     <main className="min-h-screen">
-      <SetPageTitle title="Unlock more with Privé" />
+      <SetPageTitle title="Membership" />
       <MembershipClient
         plans={plans}
         membership={membership}

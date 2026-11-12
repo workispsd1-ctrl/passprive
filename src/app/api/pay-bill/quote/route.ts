@@ -16,17 +16,20 @@ const first = <T,>(data: unknown): T | null => ((Array.isArray(data) ? data[0] :
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const restaurantId = url.searchParams.get('restaurant_id') ?? ''
+  // app parity: PayBillScreen runs cashback_quote / repeat_reward_quote for restaurants only
+  const storeId = url.searchParams.get('store_id') ?? ''
   const amount = n(url.searchParams.get('amount'))
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const quote: BillQuote = { loggedIn: !!user, cashback: 0, repeatReward: null, burn: null, balance: 0 }
-  if (!restaurantId || !(amount > 0)) return NextResponse.json(quote)
+  if ((!restaurantId && !storeId) || !(amount > 0)) return NextResponse.json(quote)
 
   const args = { in_restaurant_id: restaurantId, in_user_id: user?.id ?? null, in_bill_amount: amount }
+  const none = Promise.resolve({ data: null, error: null })
   const [cashback, repeat, burn] = await Promise.allSettled([
-    supabase.rpc('cashback_quote', args),
-    user ? supabase.rpc('repeat_reward_quote', args) : Promise.resolve({ data: null, error: null }),
+    restaurantId ? supabase.rpc('cashback_quote', args) : none,
+    user && restaurantId ? supabase.rpc('repeat_reward_quote', args) : none,
     user ? supabase.rpc('points_burn_quote', { p_bill_amount: amount }) : Promise.resolve({ data: null, error: null }),
   ])
 

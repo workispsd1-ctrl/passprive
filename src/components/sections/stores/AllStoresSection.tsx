@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { getCardChips } from '@/lib/cardChips'
 import { SlidersHorizontal, ChevronDown, Percent } from 'lucide-react'
 import { cn, sortByMerchant, haversineKm } from '@/lib/utils'
@@ -36,6 +36,13 @@ const SORT_OPTIONS = [
   { label: 'Recommended', value: 'recommended' as const },
   { label: 'Nearest', value: 'nearest' as const },
 ]
+
+/**
+ * Cards rendered up front, then appended in batches of this size as the list
+ * nears its end. Without a location every active store matches, and rendering
+ * all ~450 cards made the page ~4 MB of HTML.
+ */
+const BATCH = 24
 
 export function AllStoresSection({ stores, moodCategories, activeCategorySlug, title = 'All Stores', layout = 'rail' }: Props) {
   const { location } = useLocation()
@@ -96,6 +103,17 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
 
     return result
   }, [storesWithDist, activeCategoryTitle, activeCategorySlug, distanceKm, minDiscount, sort, userCoords])
+
+  // back to the first batch whenever the filters / sort produce a new list
+  const [shown, setShown] = useState(BATCH)
+  const [shownFor, setShownFor] = useState(filtered)
+  if (shownFor !== filtered) {
+    setShownFor(filtered)
+    setShown(BATCH)
+  }
+  const visible = filtered.slice(0, shown)
+  const hasMore = shown < filtered.length
+  const showMore = () => setShown(n => (n < filtered.length ? n + BATCH : n))
 
   const activeDistLabel = DISTANCE_OPTIONS.find(o => o.km === distanceKm)?.label
   const activeSortLabel = SORT_OPTIONS.find(o => o.value === sort)?.label
@@ -204,8 +222,8 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-[13px] text-gray-400">No stores match your filters.</p>
       ) : (
-        <StoreList layout={layout}>
-          {filtered.map((store) => {
+        <StoreList layout={layout} onNearEnd={hasMore ? showMore : undefined}>
+          {visible.map((store) => {
             const meta = [
               store.dist != null ? (store.dist < 1 ? `${Math.round(store.dist * 1000)}m` : `${store.dist.toFixed(1)}km`) : null,
               store.location_name ?? store.city,
@@ -248,13 +266,39 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
   )
 }
 
-function StoreList({ layout, children }: { layout: 'rail' | 'grid'; children: React.ReactNode }) {
+function StoreList({ layout, onNearEnd, children }: { layout: 'rail' | 'grid'; onNearEnd?: () => void; children: React.ReactNode }) {
   if (layout === 'grid') {
-    return <div className="flex flex-wrap justify-center gap-4 px-4 md:justify-start md:px-8 2xl:gap-6">{children}</div>
+    return (
+      <>
+        <div className="flex flex-wrap justify-center gap-4 px-4 md:justify-start md:px-8 2xl:gap-6">{children}</div>
+        {/* remounted per batch so a sentinel still on screen fires again */}
+        {onNearEnd && <NearEndSentinel key={Array.isArray(children) ? children.length : 0} onVisible={onNearEnd} />}
+      </>
+    )
   }
   return (
-    <HScroll className="py-0">
+    <HScroll className="py-0" onNearEnd={onNearEnd}>
       {children}
     </HScroll>
   )
+}
+
+/** Fires `onVisible` once the grid's end is within ~a screen of the viewport. */
+function NearEndSentinel({ onVisible }: { onVisible: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const cb = useRef(onVisible)
+  useEffect(() => {
+    cb.current = onVisible
+  }, [onVisible])
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => { if (entries.some(e => e.isIntersecting)) cb.current() },
+      { rootMargin: '0px 0px 1000px 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return <div ref={ref} aria-hidden className="h-px" />
 }

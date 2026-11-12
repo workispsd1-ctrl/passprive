@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { GiftReceiverPreview } from './GiftReceiverPreview'
 import { X, ChevronRight, Loader2 } from 'lucide-react'
 import type { GiftEvent, GiftBrand, GiftDiscount } from '@/lib/types/gifts'
 import { GiftEventCard } from './GiftEventCard'
@@ -28,6 +29,7 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
   const [recipientName, setRecipientName] = useState('')
   const [giftTitle, setGiftTitle] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -195,6 +197,23 @@ export function PurchaseModal({ events, brands, discounts, onClose }: Props) {
                 rows={3}
                 className='w-full px-4 py-3 rounded-2xl border border-gray-200 text-[14px] focus:outline-none focus:border-brand/70 focus:ring-2 focus:ring-brand-tint-strong resize-none'
               />
+              {/* app parity: GiftsHome "Receiver's preview" */}
+              <button
+                type='button'
+                onClick={() => setPreviewOpen(true)}
+                className='w-full rounded-2xl border border-brand/40 py-3 text-[14px] font-semibold text-brand hover:bg-brand-tint'
+              >
+                Receiver’s preview
+              </button>
+              {previewOpen && <GiftReceiverPreview
+                open
+                onClose={() => setPreviewOpen(false)}
+                recipientName={recipientName}
+                giftTitle={giftTitle}
+                giftMessage={giftMessage}
+                imageUrl={selectedBrand?.gifting_card_image_url ?? selectedEvent?.image_url}
+                amount={effectiveAmount}
+              />}
             </div>
           )}
 

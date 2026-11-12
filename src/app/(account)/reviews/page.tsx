@@ -14,7 +14,8 @@ type Place = NonNullable<UserReview['place']>
 
 /**
  * app parity: screens/YourReviewsScreen.jsx — the user's own reviews. The app
- * lists restaurants only; here stores and tourist places are included too.
+ * lists restaurants only; here stores are included too. Tourist places are
+ * left out while Tourist is "coming soon" in the app.
  */
 export default async function YourReviewsPage() {
   const supabase = await createClient()
@@ -22,7 +23,7 @@ export default async function YourReviewsPage() {
 
   if (!user) redirect('/')
 
-  const kinds = Object.keys(REVIEW_CONFIG) as ReviewKind[]
+  const kinds = (Object.keys(REVIEW_CONFIG) as ReviewKind[]).filter(kind => kind !== 'tourist')
   const rowsByKind = await Promise.all(
     kinds.map(async kind => {
       const { data } = await supabase
@@ -33,22 +34,18 @@ export default async function YourReviewsPage() {
       return (data ?? []) as ReviewRow[]
     }),
   )
-  const [restaurantRows, storeRows, touristRows] = rowsByKind
+  const [restaurantRows, storeRows] = rowsByKind
 
   const ids = (rows: ReviewRow[], column: string) => [...new Set(rows.map(r => r[column] as string).filter(Boolean))]
   const restaurantIds = ids(restaurantRows, 'restaurant_id')
   const storeIds = ids(storeRows, 'store_id')
-  const placeIds = ids(touristRows, 'tourist_place_id')
 
-  const [restaurants, stores, places] = await Promise.all([
+  const [restaurants, stores] = await Promise.all([
     restaurantIds.length
       ? supabase.from('restaurants').select('id, name, slug, area, city, cover_image').in('id', restaurantIds)
       : null,
     storeIds.length
       ? supabase.from('stores').select('id, name, slug, location_name, city, cover_image, logo_url').in('id', storeIds)
-      : null,
-    placeIds.length
-      ? supabase.from('tourist_places').select('id, place_name, slug, area, city, cover_image').in('id', placeIds)
       : null,
   ])
 
@@ -68,14 +65,6 @@ export default async function YourReviewsPage() {
       href: `/stores/${s.slug ?? s.id}`,
       area: [s.location_name, s.city].filter(Boolean).join(', '),
       image: s.cover_image ?? s.logo_url,
-    })
-  }
-  for (const p of places?.data ?? []) {
-    placeById.set(p.id, {
-      name: p.place_name,
-      href: `/tourist/${p.slug ?? p.id}`,
-      area: [p.area, p.city].filter(Boolean).join(', '),
-      image: p.cover_image,
     })
   }
 

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { TrendingWellnessSection } from '@/components/sections/wellness/TrendingWellnessSection'
 import { ContinueWhereLeftOff } from '@/components/sections/wellness/ContinueWhereLeftOff'
 import { SpaNearYouSection } from '@/components/sections/wellness/SpaNearYouSection'
@@ -32,7 +33,8 @@ export default async function Wellness() {
   ])
 
   return (
-    <main className="min-h-screen pb-20 md:pb-0">
+    <main className="relative min-h-screen pb-20 md:pb-0">
+      <HuntSpot slot="wellness-top" />
       <ContinueWhereLeftOff stores={stores} />
       <TrendingWellnessSection stores={stores} />
       <SpaNearYouSection stores={stores} />

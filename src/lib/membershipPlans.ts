@@ -49,7 +49,7 @@ export const amountOf = (v: unknown) => {
 }
 
 /** app parity: planPresentation.resolvePlanTier */
-export function tierOf(plan: MembershipPlan): string {
+export function tierOf(plan: Pick<MembershipPlan, 'plan_name' | 'amount'> & { tier?: string | null }): string {
   const explicit = String(plan.tier ?? '').trim().toLowerCase()
   if (explicit) return explicit
   const name = plan.plan_name.toLowerCase()

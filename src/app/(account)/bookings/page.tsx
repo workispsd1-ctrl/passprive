@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BookingsClient } from './BookingsClient'
@@ -22,7 +23,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
   ])
 
   return (
-    <main className="min-h-screen">
+    <main className="relative min-h-screen">
+      <HuntSpot slot="bookings" />
       <SetPageTitle title="Your bookings" />
       <BookingsClient diningBookings={diningBookings} storeBookings={storeBookings} initialTab={tab} />
     </main>

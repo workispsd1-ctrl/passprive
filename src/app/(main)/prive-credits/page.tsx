@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
@@ -73,7 +74,8 @@ export default async function PriveCreditsPage() {
   ]
 
   return (
-    <main className='min-h-screen bg-white pb-20 md:pb-10'>
+    <main className='relative min-h-screen bg-white pb-20 md:pb-10'>
+      <HuntSpot slot='prive-credits' />
       <div className='mx-auto max-w-3xl px-4 pt-6 md:px-8'>
         {/* Hero */}
         <section className='relative overflow-hidden rounded-3xl bg-gray-900 px-6 py-8 text-white md:px-10 md:py-10'>

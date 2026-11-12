@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public'
+import { cachedCatalog, unwrap } from '@/lib/catalogCache'
 import { isRepeatRewardOffer } from '@/lib/deals'
 import { sortByMerchant } from '@/lib/utils'
 import { isWellnessStore } from '@/lib/storeType'
@@ -51,16 +53,28 @@ export async function getNewKickInStores(
  * lists must drop wellness ones with `isWellnessStore` — app parity: the
  * StoresHome rails all query `store_type: 'PRODUCT'`.
  */
-export async function getActiveStores(): Promise<StoreRow[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
+export const getActiveStores = cachedCatalog('active-stores', async (): Promise<StoreRow[]> => {
+  const res = await createPublicClient()
     .from('stores')
     .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_type, is_advertised, booking_service_type, store_subscriptions(status, repeat_rewards_enabled, starts_at, expires_at), store_offers(id, title, badge_text, discount_value, offer_type)')
     .eq('is_active', true)
     .order('sort_order')
     .order('name')
-  return (data ?? []) as StoreRow[]
-}
+  return (unwrap(res) ?? []) as StoreRow[]
+}, [])
+
+/** Active product stores in rail order; `limit` null = all of them (for radius trimming). */
+const getProductStores = cachedCatalog('product-stores', async (limit: number | null): Promise<StoreRow[]> => {
+  let query = createPublicClient()
+    .from('stores')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted')
+    .eq('is_active', true)
+    .eq('store_type', 'PRODUCT')
+    .order('sort_order')
+    .order('name')
+  if (limit != null) query = query.limit(limit)
+  return (unwrap(await query) ?? []) as StoreRow[]
+}, [])
 
 /**
  * "Discover top brands" — app parity: components/StoresHome/TrendingNow.jsx.
@@ -69,18 +83,9 @@ export async function getActiveStores(): Promise<StoreRow[]> {
  * by merchant tier instead of depending on that flag being set.
  */
 export async function getTopBrandStores(limit = 12, coords?: { lat: number; lng: number } | null): Promise<StoreRow[]> {
-  const supabase = await createClient()
-  let query = supabase
-    .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted')
-    .eq('is_active', true)
-    .eq('store_type', 'PRODUCT')
-    .order('sort_order')
-    .order('name')
   // with a location, trim to the 3–5 km radius before taking the top `limit`
-  if (!coords) query = query.limit(limit)
-  const { data } = await query
-  const rows = scopeStoresToRadius((data ?? []) as StoreRow[], coords).slice(0, limit)
+  const data = await getProductStores(coords ? null : limit)
+  const rows = scopeStoresToRadius(data, coords).slice(0, limit)
   return sortByMerchant(rows)
 }
 
@@ -97,31 +102,56 @@ export type StorePromotionalCollection = {
  * version, the app doesn't curate a per-collection store list — every active
  * collection just anchors the same top-of-list stores rail.
  */
-export async function getShoppingPromotionalCollections(): Promise<StorePromotionalCollection[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
+type PromoRow = { id: string; title: string; subtitle: string | null; starts_at: string | null; ends_at: string | null; has_banner: boolean }
+
+// `banner_image_url` holds an inline base64 image — only whether it's set is
+// kept, so the cached entry stays small.
+const toPromoRows = (data: Record<string, unknown>[] | null): PromoRow[] =>
+  (data ?? []).map((c) => ({
+    id: c.id as string,
+    title: c.title as string,
+    subtitle: (c.subtitle as string | null) ?? null,
+    starts_at: (c.starts_at as string | null) ?? null,
+    ends_at: (c.ends_at as string | null) ?? null,
+    has_banner: !!c.banner_image_url,
+  }))
+
+const getShoppingPromoRows = cachedCatalog('promo-shopping', async (): Promise<PromoRow[]> => {
+  const res = await createPublicClient()
     .from('promotional_collections')
     .select('id, title, subtitle, starts_at, ends_at, banner_image_url')
     .eq('is_active', true)
     .contains('screens', ['shopping'])
     .order('sort_order', { ascending: true })
+  return toPromoRows(unwrap(res))
+}, [])
 
+const getWellnessPromoRows = cachedCatalog('promo-wellness', async (): Promise<PromoRow[]> => {
+  const res = await createPublicClient()
+    .from('promotional_collections')
+    .select('id, title, subtitle, starts_at, ends_at, banner_image_url')
+    .eq('is_active', true)
+    .eq('slug', 'time-for-glow-up')
+    .order('sort_order', { ascending: true })
+  return toPromoRows(unwrap(res))
+}, [])
+
+/** Rows inside their starts_at/ends_at window — checked per request, not frozen into the cache. */
+function livePromos(data: PromoRow[]): StorePromotionalCollection[] {
   const now = Date.now()
-  return (data ?? [])
-    // Only the "end of season sale" campaign should show here — other
-    // shopping-screen collections (e.g. the football/fifa one) are excluded.
-    .filter((c) => !/fifa|football/i.test(c.title ?? ''))
+  return data
     .filter((c) => {
       const start = c.starts_at ? Date.parse(c.starts_at) : NaN
       const end = c.ends_at ? Date.parse(c.ends_at) : NaN
       return (Number.isNaN(start) || start <= now) && (Number.isNaN(end) || end >= now)
     })
-    .map((c) => ({
-      id: c.id,
-      title: c.title,
-      subtitle: c.subtitle,
-      hasBanner: !!c.banner_image_url,
-    }))
+    .map((c) => ({ id: c.id, title: c.title, subtitle: c.subtitle, hasBanner: c.has_banner }))
+}
+
+export async function getShoppingPromotionalCollections(): Promise<StorePromotionalCollection[]> {
+  // Only the "end of season sale" campaign should show here — other
+  // shopping-screen collections (e.g. the football/fifa one) are excluded.
+  return livePromos((await getShoppingPromoRows()).filter((c) => !/fifa|football/i.test(c.title ?? '')))
 }
 
 /**
@@ -130,17 +160,16 @@ export async function getShoppingPromotionalCollections(): Promise<StorePromotio
  * `category = 'Salon & Wellness'` drops spas, nail bars, hair salons etc.
  * whose category is their service list.)
  */
-export async function getWellnessStores(): Promise<StoreRow[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
+export const getWellnessStores = cachedCatalog('wellness-stores', async (): Promise<StoreRow[]> => {
+  const res = await createPublicClient()
     .from('stores')
     .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, is_advertised, store_type, booking_service_type, store_subscriptions(status, repeat_rewards_enabled, starts_at, expires_at), store_offers(id, title, badge_text, discount_value, offer_type)')
     .eq('is_active', true)
     .eq('store_type', 'SERVICE')
     .order('sort_order')
     .order('name')
-  return (data ?? []) as StoreRow[]
-}
+  return (unwrap(res) ?? []) as StoreRow[]
+}, [])
 
 /**
  * "Time for a Glow Up" — app parity: WellnessPromotionalCards.jsx, which
@@ -148,42 +177,21 @@ export async function getWellnessStores(): Promise<StoreRow[]> {
  * 'time-for-glow-up' card (the app still reads the older 'glow-up' one).
  */
 export async function getWellnessPromotionalCollections(): Promise<StorePromotionalCollection[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('promotional_collections')
-    .select('id, title, subtitle, starts_at, ends_at, banner_image_url')
-    .eq('is_active', true)
-    .eq('slug', 'time-for-glow-up')
-    .order('sort_order', { ascending: true })
-
-  const now = Date.now()
-  return (data ?? [])
-    .filter((c) => {
-      const start = c.starts_at ? Date.parse(c.starts_at) : NaN
-      const end = c.ends_at ? Date.parse(c.ends_at) : NaN
-      return (Number.isNaN(start) || start <= now) && (Number.isNaN(end) || end >= now)
-    })
-    .map((c) => ({
-      id: c.id,
-      title: c.title,
-      subtitle: c.subtitle,
-      hasBanner: !!c.banner_image_url,
-    }))
+  return livePromos(await getWellnessPromoRows())
 }
 
-export async function getStoreMoodCategories(): Promise<StoreMoodCategory[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
+export const getStoreMoodCategories = cachedCatalog('store-moods', async (): Promise<StoreMoodCategory[]> => {
+  const res = await createPublicClient()
     .from('store_mood_categories')
     .select('id, key, slug, title, image_url, light_theme_image_url, dark_theme_image_url, sort_order')
     .eq('is_active', true)
     .order('sort_order')
-  const allCats = (data ?? []) as StoreMoodCategory[]
+  const allCats = (unwrap(res) ?? []) as StoreMoodCategory[]
   return [
     ...allCats.filter(c => c.key === 'ALL_STORES'),
     ...allCats.filter(c => c.key !== 'ALL_STORES'),
   ]
-}
+}, [])
 
 export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail | null> {
   const supabase = await createClient()
@@ -397,14 +405,12 @@ export async function getStoreBookingSettings(storeId: string): Promise<{
   }
 }
 
-export async function getEditorialCollections(
+export const getEditorialCollections = cachedCatalog('editorial-collections', async (
   entityType?: 'STORE' | 'RESTAURANT' | 'BOTH' | ('STORE' | 'RESTAURANT' | 'BOTH')[]
-): Promise<EditorialCollection[]> {
-  const supabase = await createClient()
-
+): Promise<EditorialCollection[]> => {
   // Matches the app's fetchEditorialCollections
   // (components/Home/WhatsHotOnPassPrive.jsx): active rows, featured first.
-  let query = supabase
+  let query = createPublicClient()
     .from('editorial_collections')
     .select('id, slug, title, subtitle, description, cover_image_url, badge_text, source_name, entity_type, city, area, sort_order, is_featured, save_count')
     .eq('is_active', true)
@@ -417,9 +423,8 @@ export async function getEditorialCollections(
     query = query.in('entity_type', types)
   }
 
-  const { data } = await query
-  return (data ?? []) as EditorialCollection[]
-}
+  return (unwrap(await query) ?? []) as EditorialCollection[]
+}, [])
 
 /**
  * One editorial collection with its ranked restaurants/stores — app parity:
@@ -495,30 +500,30 @@ export async function getEditorialCollectionBySlug(slug: string): Promise<{
   return { collection: collection as EditorialCollection, restaurants, stores }
 }
 
-export async function getHomeSections(): Promise<HomeSection[]> {
-  const supabase = await createClient()
+export const getHomeSections = cachedCatalog('home-sections', async (): Promise<HomeSection[]> => {
+  const supabase = createPublicClient()
 
-  const { data: sections } = await supabase
+  const sections = unwrap(await supabase
     .from('stores_home_sections')
     .select('id, title, subtitle')
     .eq('is_active', true)
-    .order('created_at')
+    .order('created_at'))
 
   if (!sections?.length) return []
 
-  const { data: items } = await supabase
+  const items = unwrap(await supabase
     .from('stores_home_section_items')
     .select('section_id, store_id, sort_order, stores(name, slug, store_type, logo_url, cover_image, location_name, city, lat, lng, store_offers(discount_value, badge_text, offer_type))')
     .in('section_id', sections.map(s => s.id))
     .eq('is_active', true)
-    .order('sort_order')
+    .order('sort_order'))
 
   return sections.map(section => ({
     ...section,
     // shopping rail: wellness stores live under /wellness only
     items: ((items ?? []) as unknown as SectionStore[]).filter(i => i.section_id === section.id && !isWellnessStore(i.stores)),
   }))
-}
+}, [])
 
 const STORE_REVIEW_COLS = 'id, rating, review_text, username_snapshot, service_rating, ambience_rating, created_at'
 

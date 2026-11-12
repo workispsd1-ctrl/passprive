@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -17,17 +18,21 @@ type NavItem = {
   badge?: 'NEW' | 'COMING SOON'
 }
 
-// TODO(design): Services / Healthcare have no routes yet — pointing
-// to '#' as placeholders (Figma marks Healthcare COMING SOON).
+// app parity: CategoryGrid.jsx — Tourist, Services, Health Care and Hotels are
+// greyed-out, untappable "COMING SOON" tiles in the app.
 const NAV_ITEMS: NavItem[] = [
   { label: 'Home', href: '/', icon: '/assets/nav/home.webp', activeBg: '#FFEDC8' },
   { label: 'Shopping', href: '/stores', icon: '/assets/nav/shopping.webp', activeBg: '#D7FEDB' },
   { label: 'Wellness', href: '/wellness', icon: '/assets/nav/wellness.webp', activeBg: '#D3F6F9' },
   { label: 'Dining', href: '/dining', icon: '/assets/nav/dining.webp', activeBg: '#FFEAE1' },
-  { label: 'Tourists', href: '/tourist', icon: '/assets/nav/tourist.webp', activeBg: '#FFEDC8' },
-  { label: 'Services', href: '#', icon: '/assets/nav/services.webp', activeBg: '#FFEDC8', badge: 'NEW' },
-  { label: 'Healthcare', href: '#', icon: '/assets/nav/healthcare.webp', activeBg: '#FFEDC8', badge: 'COMING SOON' },
+  { label: 'Tourist', href: '#', icon: '/assets/nav/tourist.webp', activeBg: '#FFEDC8', badge: 'COMING SOON' },
+  { label: 'Services', href: '#', icon: '/assets/nav/services.webp', activeBg: '#FFEDC8', badge: 'COMING SOON' },
+  { label: 'Health Care', href: '#', icon: '/assets/nav/healthcare.webp', activeBg: '#FFEDC8', badge: 'COMING SOON' },
+  { label: 'Hotels', href: '#', icon: '/assets/nav/hotels.png', activeBg: '#FFEDC8', badge: 'COMING SOON' },
 ]
+
+/** app parity: CategoryGrid.jsx isLive — only untagged or NEW tiles open */
+const isLive = (badge: NavItem['badge']) => !badge || badge === 'NEW'
 
 /**
  * Category pills — Figma "Navigations" (PASS-PRIVE-HOMEPAGE 11339:855): at
@@ -56,6 +61,8 @@ export function HeaderNav() {
 
   return (
     <div className="relative mx-auto block w-fit max-w-full min-[120rem]:w-[1576px]">
+      {/* app parity: CategoryTabs (home) / StickyCategoryBar (category homes) hunt slots */}
+      <HuntSpot slot={pathname === '/' ? 'home-categories' : 'category-bar'} />
       <nav
         ref={navRef}
         aria-label="Category navigation"
@@ -63,22 +70,19 @@ export function HeaderNav() {
         className="flex h-16 items-center gap-2 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden md:h-20 md:gap-3 md:pr-12 xl:h-22 xl:gap-4 2xl:h-27 2xl:gap-5 2xl:pr-16 min-[120rem]:h-32 min-[120rem]:gap-6"
       >
         {NAV_ITEMS.map(({ label, href, icon, activeBg, badge }) => {
+          const live = isLive(badge)
           const isActive =
             href === '/'
               ? pathname === '/'
-              : href !== '#' && pathname.startsWith(href)
-
-          return (
-            <Link
-              key={label}
-              href={href}
-              aria-current={isActive ? 'page' : undefined}
-              style={isActive ? { backgroundColor: activeBg, borderColor: 'transparent' } : undefined}
-              className={cn(
-                'relative flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 whitespace-nowrap transition-colors md:h-12 md:gap-2 md:px-4 xl:h-14 xl:gap-2.5 xl:px-5 2xl:h-18 2xl:gap-3 2xl:px-7 min-[120rem]:h-[98px] min-[120rem]:gap-4 min-[120rem]:px-[37px]',
-                !isActive && 'border-gray-200 bg-white hover:border-gray-300',
-              )}
-            >
+              : live && pathname.startsWith(href)
+          const tileClass = cn(
+            'relative flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 whitespace-nowrap transition-colors md:h-12 md:gap-2 md:px-4 xl:h-14 xl:gap-2.5 xl:px-5 2xl:h-18 2xl:gap-3 2xl:px-7 min-[120rem]:h-[98px] min-[120rem]:gap-4 min-[120rem]:px-[37px]',
+            !isActive && 'border-gray-200 bg-white',
+            !isActive && live && 'hover:border-gray-300',
+            !live && 'cursor-default',
+          )
+          const content = (
+            <>
               {badge && (
                 <span
                   className={cn(
@@ -94,12 +98,29 @@ export function HeaderNav() {
                 alt=""
                 width={40}
                 height={40}
-                className="h-6 w-6 shrink-0 object-contain md:h-8 md:w-8 xl:h-9 xl:w-9 2xl:h-12 2xl:w-12 min-[120rem]:h-16 min-[120rem]:w-16"
+                // app parity: coming-soon tiles use the grey icon art
+                className={cn('h-6 w-6 shrink-0 object-contain md:h-8 md:w-8 xl:h-9 xl:w-9 2xl:h-12 2xl:w-12 min-[120rem]:h-16 min-[120rem]:w-16', !live && 'grayscale')}
               />
-              <span className="text-[13px] font-semibold text-[#1a1a1a] md:text-[14px] xl:text-[15px] 2xl:text-[17px] min-[120rem]:text-[20px]">
+              <span className={cn('text-[13px] font-semibold md:text-[14px] xl:text-[15px] 2xl:text-[17px] min-[120rem]:text-[20px]', live ? 'text-[#1a1a1a]' : 'text-[#9A9A9A]')}>
                 {label}
               </span>
+            </>
+          )
+
+          return live ? (
+            <Link
+              key={label}
+              href={href}
+              aria-current={isActive ? 'page' : undefined}
+              style={isActive ? { backgroundColor: activeBg, borderColor: 'transparent' } : undefined}
+              className={tileClass}
+            >
+              {content}
             </Link>
+          ) : (
+            <span key={label} aria-disabled='true' className={tileClass}>
+              {content}
+            </span>
           )
         })}
       </nav>

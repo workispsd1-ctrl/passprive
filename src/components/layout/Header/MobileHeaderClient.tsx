@@ -15,7 +15,6 @@ interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
   banners: WebsiteBanner[]
   wellnessBanners: WebsiteBanner[]
-  touristBanners: WebsiteBanner[]
   /** the app's own banner sets, for the category home screens */
   appBanners?: AppBannerSets | null
   minimal?: boolean
@@ -27,7 +26,6 @@ const BANNER_ROUTES: Record<string, { section: WebsiteBannerSection; aspect: str
   '/dining': { section: 'dining', aspect: 'aspect-[1560/2152]' },
   '/stores': { section: 'store', aspect: 'aspect-[1560/2152]' },
   '/wellness': { section: 'wellness', aspect: 'aspect-[1560/2152]' },
-  '/tourist': { section: 'tourist', aspect: 'aspect-[1560/1824]' },
 }
 
 /**
@@ -36,7 +34,7 @@ const BANNER_ROUTES: Record<string, { section: WebsiteBannerSection; aspect: str
  * top of the screen and the location, search and category pills sit over its
  * empty upper band. Everywhere else it's the plain top bar.
  */
-export function MobileHeaderClient({ user, banners, wellnessBanners, touristBanners, appBanners, minimal = false }: Props) {
+export function MobileHeaderClient({ user, banners, wellnessBanners, appBanners, minimal = false }: Props) {
   const pathname = usePathname()
   const isHome = pathname === '/'
   const route = minimal ? null : BANNER_ROUTES[pathname]
@@ -79,7 +77,7 @@ export function MobileHeaderClient({ user, banners, wellnessBanners, touristBann
         </div>
       )}
 
-      {!minimal && <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} touristBanners={touristBanners} pad='px-4' />}
+      {!minimal && <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} pad='px-4' />}
     </div>
   )
 }

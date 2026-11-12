@@ -16,6 +16,8 @@ interface Props {
   maxWidthClassName?: string
   /** override the card row's gap (default: 16 on phones → 44 at 1920, the Figma rows) */
   gapClassName?: string
+  /** called while the row is scrolled within a couple of screens of its end — for appending more cards */
+  onNearEnd?: () => void
   children: React.ReactNode
 }
 
@@ -30,17 +32,24 @@ export function HScroll({
   className,
   maxWidthClassName = 'max-w-7xl',
   gapClassName = 'gap-4 xl:gap-6 2xl:gap-8 min-[120rem]:gap-11',
+  onNearEnd,
   children,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canLeft, setCanLeft] = useState(false)
   const [canRight, setCanRight] = useState(false)
+  // the scroll listener is bound once, so it reads the latest callback from a ref
+  const nearEndRef = useRef(onNearEnd)
+  useEffect(() => {
+    nearEndRef.current = onNearEnd
+  }, [onNearEnd])
 
   function update() {
     const el = scrollRef.current
     if (!el) return
     setCanLeft(el.scrollLeft > 4)
     setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    if (el.scrollWidth - (el.scrollLeft + el.clientWidth) < el.clientWidth * 2) nearEndRef.current?.()
   }
 
   useEffect(() => {

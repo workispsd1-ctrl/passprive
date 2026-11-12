@@ -1,4 +1,5 @@
 import { NewKickInStores } from '@/components/sections/home/NewKickInStores';
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { ServiceAreaGate } from '@/components/shared/ServiceAreaGate';
 import { NewlyFeaturedSection } from '@/components/sections/home/NewlyFeaturedSection';
 import { NowTrendingSection } from '@/components/sections/home/NowTrendingSection';
@@ -41,24 +42,26 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const [user, coords] = await Promise.all([getCurrentUser(), getUserCoords()]);
-  const [newStores, restaurants, stores, offers, collections, upcoming, mallsTitle] =
+  const [newStores, restaurants, allStores, offers, collections, upcoming, mallsTitle] =
     await Promise.all([
       getNewKickInStores({ limit: 8, userLat: coords?.lat, userLng: coords?.lng }),
       getNewRestaurants(40, coords),
-      // every rail below draws from these, so the 3–5 km radius applies to all of them
-      getActiveStores().then((all) => scopeStoresToRadius(all, coords)),
+      getActiveStores(),
       getOffersForYou(),
       getEditorialCollections(),
       user ? getUpcomingDiningBookings(user.id) : Promise.resolve([]),
       getMallsSectionTitle(),
     ]);
 
+  // the store rails use the 3–5 km radius; salons are scoped inside their own section
+  const stores = scopeStoresToRadius(allStores, coords);
   const malls = mallsTitle ? await getActiveMalls(coords) : [];
   const featured = restaurants.slice(0, 8);
 
   return (
     <ServiceAreaGate>
-    <main className='min-h-screen bg-white pb-10'>
+    <main className='relative min-h-screen bg-white pb-10'>
+      <HuntSpot slot='home-top' />
       <UpcomingBookings bookings={upcoming} />
       {featured.length > 0 && (
         <NewlyFeaturedSection restaurants={featured} stores={stores} />
@@ -71,7 +74,8 @@ export default async function Home() {
       />
       {restaurants.length > 0 && <NowTrendingSection restaurants={restaurants} />}
       {newStores.length > 0 && <NewKickInStores stores={newStores} />}
-      <SalonVisitSection stores={stores} />
+      {/* app parity: PlanYourSalonVisit — 15 km, or the same city / area for salons with no coordinates */}
+      <SalonVisitSection stores={allStores} />
       {stores.length > 0 && <StoresNearYouSection stores={stores.filter((s) => !isWellnessStore(s))} />}
       {mallsTitle && <MallsNearYou malls={malls} title={mallsTitle} />}
       <HotOnPassprive collections={collections} />

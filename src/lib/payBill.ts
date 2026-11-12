@@ -152,15 +152,23 @@ function activeNow(o: { starts_at: string | null; ends_at: string | null }, now:
  * live `offers` rows that apply to bill payments here (its MERCHANT offers,
  * plus every BANK / PLATFORM offer). Deduped on id + title, best priority first.
  */
-export function billOffers(restaurantId: string, own: RestaurantOfferRow[], table: OffersTableRow[], now = Date.now()): BillOffer[] {
+export function billOffers(
+  restaurantId: string,
+  own: RestaurantOfferRow[],
+  table: OffersTableRow[],
+  now = Date.now(),
+  /** app parity: PayBillScreen entityType — a store bill takes STORE-module offers */
+  entityType: 'RESTAURANT' | 'STORE' = 'RESTAURANT',
+): BillOffer[] {
+  const modules = entityType === 'STORE' ? ['STORE', 'STORES'] : ['RESTAURANT', 'DINING']
   const scoped = table.filter(o => {
     if (!activeNow(o, now)) return false
     const mod = upper(o.module)
-    if (mod && !['BOTH', 'ALL', 'ANY', 'RESTAURANT', 'DINING'].includes(mod)) return false
+    if (mod && !['BOTH', 'ALL', 'ANY', ...modules].includes(mod)) return false
     const flow = upper(o.payment_flow)
     if (flow && flow !== 'ANY' && flow !== 'BILL_PAYMENT' && flow !== 'PAY_BILL') return false
     if (isBankSource(o.source_type) || isPlatformSource(o.source_type)) return true
-    return upper(o.source_type) === 'MERCHANT' && upper(o.owner_entity_type) === 'RESTAURANT' && text(o.owner_entity_id) === restaurantId
+    return upper(o.source_type) === 'MERCHANT' && upper(o.owner_entity_type) === entityType && text(o.owner_entity_id) === restaurantId
   })
   // deduped on title too, as BillSummaryScreen does
   const seen = new Set<string>()
@@ -305,6 +313,10 @@ export type PendingBillPayment = {
   merchantTrace: string
   restaurantId: string
   restaurantName: string
+  /** a store / salon bill; restaurant when absent */
+  merchantKind?: 'restaurant' | 'store'
+  /** the merchant's page, for Done / back */
+  merchantHref?: string
   location: string
   originalAmount: number
   discount: number

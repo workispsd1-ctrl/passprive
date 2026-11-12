@@ -95,7 +95,8 @@ export async function getProfileSummary(): Promise<ProfileSummary | null> {
   const bookings = [
     ...dining.map(b => ({
       key: `d-${b.id}`,
-      href: `/bookings/${b.id}`,
+      // app parity: Profile's active bookings open Your bookings
+      href: '/bookings',
       name: b.restaurants?.name ?? 'Restaurant',
       image: b.restaurants?.cover_image ?? null,
       overline: `${new Date(`${b.booking_date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · ${b.booking_time.slice(0, 5)} · ${b.party_size} guest${b.party_size === 1 ? '' : 's'}`,

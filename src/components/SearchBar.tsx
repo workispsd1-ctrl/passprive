@@ -14,7 +14,7 @@ type Result = {
   city: string;
   logo_url: string | null;
   slug: string;
-  type: 'store' | 'restaurant' | 'tourist_place';
+  type: 'store' | 'restaurant';
   /** stores only — 'SERVICE' is a wellness store */
   store_type?: string | null;
 };
@@ -110,11 +110,9 @@ export function SearchBar({ variant = 'mobile', onClose, scaled = false }: Props
     const path =
       result.type === 'restaurant'
         ? `/dining/${slug}`
-        : result.type === 'tourist_place'
-          ? `/tourist/${slug}`
-          : String(result.store_type ?? '').toUpperCase() === 'SERVICE'
-            ? `/wellness/${slug}`
-            : `/stores/${slug}`;
+        : String(result.store_type ?? '').toUpperCase() === 'SERVICE'
+          ? `/wellness/${slug}`
+          : `/stores/${slug}`;
     setQuery('');
     setResults([]);
     setIsOpen(false);

@@ -3,8 +3,9 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronRight, Clock, X } from 'lucide-react'
+import { CancelBookingDialog } from './CancelBookingDialog'
 import { cn } from '@/lib/utils'
 import { longDate } from '@/lib/booking/slots'
 import { t } from '@/components/sections/dining/designUnit'
@@ -79,6 +80,10 @@ export function BookingResult({ b }: { b: BookingResultData }) {
 
   const meal = Number(b.time24.slice(0, 2)) >= 17 ? 'Dinner' : 'Lunch'
   const deadline = b.cancellation.available ? cancelDeadline(b.date, b.time24, b.cancellation.cutoffMinutes) : null
+  // app parity: PaymentSuccessScreen canCancel — the restaurant allows it and the booking hasn't started (the API re-checks)
+  const [now] = useState(() => Date.now())
+  const canCancel = b.cancellation.available && !cancelled && new Date(`${b.date}T${b.time24.slice(0, 5)}:00+04:00`).getTime() > now
+  const [cancelOpen, setCancelOpen] = useState(false)
 
   return (
     <div className='relative mx-auto flex w-full flex-col items-center text-center' style={{ maxWidth: t(760) }}>
@@ -161,11 +166,24 @@ export function BookingResult({ b }: { b: BookingResultData }) {
           <span className='font-semibold text-[#2c2d32]'>Need modifications? </span>
           {deadline ? `Valid till ${deadline}` : 'Contact the restaurant or support'}
         </p>
-        <p className='text-[#5b5a5a]'>
-          <span className='font-semibold text-[#2c2d32]'>Might need to cancel? </span>
-          {deadline ? `100% refund till ${deadline}` : 'This booking can’t be cancelled online'}
-        </p>
+        {/* app parity: PaymentSuccessScreen "Might need to cancel?" opens the cancel sheet */}
+        <button
+          type='button'
+          disabled={!canCancel}
+          onClick={() => setCancelOpen(true)}
+          className='flex items-center justify-between text-left text-[#5b5a5a] enabled:hover:text-[#2c2d32] disabled:cursor-default'
+          style={{ gap: t(8) }}
+        >
+          <span>
+            <span className={cn('font-semibold', canCancel ? 'text-[#2c2d32]' : 'text-[#b0b0b0]')}>Might need to cancel? </span>
+            {canCancel
+              ? deadline ? `100% refund till ${deadline}` : 'Cancel anytime before the booking starts'
+              : 'Not eligible for cancellation'}
+          </span>
+          {canCancel && <ChevronRight className='shrink-0 text-[#ababab]' style={{ width: t(18), height: t(18) }} />}
+        </button>
       </div>}
+      {cancelOpen && <CancelBookingDialog bookingId={b.id} onClose={() => setCancelOpen(false)} />}
 
       <Link href='/help' className='relative flex w-full items-center justify-between bg-[#f6f6f6] text-left hover:bg-[#efefef]' style={{ marginTop: t(24), borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>
         <span>
@@ -176,16 +194,10 @@ export function BookingResult({ b }: { b: BookingResultData }) {
       </Link>
 
       <div className='relative flex w-full flex-col sm:flex-row' style={{ marginTop: t(36), gap: t(16) }}>
-        <Link
-          href={`/bookings/${b.id}`}
-          className='flex flex-1 items-center justify-center rounded-full border-solid border-[#ff4800] font-semibold text-[#ff4800] hover:bg-[#fff1eb]'
-          style={{ height: t(81), borderWidth: t(1.5), fontSize: t(24) }}
-        >
-          View booking
-        </Link>
+        {/* app parity: PaymentSuccessScreen handleGoHome — there's no separate booking page */}
         <button
           type='button'
-          onClick={() => router.push('/dining')}
+          onClick={() => router.push('/')}
           className='flex flex-1 items-center justify-center rounded-full bg-[#ff4800] font-semibold text-white hover:bg-brand-dark'
           style={{ height: t(81), fontSize: t(24) }}
         >

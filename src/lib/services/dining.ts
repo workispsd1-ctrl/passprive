@@ -1,6 +1,9 @@
 import type { ReviewRow } from '@/lib/allReviews';
 import { orderableItems, type OrderItem } from '@/lib/orderCollect';
 import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
+import { cachedCatalog, unwrap } from '@/lib/catalogCache';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { FEED_PAGE_SIZE, toRpcArgs, type Coords, type FeedFilters } from '@/lib/restaurantFilters';
 import { scopeToRadius, withinRadius } from '@/lib/nearby';
 import type {
@@ -45,9 +48,8 @@ export async function getNewRestaurants(
  * rail. Asked of the feed RPC directly (in_has_offer) rather than filtered out
  * of the newest few, which rarely held one and left the rail empty.
  */
-export async function getOfferRestaurants(limit = 10): Promise<FeaturedRestaurant[]> {
-  const supabase = await createClient();
-  const { data } = await supabase.rpc('restaurant_feed', {
+const getOfferRestaurantsCached = cachedCatalog('offer-restaurants', async (limit: number): Promise<FeaturedRestaurant[]> => {
+  const res = await createPublicClient().rpc('restaurant_feed', {
     in_lat: null,
     in_lng: null,
     in_limit: limit,
@@ -55,7 +57,11 @@ export async function getOfferRestaurants(limit = 10): Promise<FeaturedRestauran
     in_sort: 'rating_desc',
     in_has_offer: true,
   });
-  return (data ?? []) as FeaturedRestaurant[];
+  return (unwrap(res) ?? []) as FeaturedRestaurant[];
+}, []);
+
+export async function getOfferRestaurants(limit = 10): Promise<FeaturedRestaurant[]> {
+  return getOfferRestaurantsCached(limit);
 }
 
 /** Curated rails: only restaurants within the shared 3–5 km radius (lib/nearby). */
@@ -168,13 +174,12 @@ export async function getPromotionalCollections(
 }
 
 /** Cuisine options for the filter dialog — app parity: restaurant_cuisine_facets. */
-export async function getCuisineFacets(): Promise<string[]> {
-  const supabase = await createClient();
-  const { data } = await supabase.rpc('restaurant_cuisine_facets');
-  return ((data ?? []) as { cuisine: string }[])
+export const getCuisineFacets = cachedCatalog('cuisine-facets', async (): Promise<string[]> => {
+  const res = await createPublicClient().rpc('restaurant_cuisine_facets');
+  return ((unwrap(res) ?? []) as { cuisine: string }[])
     .map((r) => r.cuisine)
     .filter(Boolean);
-}
+}, []);
 
 /**
  * Resolves a stored image value to a public URL — app parity:
@@ -184,7 +189,7 @@ export async function getCuisineFacets(): Promise<string[]> {
  * "storage/v1/object/public/" or "public/") needing `getPublicUrl`.
  */
 function resolveSupabasePublicImage(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   raw: string | null | undefined,
 ): string | null {
   if (!raw) return null;
@@ -226,15 +231,15 @@ type MoodCategoryRow = {
  * (plain table select, no limit; web has no dark mode so always resolves the
  * light-theme image, falling back to the generic image, then dark-theme).
  */
-export async function getMoodCategories(): Promise<MoodCategory[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+export const getMoodCategories = cachedCatalog('restaurant-moods', async (): Promise<MoodCategory[]> => {
+  const supabase = createPublicClient();
+  const data = unwrap(await supabase
     .from('restaurant_mood_categories')
     .select(
       'key, slug, title, sort_order, image_url, image_path, light_theme_image_url, light_theme_image_path, dark_theme_image_url, dark_theme_image_path',
     )
     .eq('is_active', true)
-    .order('sort_order', { ascending: true });
+    .order('sort_order', { ascending: true }));
 
   return ((data ?? []) as MoodCategoryRow[]).map((row) => {
     const image =
@@ -253,7 +258,7 @@ export async function getMoodCategories(): Promise<MoodCategory[]> {
       image_url: image,
     };
   });
-}
+}, []);
 
 export async function getActiveRestaurants(limit = 10): Promise<Restaurant[]> {
   const supabase = await createClient();

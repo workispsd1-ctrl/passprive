@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { getCardChips } from '@/lib/cardChips'
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
@@ -95,9 +96,10 @@ export default async function WellnessStorePage({ params }: { params: Promise<{ 
     <PhotoGalleryProvider photos={photos}>
       {/* desktop breaks out of the site's 1280px column and scales with the screen */}
       <main
-        className={cn('min-h-screen bg-white md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen md:pb-0', SALON_TYPE, hasCta && 'pb-36')}
+        className={cn('relative min-h-screen bg-white md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen md:pb-0', SALON_TYPE, hasCta && 'pb-36')}
         style={{ ['--u' as string]: SALON_UNIT }}
       >
+        <HuntSpot slot='merchant-page' />
         <RecordWellnessView id={store.id} />
         {/* phones: the app's cover hero */}
         <PhotoGrid photos={photos} restaurantName={store.name} backHref='/wellness' save={{ id: store.id, type: 'STORE' }} cover={store.cover_image} desktop={false} />

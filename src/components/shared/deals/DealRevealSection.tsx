@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Loader2, Lock, Ticket } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
@@ -148,11 +149,14 @@ export function DealRevealSection({
   onHasItems,
   className,
   variant = 'default',
+  previewTier = null,
 }: {
   restaurantId?: string
   storeId?: string
   merchantName: string
   onHasItems?: (has: boolean) => void
+  /** TierPills preview — another plan's deals, locked (app parity: DealRevealSection previewTier) */
+  previewTier?: 'free' | 'plus' | 'black' | null
   className?: string
   /** 'figma' — desktop restaurant page: each piece is an "Offers for today" card, placed by the parent rail */
   /** 'ticket' — the app's current ticket rail (restaurant page sidebar and phones) */
@@ -183,7 +187,10 @@ export function DealRevealSection({
     return () => window.removeEventListener('pp:auth', load)
   }, [load])
 
-  const items = state?.items ?? []
+  const router = useRouter()
+  const userTier = String(state?.quota?.tier ?? 'free').trim().toLowerCase()
+  const previewing = !!previewTier && previewTier !== userTier
+  const items = (previewing ? state?.previews?.[previewTier!] : state?.items) ?? []
   const quota = state?.quota ?? null
 
   useEffect(() => { onHasItems?.(items.length > 0) }, [items.length, onHasItems])
@@ -272,7 +279,7 @@ export function DealRevealSection({
   )
 
   if (variant === 'ticket') {
-    const locked = isQuotaExhausted(quota)
+    const locked = previewing || isQuotaExhausted(quota)
     return (
       <div className={cn('font-(family-name:--font-dm-sans)', className)}>
         <SnapPager label='Deal'>
@@ -285,7 +292,7 @@ export function DealRevealSection({
                   revealed={open}
                   locked={locked && !open}
                   busy={checking === `reveal:${item.key}`}
-                  onReveal={() => (locked ? openQuota() : precheck(item, 'reveal', () => setRevealed(prev => new Set(prev).add(item.key))))}
+                  onReveal={() => (previewing ? router.push('/membership') : locked ? openQuota() : precheck(item, 'reveal', () => setRevealed(prev => new Set(prev).add(item.key))))}
                   onTerms={() => setTerms(item.terms)}
                 />
                 {open && (

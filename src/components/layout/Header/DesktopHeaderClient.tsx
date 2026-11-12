@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -16,7 +17,6 @@ interface Props {
   user: { email?: string; name?: string | null; phone?: string | null } | null
   banners: WebsiteBanner[]
   wellnessBanners: WebsiteBanner[]
-  touristBanners: WebsiteBanner[]
   /** 'black' | 'premium' | 'none' — app parity: PackageBadge.jsx */
   membershipTier: string
   /** account/static pages: no category nav / hero banners */
@@ -35,7 +35,7 @@ const MEMBERSHIP_BADGE: Record<string, string> = {
 // absorbs the difference so nothing overflows on tablets.
 //
 // Home gets the orange "light" theme; every other page the white one.
-export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBanners, membershipTier, minimal = false }: Props) {
+export function DesktopHeaderClient({ user, banners, wellnessBanners, membershipTier, minimal = false }: Props) {
   const isHome = usePathname() === '/'
   const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/assets/membership/FreeBadge.webp'
 
@@ -83,8 +83,11 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
         {/* Credits · badge · favourites · profile — gap 8, then 24 */}
         <div className="flex shrink-0 items-center gap-[calc(var(--u)*8)]">
           {/* Privé credits — 127 × 55: 55px wallet coin over a 120 × 48 pill */}
+          {/* app parity: WalletPill — the wallet once there's a balance, the explainer before that */}
+          <div className="relative shrink-0">
+          <HuntSpot slot="wallet-button" />
           <Link
-            href="/prive-credits"
+            href={credits != null && credits > 0 ? '/wallet' : '/prive-credits'}
             aria-label="Privé credits"
             title="Privé credits"
             className="relative flex h-[calc(var(--u)*55)] min-w-[calc(var(--u)*127)] items-center pl-[calc(var(--u)*55)] pr-[calc(var(--u)*12)]"
@@ -117,6 +120,7 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
               </span>
             </span>
           </Link>
+          </div>
 
           <div className="flex items-center gap-[calc(var(--u)*24)]">
             {/* Membership badge (Free/Plus/Black) — 112 × 48. Signed-in users only. */}
@@ -138,7 +142,7 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, touristBan
       </div>
 
       {!minimal && (
-        <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} touristBanners={touristBanners} pad="px-4 md:px-12" />
+        <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} pad="px-4 md:px-12" />
       )}
     </div>
   )

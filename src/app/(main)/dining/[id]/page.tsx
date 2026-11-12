@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { getCardChips } from '@/lib/cardChips'
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -17,6 +18,9 @@ import { RestaurantDesktopSections } from '@/components/sections/dining/Restaura
 import { HelpSideCard, SampleBillCard, StampSideCard } from '@/components/sections/dining/RestaurantSidebar';
 import { RestaurantRewards } from '@/components/sections/dining/RestaurantRewards';
 import { DealQuotaGauge } from '@/components/shared/deals/DealQuotaGauge';
+import { RestaurantRail } from '@/components/sections/dining/RestaurantRail';
+import { getExploreMoreRestaurants } from '@/lib/services/exploreMore';
+import { getUserCoords } from '@/lib/location';
 import { getRestaurantStampCard } from '@/lib/services/visitRewards';
 import { billOffers, type RestaurantOfferRow } from '@/lib/payBill';
 import { DetailReviews } from '@/components/shared/detail/DetailReviews';
@@ -101,12 +105,13 @@ export default async function RestaurantPage({
   const [{ restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages, allHours }, caps] =
     await Promise.all([fetchRestaurant(id), getDiscountCaps()]);
   if (!restaurant) notFound();
-  const [orderCollect, stampCard, offersTable, dealRows] = await Promise.all([
+  const [orderCollect, stampCard, offersTable, dealRows, more] = await Promise.all([
     getOrderCollect(restaurant.id),
     getRestaurantStampCard(restaurant.id),
     // the sample bill's offers + deals — the same sources pay-bill and the app's SampleBill use
     getOffersTableRows(),
     getRestaurantDealRows(restaurant.id),
+    getUserCoords().then(coords => getExploreMoreRestaurants(restaurant.id, coords)),
   ]);
 
   const tagsOf = (type: string) => tags.filter((t) => t.tag_type === type).map((t) => t.tag_value);
@@ -181,9 +186,10 @@ export default async function RestaurantPage({
       {/* desktop: Figma "Dining - Pay Bill" — a full 1920 frame (breaks out of the site's 1280px
           column): layout in --u (fluid with the screen), type in --t (stepped per breakpoint) */}
       <main
-        className={cn('min-h-screen bg-white md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen md:pb-0', TYPE_SCALE, actions.length ? 'pb-36' : 'pb-16')}
+        className={cn('relative min-h-screen bg-white md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen md:pb-0', TYPE_SCALE, actions.length ? 'pb-36' : 'pb-16')}
         style={{ ['--u' as string]: DESIGN_UNIT }}
       >
+        <HuntSpot slot='merchant-page' />
         {/* phones: the app's cover hero; desktop: the photo-beside-details header */}
         <PhotoGrid
           photos={galleryPhotos}
@@ -332,6 +338,12 @@ export default async function RestaurantPage({
             <HelpSideCard />
           </aside>
           </div>
+        </div>
+
+        {/* app parity: FigmaDiscoverSections — after the help card */}
+        <div className='mx-auto max-w-7xl pb-24 md:pb-10'>
+          <RestaurantRail title='Explore more restaurants' restaurants={more.explore} />
+          <RestaurantRail title='Nearest restaurants' restaurants={more.nearest} />
         </div>
 
         <CtaMobileBar actions={actions} merchant={restaurant} />

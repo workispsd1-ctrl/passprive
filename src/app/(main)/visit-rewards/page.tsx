@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { getCollectStamps, getStampSheets } from '@/lib/services/visitRewards'
 import { CollectStamps } from '@/components/sections/stamps/CollectStamps'
 import { StampSheets } from '@/components/sections/stamps/StampSheets'
@@ -14,5 +15,10 @@ export const metadata: Metadata = {
 export default async function VisitRewardsPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
   const { mode } = await searchParams
   if (mode === 'sheets') return <StampSheets data={await getStampSheets()} />
-  return <CollectStamps data={await getCollectStamps()} />
+  return (
+    <div className='relative'>
+      <HuntSpot slot='stamps' />
+      <CollectStamps data={await getCollectStamps()} />
+    </div>
+  )
 }

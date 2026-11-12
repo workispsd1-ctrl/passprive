@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 }
 
-/** Global search — app parity: screens/GlobalSearchScreen (restaurants, stores and tourist places, with tabs). */
+/** Global search — app parity: screens/GlobalSearchScreen (restaurants and stores, with tabs; Tourists is disabled). */
 export default async function SearchPage({
   searchParams,
 }: {

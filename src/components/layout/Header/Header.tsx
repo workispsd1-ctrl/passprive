@@ -1,4 +1,5 @@
 import { DesktopHeaderClient } from './DesktopHeaderClient'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { MobileHeaderClient } from './MobileHeaderClient'
 import { getCurrentUser } from '@/lib/services/user'
 import { getAllAppBanners, getWebsiteBanners } from '@/lib/services/websiteBanners'
@@ -10,16 +11,15 @@ import { getUserMembership } from '@/lib/services/subscription'
  * the category nav/hero, which are for browsing.
  */
 export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
-  // Home/wellness/tourist hero banners live in the header so the category-nav
+  // Home/wellness hero banners live in the header so the category-nav
   // pill can be positioned relative to them per-route (overlap on home, below
-  // on wellness/tourist); HeaderHeroNav picks the right one by pathname.
+  // on wellness); HeaderHeroNav picks the right one by pathname.
   // Phones show the app's own (portrait) banners under an overlaid header — the
   // website creatives are wide desktop art that crops badly on a narrow screen.
-  const [user, homeBanners, wellnessBanners, touristBanners, appBanners] = await Promise.all([
+  const [user, homeBanners, wellnessBanners, appBanners] = await Promise.all([
     getCurrentUser(),
     getWebsiteBanners('home'),
     getWebsiteBanners('wellness'),
-    getWebsiteBanners('tourist'),
     minimal ? null : getAllAppBanners(),
   ])
 
@@ -38,11 +38,11 @@ export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
 
   return (
     <header className="relative z-50">
+      <HuntSpot slot="home-header" />
       <DesktopHeaderClient
         user={user}
         banners={homeBanners}
         wellnessBanners={wellnessBanners}
-        touristBanners={touristBanners}
         membershipTier={membershipTier}
         minimal={minimal}
       />
@@ -51,8 +51,7 @@ export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
           user={user}
           banners={homeBanners}
           wellnessBanners={wellnessBanners}
-          touristBanners={touristBanners}
-          appBanners={appBanners}
+            appBanners={appBanners}
           minimal={minimal}
         />
       </div>

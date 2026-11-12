@@ -18,6 +18,8 @@ export type MerchantDealsState = {
   loggedIn: boolean
   quota: DealQuota | null
   items: RevealItem[]
+  /** each plan's deals, for the TierPills preview — app parity: DealRevealSection buildItems(source, viewTier) */
+  previews?: Partial<Record<'free' | 'plus' | 'black', RevealItem[]>>
 }
 
 /**
@@ -71,11 +73,12 @@ export async function getMerchantDeals({
   const offers = ((offersRes.data ?? []) as MerchantOffer[])
     .map(o => offerItem(o, offerKind))
     .filter((i): i is RevealItem => !!i)
-  const deals = pickDealsForTier((dealsRes.data ?? []) as RestaurantDeal[], quota?.tier)
-    .map(dealItem)
-    .filter((i): i is RevealItem => !!i)
+  const rows = (dealsRes.data ?? []) as RestaurantDeal[]
+  const forTier = (tier: string | null | undefined) =>
+    bestFirst([...pickDealsForTier(rows, tier).map(dealItem).filter((i): i is RevealItem => !!i), ...offers])
+  const previews = { free: forTier('free'), plus: forTier('plus'), black: forTier('black') }
 
-  return { loggedIn: !!user, quota, items: bestFirst([...deals, ...offers]) }
+  return { loggedIn: !!user, quota, items: forTier(quota?.tier), previews }
 }
 
 export type RevealPlan = {

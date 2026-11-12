@@ -91,7 +91,7 @@ function CoverChargeReturnInner() {
           setTimeout(() => router.replace(`${stored.bookHref}?${qs}`), 1600)
           return
         }
-        router.replace(bookingId ? `/bookings/${bookingId}?cover_paid=1` : '/bookings')
+        router.replace('/bookings')
       } catch (err) {
         clear()
         setPhase({ status: 'error', message: err instanceof Error ? err.message : 'Could not verify payment. Please contact support.' })

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 96">
+<defs>
+  <radialGradient id="contact" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0.5" stop-color="#5B32B8" stop-opacity="0.3"/>
+    <stop offset="1" stop-color="#5B32B8" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<ellipse cx="150" cy="51" rx="124" ry="28" fill="url(#contact)"/>
+</svg>

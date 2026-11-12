@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { getCardChips } from '@/lib/cardChips'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -15,7 +16,8 @@ import { DetailOffers, type OfferTicket } from '@/components/shared/detail/Detai
 import { DetailReviews } from '@/components/shared/detail/DetailReviews'
 import { DetailAbout, type Fact } from '@/components/shared/detail/DetailAbout'
 import { DetailLocation } from '@/components/shared/detail/DetailLocation'
-import { QuickInfoCard } from '@/components/shared/detail/DetailCtaBar'
+import { CtaMobileBar, QuickInfoCard } from '@/components/shared/detail/DetailCtaBar'
+import { canPayBill } from '@/lib/cashback'
 import { DownloadAppCard } from '@/components/shared/DownloadAppCard'
 import { HelpCard } from '@/components/shared/detail/HelpCard'
 import { MobileTitleCard } from '@/components/shared/detail/MobileTitleCard'
@@ -126,9 +128,12 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
 
   // app parity: upsellOfferPct — the first percentage offer is what the tiers share
   const offerPct = Number(offers.find(o => String(o.offer_type ?? '').toLowerCase().startsWith('percent') && Number(o.discount_value) > 0)?.discount_value) || 0
+  const payCta = canPayBill(store) ? { label: 'Pay bill', href: `/pay-bill?store_id=${store.id}` } : null
+
   return (
     <PhotoGalleryProvider photos={allPhotos}>
-      <main className='min-h-screen bg-white pb-16'>
+      <main className='relative min-h-screen bg-white pb-16'>
+        <HuntSpot slot='merchant-page' />
         <nav aria-label='Breadcrumb' className='hidden items-center gap-1.5 px-6 pt-3 text-[12px] text-gray-400 md:flex'>
           <Link href='/' className='transition-colors hover:text-gray-600'>Home</Link>
           <span>/</span>
@@ -187,7 +192,8 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
               />
 
 
-              <DetailSectionTabs tabs={tabs} title={store.name} cta={null} className='mt-6' orderClassName='max-md:order-2' />
+              {/* app parity: StoreDetails "Pay bill" (Paybill with paymentSource 'store') */}
+              <DetailSectionTabs tabs={tabs} title={store.name} cta={payCta} className='mt-6' orderClassName='max-md:order-2' />
               <MerchantRewardsSection merchant={store} kind='store' name={store.name} className='max-md:order-1' />
               <UpsellBannerPager
                 merchantType={store.merchant_type}
@@ -258,6 +264,7 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
             </aside>
           </div>
         </div>
+        {payCta && <CtaMobileBar actions={[payCta]} merchant={store} />}
       </main>
     </PhotoGalleryProvider>
   )

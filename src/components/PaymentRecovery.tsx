@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { SESSION_KEY_COVER_CHARGE, SESSION_KEY_DINING_PAYMENT, SESSION_KEY_MEMBERSHIP } from '@/lib/constants/sessionKeys'
+import { SESSION_KEY_COVER_CHARGE, SESSION_KEY_MEMBERSHIP } from '@/lib/constants/sessionKeys'
 
 const RETURN_PATHS = [
   '/dining/cover-charge-return',
@@ -25,16 +25,6 @@ export function PaymentRecovery() {
         const coverStored = JSON.parse(coverRaw) as { sessionId?: string; bookingId?: string }
         if (coverStored?.sessionId) {
           router.push('/dining/cover-charge-return')
-          return
-        }
-      }
-
-
-      const diningRaw = sessionStorage.getItem(SESSION_KEY_DINING_PAYMENT)
-      if (diningRaw) {
-        const diningStored = JSON.parse(diningRaw) as { sessionId?: string; bookingId?: string }
-        if (diningStored?.sessionId && diningStored?.bookingId) {
-          router.push(`/bookings/${diningStored.bookingId}/payment-return`)
           return
         }
       }

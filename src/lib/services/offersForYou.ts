@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
+import { cachedCatalog, unwrap } from '@/lib/catalogCache';
 import type { OfferForYouCard } from '@/lib/types/offersForYou';
 
 const COLUMNS =
@@ -9,15 +10,11 @@ const COLUMNS =
  * (`components/Home/OffersForYou.jsx`): enabled rows from `offers_for_you_cards`,
  * ordered by `sort_order`.
  */
-export async function getOffersForYou(): Promise<OfferForYouCard[]> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
+export const getOffersForYou = cachedCatalog('offers-for-you', async (): Promise<OfferForYouCard[]> => {
+  const res = await createPublicClient()
     .from('offers_for_you_cards')
     .select(COLUMNS)
     .eq('enabled', true)
     .order('sort_order', { ascending: true });
-
-  if (error || !data) return [];
-  return data as OfferForYouCard[];
-}
+  return (unwrap(res) ?? []) as OfferForYouCard[];
+}, []);

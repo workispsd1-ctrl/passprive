@@ -23,7 +23,11 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { error } = await supabase.auth.getUser()
+  // getClaims refreshes an expired session (writing the new cookies) like
+  // getUser did, but verifies the access token locally against the project's
+  // ES256 public key (JWKS, cached in memory) instead of a round trip to
+  // Supabase Auth on every request.
+  const { error } = await supabase.auth.getClaims()
 
   // The browser holds a session whose refresh token no longer exists server-side
   // (revoked, signed out elsewhere, or expired). Drop the stale auth cookies from

@@ -56,7 +56,7 @@ function ReturnInner() {
         if (raw) pending = JSON.parse(raw) as PendingBillPayment
       } catch { /* ignore */ }
       const sessionId = params.get('session_id') ?? pending?.sessionId ?? ''
-      const retryTo = pending ? `/pay-bill?restaurant_id=${pending.restaurantId}` : null
+      const retryTo = pending ? `/pay-bill?${pending.merchantKind === 'store' ? 'store_id' : 'restaurant_id'}=${pending.restaurantId}` : null
 
       if (!sessionId) {
         setPhase({ status: 'error', message: 'We could not find the payment session to resume.', retryTo })
@@ -108,7 +108,7 @@ function ReturnInner() {
       saved={bill.discount}
       earned={earned}
       onShare={share}
-      onDone={() => router.replace(bill.restaurantId ? `/dining/${bill.restaurantId}` : '/')}
+      onDone={() => router.replace(bill.merchantHref || (bill.restaurantId ? `/dining/${bill.restaurantId}` : '/'))}
     />
   )
 }
@@ -135,7 +135,7 @@ function OrderPlaced({ bill }: { bill: PendingBillPayment }) {
         <span className='block font-semibold text-[#2C2D32]'>Need help with this payment?</span>
         <span className='font-semibold text-brand'>Contact help &amp; support</span>
       </Link>
-      <Link href={bill.restaurantId ? `/dining/${bill.restaurantId}` : '/'} className='mt-6 flex h-12 items-center justify-center rounded-full bg-brand font-semibold text-white hover:bg-brand-dark'>Done</Link>
+      <Link href={bill.merchantHref || (bill.restaurantId ? `/dining/${bill.restaurantId}` : '/')} className='mt-6 flex h-12 items-center justify-center rounded-full bg-brand font-semibold text-white hover:bg-brand-dark'>Done</Link>
     </main>
   )
 }

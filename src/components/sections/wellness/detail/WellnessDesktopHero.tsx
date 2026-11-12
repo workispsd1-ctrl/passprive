@@ -12,7 +12,6 @@ import { OpeningHoursPill } from '@/components/shared/detail/OpeningHours'
 import { areaLabel } from '@/components/shared/detail/MobileTitleCard'
 import { directionsUrl, shareLink, useSaveMerchant } from '@/components/shared/detail/MerchantActions'
 import { UpsellBannerPager } from '@/components/shared/detail/UpsellBannerPager'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { canPayBill, getCashbackPct, isCashbackEnabled } from '@/lib/cashback'
 import { useLocation } from '@/lib/context/LocationContext'
 import type { HoursRow } from '@/lib/openingHours'
@@ -40,7 +39,6 @@ function Tag({ icon: Icon, label }: { icon: typeof Flame; label: string }) {
 
 /** Earn line + "Book a slot" / "Pay bill" — app parity: ServiceStoreDetails.jsx bottom actions. */
 function Actions({ store, bookHref }: { store: ServiceStore; bookHref: string | null }) {
-  const [payInfo, setPayInfo] = useState(false)
   const showPay = canPayBill(store)
   // "up to" — what a Black member earns here
   const upTo = showPay ? getCashbackPct(store, 'black') : 0
@@ -65,20 +63,12 @@ function Actions({ store, bookHref }: { store: ServiceStore; bookHref: string | 
           </Link>
         )}
         {showPay && (
-          <button type='button' onClick={() => setPayInfo(true)} className={cn(button, 'bg-[#ff4800] text-white hover:bg-brand-dark')}>
+          // app parity: ServiceStoreDetails "Pay bill" → Paybill with paymentSource 'store'
+          <Link href={`/pay-bill?store_id=${store.id}`} className={cn(button, 'bg-[#ff4800] text-white hover:bg-brand-dark')}>
             Pay bill
-          </button>
+          </Link>
         )}
       </div>
-      {/* the web's pay-bill flow only takes restaurants so far; salons pay in the app */}
-      <Dialog open={payInfo} onOpenChange={setPayInfo}>
-        <DialogContent className='gap-0 rounded-3xl bg-white p-6 font-(family-name:--font-dm-sans) sm:max-w-md'>
-          <DialogTitle className='text-[20px] font-bold text-[#161616]'>Pay your bill in the app</DialogTitle>
-          <DialogDescription className='mt-2 text-[14px] leading-5 text-[#5B5A5A]'>
-            Pay with Privé Credits or card at {store.name} in the PassPrivé app.
-          </DialogDescription>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

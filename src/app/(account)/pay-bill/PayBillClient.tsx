@@ -121,8 +121,14 @@ export function PayBillClient({
   initialAmount,
   initialOffer,
   isOrder,
+  merchantKind = 'restaurant',
+  merchantHref,
 }: {
   restaurant: PayBillRestaurant
+  /** app parity: PayBillScreen paymentSource 'store' — store and salon bills */
+  merchantKind?: 'restaurant' | 'store'
+  /** the merchant's page, for back */
+  merchantHref: string
   offers: BillOffer[]
   plan: CashbackPlan
   /** the member's share of a merchant's upfront discount (membership_discount_caps) */
@@ -139,6 +145,7 @@ export function PayBillClient({
   isOrder: boolean
 }) {
   const router = useRouter()
+  const idParam = merchantKind === 'store' ? 'store_id' : 'restaurant_id'
   const { promptLogin } = useAuthPrompt()
   const { location } = useLocation()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -199,13 +206,13 @@ export function PayBillClient({
     if (!(amount > 0)) return
     let live = true
     const id = setTimeout(() => {
-      fetch(`/api/pay-bill/quote?restaurant_id=${r.id}&amount=${amount}`, { cache: 'no-store' })
+      fetch(`/api/pay-bill/quote?${idParam}=${r.id}&amount=${amount}`, { cache: 'no-store' })
         .then(res => (res.ok ? res.json() : null))
         .then((data: BillQuote | null) => { if (live && data) setQuote({ amount, data }) })
         .catch(() => {})
     }, 300)
     return () => { live = false; clearTimeout(id) }
-  }, [amount, r.id, authTick])
+  }, [amount, r.id, idParam, authTick])
 
   useEffect(() => {
     let live = true
@@ -264,7 +271,7 @@ export function PayBillClient({
   function back() {
     if (step !== 'amount') { window.history.back(); return }
     if (window.history.length > 1 && document.referrer.startsWith(window.location.origin)) router.back()
-    else router.push(`/dining/${r.id}`)
+    else router.push(merchantHref)
   }
 
   // Follow the session as the app does (waitForMipsPayment: payment_sessions.status
@@ -296,7 +303,7 @@ export function PayBillClient({
   function proceedFromSummary() {
     // app parity: startMembershipPayment — buy the plan first, then come back to this bill
     if (upgradeApplied && upsell) {
-      const qs = new URLSearchParams({ restaurant_id: r.id, amount: String(amount), offer: selected?.id ?? 'none' })
+      const qs = new URLSearchParams({ [idParam]: r.id, amount: String(amount), offer: selected?.id ?? 'none' })
       if (orderLines) qs.set('order', '1')
       try { sessionStorage.setItem(PAY_BILL_RESUME_KEY, `/pay-bill?${qs}`) } catch { /* private mode — they land on the membership page */ }
       router.push(`/membership/checkout?plan=${encodeURIComponent(upsell.planId)}`)
@@ -315,7 +322,7 @@ export function PayBillClient({
         headers: { 'Content-Type': 'application/json' },
         // app parity: buildPayload — the amount before credits, and the credits used
         body: JSON.stringify({
-          restaurant_id: r.id,
+          [idParam]: r.id,
           total_amount: Math.round((toPay + creditsApplied) * 100) / 100,
           coins_amount: creditsApplied,
           ...(orderLines ? { order_items: orderLines.map(l => ({ id: l.id, qty: l.qty })) } : {}),
@@ -332,6 +339,8 @@ export function PayBillClient({
         merchantTrace: resolveMerchantTrace(data),
         restaurantId: r.id,
         restaurantName: r.name,
+        merchantKind,
+        merchantHref,
         location: r.area ?? r.city ?? '',
         originalAmount: amount,
         discount,

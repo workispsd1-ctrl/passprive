@@ -93,10 +93,13 @@ export function ReceiptCashbackBanner({
   kind,
   className,
   variant = 'default',
+  previewTier = null,
 }: {
   merchant: MerchantCapabilityFields & { id: string }
   kind: 'restaurant' | 'store'
   className?: string
+  /** TierPills preview — that plan's rate, greyed (app parity: ReceiptCashbackBanner previewTier) */
+  previewTier?: 'free' | 'plus' | 'black' | null
   /** 'figma' — desktop restaurant page: an "Offers for today" card */
   variant?: 'default' | 'figma'
 }) {
@@ -124,10 +127,16 @@ export function ReceiptCashbackBanner({
   if (!eligible || !state) return null
 
   const { quote, latestClaim, blackPlan, loggedIn } = state
-  const pct = quote?.pct ?? 0
   const cashbackOff = !isCashbackEnabled(merchant) || (!!quote && quote.pct === 0 && quote.blackPct === 0)
   // Signed out there's no quote yet — still invite them, the rate shows after login.
-  if (loggedIn && !cashbackOff && !(pct > 0)) return null
+  const userPct = quote?.pct ?? 0
+  if (loggedIn && !cashbackOff && !(userPct > 0)) return null
+  const previewing = !!previewTier && !cashbackOff
+  const pct = !previewing
+    ? userPct
+    : previewTier === 'black'
+      ? quote?.blackPct || 3
+      : previewTier === 'plus' ? 1.5 : 0.5
 
   const merchantWord = kind === 'store' ? 'store' : 'restaurant'
   const figma = variant === 'figma'
@@ -164,7 +173,7 @@ export function ReceiptCashbackBanner({
   const claimStatus = latestClaim?.status
   const recentlyRejected = claimStatus === RECEIPT_STATUS.REJECTED
     && state.fetchedAt - Date.parse(latestClaim?.submitted_at ?? '') < DAY_MS
-  if (latestClaim && (isPendingStatus(claimStatus) || recentlyRejected)) {
+  if (!previewing && latestClaim && (isPendingStatus(claimStatus) || recentlyRejected)) {
     const copy = figma ? claimBannerCopy(latestClaim) : null
     if (copy) {
       return (
@@ -184,6 +193,7 @@ export function ReceiptCashbackBanner({
   }
 
   const onTap = () => {
+    if (previewing) return router.push('/membership')
     if (!loggedIn) return promptLogin()
     if (upsell) setSheetOpen(true)
     else openUpload()
@@ -191,12 +201,12 @@ export function ReceiptCashbackBanner({
   const upgrade = upsell && (
     <TodaysOfferDialog
       open={sheetOpen}
-      currentPct={pct}
+      currentPct={userPct}
       blackPct={quote.blackPct}
       plan={blackPlan}
       onClose={() => setSheetOpen(false)}
       onContinue={openUpload}
-      continueLabel={`Upload receipt at ${formatPct(pct)}`}
+      continueLabel={`Upload receipt at ${formatPct(userPct)}`}
     />
   )
 
@@ -218,7 +228,10 @@ export function ReceiptCashbackBanner({
         type="button"
         onClick={onTap}
         aria-label={pct > 0 ? `${formatPct(pct)} cashback when you upload the receipt today` : 'Cashback when you upload the receipt'}
-        className="block w-full rounded-2xl transition-transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(42,12,99,0.25)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className={cn(
+          'block w-full rounded-2xl transition-transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(42,12,99,0.25)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+          previewing && 'grayscale',
+        )}
       >
         <ReceiptArtCard>
           {/* "0.5%" 40/52 Black Italic, -3.6 tracking at 18,12; "Cashback" 20/26 Medium Italic at 112,32 */}

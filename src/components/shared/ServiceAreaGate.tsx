@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useLocation } from '@/lib/context/LocationContext'
-import { LocationPickerDialog } from '@/components/layout/Header/LocationPickerDialog'
 
 /**
  * "We're not here yet" — app parity: components/ServiceAreaGate.jsx (wraps
@@ -12,8 +11,7 @@ import { LocationPickerDialog } from '@/components/layout/Header/LocationPickerD
  * no location yet, the page shows as usual.
  */
 export function ServiceAreaGate({ children }: { children: React.ReactNode }) {
-  const { outsideServiceArea, detecting, setLocationByCity, detectFromGPS } = useLocation()
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const { outsideServiceArea, detecting, detectFromGPS } = useLocation()
 
   if (!outsideServiceArea) return <>{children}</>
 
@@ -26,13 +24,12 @@ export function ServiceAreaGate({ children }: { children: React.ReactNode }) {
         <p className='mt-1.5 text-[14px] leading-5 text-[#595B61]'>
           PassPrivé is currently available only in Mauritius. Choose a location in Mauritius to explore restaurants, stores and offers.
         </p>
-        <button
-          type='button'
-          onClick={() => setPickerOpen(true)}
-          className='mt-9 h-14 w-full rounded-full bg-[#FF4800] text-[16px] leading-5.5 font-bold text-white transition-opacity hover:opacity-90'
+        <Link
+          href='/location'
+          className='mt-9 flex h-14 w-full items-center justify-center rounded-full bg-[#FF4800] text-[16px] leading-5.5 font-bold text-white transition-opacity hover:opacity-90'
         >
           Select location manually
-        </button>
+        </Link>
         <button
           type='button'
           disabled={detecting}
@@ -42,14 +39,6 @@ export function ServiceAreaGate({ children }: { children: React.ReactNode }) {
           {detecting ? 'Detecting…' : 'Retry auto-detecting location'}
         </button>
       </div>
-
-      <LocationPickerDialog
-        isOpen={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        countryCode='mu'
-        onSelect={(city, region) => { setLocationByCity(city, region, 'mu'); setPickerOpen(false) }}
-        onUseCurrentLocation={() => { detectFromGPS(); setPickerOpen(false) }}
-      />
     </main>
   )
 }

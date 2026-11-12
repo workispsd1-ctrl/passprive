@@ -24,7 +24,8 @@ export function ProfileStatCards({ credits, stamps, className }: { credits: numb
   return (
     <div className={cn('scrollbar-hide -mx-16 flex snap-x scroll-px-16 gap-12 overflow-x-auto px-16 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-24 lg:overflow-visible lg:px-0', className)}>
       {/* Cash back */}
-      <Link href='/prive-credits' className={cn(CARD, 'bg-[linear-gradient(180deg,#FF4800_-30%,#0044FF_160%)]')}>
+      {/* app parity: Profile's credits card opens the Wallet */}
+      <Link href='/wallet' className={cn(CARD, 'bg-[linear-gradient(180deg,#FF4800_-30%,#0044FF_160%)]')}>
         <Image src='/assets/profile/card-cashback.webp' alt='' fill sizes='(min-width: 1024px) 27vw, 82vw' className='object-cover object-right' />
         <span className={CHIP}>Total cash back</span>
         <span className={cn(VALUE, 'top-55')}>{credits.toLocaleString('en-US')}</span>

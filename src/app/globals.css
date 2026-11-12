@@ -162,3 +162,11 @@
     background-size: 40px 40px;
   }
 }
+/* Refer a friend — the dish lid's idle wiggle (app parity: ReferFriendScreen) */
+@keyframes wiggle {
+  0%, 70%, 100% { transform: translateX(-50%) rotate(0deg); }
+  76% { transform: translateX(-50%) rotate(-4deg); }
+  82% { transform: translateX(-50%) rotate(4deg); }
+  88% { transform: translateX(-50%) rotate(-2deg); }
+  94% { transform: translateX(-50%) rotate(2deg); }
+}

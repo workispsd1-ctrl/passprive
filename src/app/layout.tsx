@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, DM_Sans, Playfair_Display, Inter, Libre_Baskerville } from "next/font/google";
 import { PaymentRecovery } from "@/components/PaymentRecovery";
+import { TreasureHunt } from "@/components/hunt/TreasureHunt";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -103,6 +104,7 @@ export default function RootLayout({
     <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable} ${playfair.variable} ${inter.variable} ${libreBaskerville.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col overflow-x-clip font-sans">
         <PaymentRecovery />
+        <TreasureHunt />
         {children}
       </body>
     </html>

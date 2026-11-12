@@ -100,13 +100,16 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
               Pay Bill
             </Link>
           )}
-          <Link
-            href={`/bookings/${booking.id}`}
-            className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-          >
-            View details
-            <span aria-hidden="true">›</span>
-          </Link>
+          {/* app parity: YourBookingsScreen "View details" opens the restaurant page */}
+          {restaurant && (
+            <Link
+              href={`/dining/${restaurant.slug ?? booking.restaurant_id}`}
+              className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              View details
+              <span aria-hidden="true">›</span>
+            </Link>
+          )}
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { locationIdentity, type NewSavedLocation, type SavedLocationRow } from '@/lib/savedLocations'
 
-const FIELDS = 'id, label, label_type, building_floor, landmark, address_text, city, area, pincode, latitude, longitude, place_id, is_default'
+const FIELDS = 'id, label, label_type, building_floor, landmark, address_text, city, area, pincode, latitude, longitude, place_id, is_default, is_recent'
 
 /** The signed-in member's saved addresses, newest first. Guests keep theirs in this browser. */
 export async function GET() {

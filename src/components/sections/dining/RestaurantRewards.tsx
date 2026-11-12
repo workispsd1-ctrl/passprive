@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import type { MerchantCapabilityFields } from '@/lib/cashback'
 import type { DiscountCaps } from '@/lib/services/membershipCaps'
 import { cn } from '@/lib/utils'
@@ -6,6 +9,7 @@ import { DealCashbackConnector } from '@/components/shared/deals/DealTicket'
 import { ReceiptCashbackBanner } from '@/components/shared/receipts/ReceiptCashbackBanner'
 import { SnapPager } from '@/components/shared/detail/SnapPager'
 import { UpsellBannerPager } from '@/components/shared/detail/UpsellBannerPager'
+import { TierPills, type PreviewTier } from '@/components/shared/TierPills'
 
 /**
  * Deal Reveal tickets, "+ Additional", then the cashback row (receipt
@@ -30,6 +34,8 @@ export function RestaurantRewards({
   caps: DiscountCaps
   className?: string
 }) {
+  // app parity: RestaurantDetails previewTier — the plan the offers are shown for
+  const [previewTier, setPreviewTier] = useState<PreviewTier | null>(null)
   return (
     <div
       className={cn(
@@ -41,15 +47,18 @@ export function RestaurantRewards({
         className,
       )}
     >
+      {/* app parity: "Offers for you" + TierPills over the deals and cashback */}
+      <p className='mb-3 font-(family-name:--font-dm-sans) text-[18px] font-bold text-[#1C1C1E]'>Offers for you</p>
+      <TierPills value={previewTier} onChange={setPreviewTier} className='mb-3' />
       <div data-deals className='empty:hidden'>
-        <DealRevealSection restaurantId={merchant.id} merchantName={name} variant='ticket' />
+        <DealRevealSection restaurantId={merchant.id} merchantName={name} variant='ticket' previewTier={previewTier} />
       </div>
       <div data-connector className='my-1 hidden'>
         <DealCashbackConnector />
       </div>
       <div data-cashback>
         <SnapPager label='Cashback'>
-          <ReceiptCashbackBanner merchant={merchant} kind='restaurant' />
+          <ReceiptCashbackBanner merchant={merchant} kind='restaurant' previewTier={previewTier} />
           <UpsellBannerPager merchantType={merchant.merchant_type} merchantId={merchant.id} kind='restaurant' offerPct={offerPct} caps={caps} bare />
         </SnapPager>
       </div>

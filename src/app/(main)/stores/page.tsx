@@ -1,4 +1,5 @@
 import { StoresPageClient } from '@/components/sections/stores/StoresPageClient'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { BannerCarousel } from '@/components/shared/BannerCarousel'
 import {
   getActiveStores,
@@ -39,7 +40,8 @@ export default async function Stores() {
   ])
 
   return (
-    <main className="min-h-screen pb-20 md:pb-0">
+    <main className="relative min-h-screen pb-20 md:pb-0">
+      <HuntSpot slot="shopping-top" />
       {banners.length > 0 && (
         // phones open on the app's store banner in the header instead
         <div className="mx-auto mb-8 hidden max-w-350 px-4 pt-4 md:block md:px-12">
