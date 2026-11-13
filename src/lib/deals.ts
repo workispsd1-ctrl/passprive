@@ -278,15 +278,45 @@ export function offerBenefitLabel(offer: MerchantOffer): string {
   return String(offer.badge_text || offer.title || '').trim()
 }
 
-/** Card offer strip text — app parity: merchantOffers.js offerStripText. */
-export function offerStripText(offer: Pick<MerchantOffer, 'badge_text' | 'offer_type' | 'discount_value' | 'title'>): string {
+type StripOffer = {
+  badge_text?: string | null
+  offer_type?: string | null
+  discount_value?: number | null
+  title?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+/** The most an offer can give — Black's percent when the merchant set tier percents (app: offerFullCap). */
+function offerFullCap(offer: StripOffer): { percent: number } | { amount: number } | null {
+  const type = String(offer.offer_type ?? '').toLowerCase()
+  const value = Number(offer.discount_value)
+  if (!Number.isFinite(value) || value <= 0) return null
+  if (type === 'flat') return { amount: value }
+  if (!type.startsWith('percent')) return null
+  const black = Number((offer.metadata?.tier_percents as Record<string, unknown> | undefined)?.black)
+  return { percent: Number.isFinite(black) && black > 0 && black <= 100 ? black : value }
+}
+
+/**
+ * Card offer strip text — app parity: merchantOffers.js offerStripText (app
+ * fbaf070): "Up to 20% OFF" / "Up to MUR 100 OFF", else the badge, else the title.
+ */
+export function offerStripText(offer: StripOffer): string {
+  const cap = offerFullCap(offer)
+  if (cap && 'percent' in cap) return `Up to ${trimNumber(cap.percent)}% OFF`
+  if (cap) return `Up to MUR ${trimNumber(cap.amount)} OFF`
   const badge = String(offer.badge_text ?? '').trim()
   if (badge) return badge
-  const value = Number(offer.discount_value)
-  if (Number.isFinite(value) && value > 0) {
-    return String(offer.offer_type ?? '').toLowerCase().startsWith('percent') ? `Flat ${value}% OFF` : `MUR ${value} OFF`
-  }
   return String(offer.title ?? '').trim()
+}
+
+/** A card's strip: the first offer's text, "+ N offers" when there are more. */
+export function cardOfferText(offers: StripOffer[] | null | undefined, withCount = false): string | undefined {
+  const first = offers?.[0]
+  const text = first ? offerStripText(first) : ''
+  if (!text) return undefined
+  const extra = (offers?.length ?? 0) - 1
+  return withCount && extra > 0 ? `${text} + ${extra} offers` : text
 }
 
 /** Live deals that carry a benefit for this membership tier, tier row attached. */

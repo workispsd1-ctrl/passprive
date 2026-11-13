@@ -1,3 +1,4 @@
+import { getStampGate } from '@/lib/services/platformFlags'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -85,7 +86,7 @@ async function loadMerchant(restaurantId?: string, storeId?: string): Promise<{ 
       cuisines: tagsOf('cuisine').slice(0, 2),
       costForTwo: restaurant.cost_for_two,
       rating: detail.reviewSummary,
-      stampSheet: tagsOf('mood').some(m => m.toLowerCase().includes('stamp')),
+      stampSheet: (await getStampGate())(restaurant.id) && tagsOf('mood').some(m => m.toLowerCase().includes('stamp')),
       trending: !!restaurant.is_advertised,
       exclusive: String(restaurant.merchant_type ?? '').toLowerCase() === 'preferred',
     },

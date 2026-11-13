@@ -1,4 +1,5 @@
 import { canBook, isPaidMerchant, type MerchantCapabilityFields } from '@/lib/cashback'
+import { repeatRewardsOn } from '@/lib/platformFlags'
 
 /** app parity: CardChips.jsx CHIPS — each key is an image in /public/assets/chips. */
 export type CardChipKey =
@@ -32,6 +33,8 @@ export type ChipSource = MerchantCapabilityFields & {
   rating_count?: number | null
   booking_service_type?: string | null
   repeat_rewards_enabled?: boolean | null
+  /** the merchant's override of the platform's repeat-rewards switch ('on' / 'off' / 'inherit') */
+  repeat_reward_mode?: string | null
   store_subscriptions?: Subscription[] | null
   /** app parity: hasAnyOffer — offer badge / has_offer / any offers */
   has_offer?: boolean | null
@@ -78,9 +81,10 @@ export function getCardChips(e: ChipSource | null | undefined, max = MAX_CHIPS):
   if (rating >= 4.7 && reviews >= MIN_REVIEWS_TREND) chips.push('trending')
   if (rating >= 4.5 && reviews >= MIN_REVIEWS_HIGH) chips.push('highly-rated')
 
-  const stamps =
+  // app parity: CardChips — only while repeat rewards are on (platform switch / merchant override)
+  const stamps = repeatRewardsOn(e) && (
     e.repeat_rewards_enabled === true ||
-    (e.store_subscriptions ?? []).some(s => isLive(s) && s.repeat_rewards_enabled === true)
+    (e.store_subscriptions ?? []).some(s => isLive(s) && s.repeat_rewards_enabled === true))
   if (stamps) chips.push('stamp-sheet')
 
   const bookable = isStore ? String(e.store_type).toUpperCase() === 'SERVICE' && canBook(e) : canBook(e)

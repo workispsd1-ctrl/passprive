@@ -56,3 +56,10 @@ export function proposalLabel(row: ProposalRow) {
     : `${WEEKDAYS[date.getUTCDay()]} ${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`
   return `${day}, ${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
 }
+
+/** app parity: CoverRequestBox hasOpenCoverRequest — a cover charge requested and not past its due time. */
+export function hasOpenCoverRequest(b: { cover_request_status?: string | null; cover_request_due_at?: string | null }, now = Date.now()) {
+  if (b.cover_request_status !== 'requested') return false
+  const due = Date.parse(b.cover_request_due_at ?? '')
+  return !Number.isFinite(due) || due > now
+}

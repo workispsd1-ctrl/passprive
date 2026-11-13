@@ -31,13 +31,14 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
   const steps = usesAspectRatings(kind) ? reviewSteps(kind, aspect) : [{ key: 'rating', label: '', column: null }]
   const router = useRouter()
   // Fetched client-side so the detail pages don't have to read auth cookies.
-  const [viewer, setViewer] = useState({ loggedIn: false, reviewed: false })
+  // `mine` — the viewer's own review, edited in place (app parity: LeaveReviewModal fetchMyReview)
+  const [viewer, setViewer] = useState<{ loggedIn: boolean; mine: { ratings: Record<string, number>; text: string } | null }>({ loggedIn: false, mine: null })
 
   const loadViewer = useCallback(() => {
     fetch(`/api/reviews/${kind}?entityId=${encodeURIComponent(entityId)}`)
       .then(res => (res.ok ? res.json() : null))
-      .then((data: { loggedIn?: boolean; reviewed?: boolean } | null) => {
-        if (data) setViewer({ loggedIn: !!data.loggedIn, reviewed: !!data.reviewed })
+      .then((data: { loggedIn?: boolean; mine?: { ratings: Record<string, number>; text: string } | null } | null) => {
+        if (data) setViewer({ loggedIn: !!data.loggedIn, mine: data.mine ?? null })
       })
       .catch(() => {})
   }, [kind, entityId])
@@ -71,9 +72,9 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
   function start(first: 'form' | 'images' = 'form') {
     if (!viewer.loggedIn) { setLoginOpen(true); return }
     setView(first)
-    setRatings({})
+    setRatings(viewer.mine?.ratings ?? {})
     setHover(null)
-    setText('')
+    setText(viewer.mine?.text ?? '')
     clearPhotos()
     setError('')
     setDone(null)
@@ -112,14 +113,8 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
     setDone({ approved: data?.approved === true, photosSaved: data?.photosSaved !== false })
   }
 
-  if (viewer.reviewed && !open) {
-    if (variant === 'add-image') return null
-    return (
-      <p className={cn('inline-flex items-center gap-1.5 text-[13px] font-semibold text-green-700', className)}>
-        <CheckCircle2 className="h-4 w-4" /> You’ve reviewed this place
-      </p>
-    )
-  }
+  const editing = !!viewer.mine
+  const label = editing ? 'Edit your review' : 'Leave a review'
 
   return (
     <>
@@ -148,7 +143,7 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
           <span className="flex shrink-0 items-center justify-center rounded-full bg-[#e5e5e5]" style={{ width: tMin(30.73, 26), height: tMin(30, 25) }}>
             <Image src="/assets/merchant-detail/pencil.svg" alt="" width={24} height={24} style={{ width: tMin(16, 13), height: tMin(16, 13) }} />
           </span>
-          <span className="flex-1">Leave a review</span>
+          <span className="flex-1">{label}</span>
           {/* the frame's vector is a "<" turned 180° */}
           <Image src="/assets/merchant-detail/chevron-right.svg" alt="" width={12} height={24} className="rotate-180" style={{ width: tMin(7, 6), height: tMin(14, 12) }} />
         </button>
@@ -164,7 +159,7 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#EDEDED]">
             <PenLine className="h-4 w-4 text-[#5B5A5A]" />
           </span>
-          <span className="flex-1">Leave a review</span>
+          <span className="flex-1">{label}</span>
           <ChevronRight className="h-4.5 w-4.5 text-[#5B5A5A]" />
         </button>
       ) : (
@@ -176,7 +171,7 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
             className,
           )}
         >
-          <PenLine className="h-4 w-4" /> Write a review
+          <PenLine className="h-4 w-4" /> {editing ? 'Edit your review' : 'Write a review'}
         </button>
       )}
 
@@ -202,7 +197,7 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
           {done ? (
             <div className="flex flex-col items-center py-4 text-center">
               <CheckCircle2 className="h-14 w-14 text-green-600" />
-              <DialogTitle className="mt-4 text-[20px] font-bold text-[#1A1325]">Thanks for your review!</DialogTitle>
+              <DialogTitle className="mt-4 text-[20px] font-bold text-[#1A1325]">{editing ? 'Review updated!' : 'Thanks for your review!'}</DialogTitle>
               <DialogDescription className="mt-2 text-[14px] leading-5 text-[#7A7086]">
                 {done.approved
                   ? `Your review of ${entityName} is now live.`
@@ -228,7 +223,7 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
             <>
               <div className="flex items-start justify-between gap-3" style={{ minHeight: t(60) }}>
                 <div className="flex min-w-0 flex-col" style={{ gap: t(4) }}>
-                  <DialogTitle className="font-bold text-[#1D1B20]" style={{ fontSize: tMin(24, 17), lineHeight: 1.33 }}>Leave a review</DialogTitle>
+                  <DialogTitle className="font-bold text-[#1D1B20]" style={{ fontSize: tMin(24, 17), lineHeight: 1.33 }}>{label}</DialogTitle>
                   <DialogDescription className="font-medium wrap-break-word text-[#8E8E93]" style={{ fontSize: tMin(16, 13), lineHeight: 1.5 }}>{entityName}</DialogDescription>
                 </div>
                 <button type="button" onClick={close} aria-label="Close" className="flex shrink-0 items-center justify-center rounded-full text-[#404045] hover:bg-gray-100" style={{ width: tMin(32, 24), height: tMin(32, 24) }}>
@@ -343,7 +338,7 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
                   style={{ width: tMin(180, 124), height: tMin(48, 36), borderRadius: t(27), fontSize: tMin(16, 13) }}
                 >
                   {submitting && <Loader2 className="size-4 animate-spin" />}
-                  Submit review
+                  {editing ? 'Update review' : 'Submit review'}
                 </button>
               </div>
             </>

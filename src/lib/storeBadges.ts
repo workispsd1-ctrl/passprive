@@ -1,7 +1,8 @@
 import type { MerchantCardTag } from '@/components/sections/home/MerchantCard'
+import { repeatRewardsOn } from '@/lib/platformFlags'
 
 type Subscription = { status: string | null; pickup_premium_enabled?: boolean | null; repeat_rewards_enabled?: boolean | null }
-type WithSubscriptions = { store_subscriptions?: Subscription[] | null }
+type WithSubscriptions = { store_subscriptions?: Subscription[] | null; repeat_reward_mode?: string | null }
 
 /** app parity: storesApi.js normalizeStoreRow — the store's subscriptions whose status is "active". */
 function activeSubscriptions(store: WithSubscriptions): Subscription[] {
@@ -24,7 +25,8 @@ export function isPickupPremium(store: WithSubscriptions): boolean {
  * shows the stamp card for exactly these stores.
  */
 export function hasStampSheet(store: WithSubscriptions): boolean {
-  return activeSubscriptions(store).some(s => s.repeat_rewards_enabled === true)
+  // app parity: repeatRewardsOn — the platform switch, unless the store overrides it
+  return repeatRewardsOn(store) && activeSubscriptions(store).some(s => s.repeat_rewards_enabled === true)
 }
 
 /**

@@ -20,9 +20,9 @@ function LearnMore() {
 }
 
 /** Total cash back · Total savings · Stamp rewards — 3 × (509.33×200), 24 apart. */
-export function ProfileStatCards({ credits, stamps, className }: { credits: number; stamps: number; className?: string }) {
+export function ProfileStatCards({ credits, stamps, showStamps = true, className }: { credits: number; stamps: number; /** off with the admin repeat-rewards switch */ showStamps?: boolean; className?: string }) {
   return (
-    <div className={cn('scrollbar-hide -mx-16 flex snap-x scroll-px-16 gap-12 overflow-x-auto px-16 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-24 lg:overflow-visible lg:px-0', className)}>
+    <div className={cn('scrollbar-hide -mx-16 flex snap-x scroll-px-16 gap-12 overflow-x-auto px-16 lg:mx-0 lg:grid lg:gap-24 lg:overflow-visible lg:px-0', showStamps ? 'lg:grid-cols-3' : 'lg:grid-cols-2', className)}>
       {/* Cash back */}
       {/* app parity: Profile's credits card opens the Wallet */}
       <Link href='/wallet' className={cn(CARD, 'bg-[linear-gradient(180deg,#FF4800_-30%,#0044FF_160%)]')}>
@@ -51,13 +51,13 @@ export function ProfileStatCards({ credits, stamps, className }: { credits: numb
       </div>
 
       {/* Stamp rewards */}
-      <Link href='/visit-rewards' className={cn(CARD, 'bg-[linear-gradient(180deg,#002280_0%,#FFFFFF_100%)]')}>
+      {showStamps && <Link href='/visit-rewards' className={cn(CARD, 'bg-[linear-gradient(180deg,#002280_0%,#FFFFFF_100%)]')}>
         <Image src='/assets/profile/card-stamps.webp' alt='' width={692} height={532} className={ART} />
         <span className={CHIP}>Stamp rewards</span>
         <span className={cn(VALUE, 'top-62')}>{stamps.toLocaleString('en-US')}</span>
         <span className='absolute top-104 left-24 text-[calc(16*var(--u))] leading-15 font-bold text-white'>collected</span>
         <LearnMore />
-      </Link>
+      </Link>}
     </div>
   )
 }

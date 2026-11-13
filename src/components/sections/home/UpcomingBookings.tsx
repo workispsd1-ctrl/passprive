@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { CalendarDays, Users } from 'lucide-react'
 import { HScroll } from './HScroll'
 import type { DiningBooking } from '@/lib/types/bookings'
-import { hasLiveProposal } from '@/lib/booking/status'
+import { hasLiveProposal, hasOpenCoverRequest } from '@/lib/booking/status'
 
 function formatWhen(date: string, time: string) {
   const d = new Date(`${date}T${time}`)
@@ -38,6 +38,9 @@ export function UpcomingBookings({ bookings }: { bookings: DiningBooking[] }) {
               <Users className="h-3 w-3 shrink-0" /> {b.party_size} guests
               {hasLiveProposal(b) ? (
                 <span className="ml-1 rounded-full bg-brand-tint px-1.5 py-0.5 text-[10px] font-semibold text-brand">NEW TIME</span>
+              ) : hasOpenCoverRequest(b) ? (
+                // app parity: ActiveBookingBar — an open cover-charge request; the receipt has Pay / Decline
+                <span className="ml-1 rounded-full bg-brand-tint px-1.5 py-0.5 text-[10px] font-semibold text-brand">PAY COVER</span>
               ) : (
                 <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold capitalize text-green-700">
                   {b.status}

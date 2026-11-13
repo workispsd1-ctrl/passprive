@@ -7,7 +7,8 @@ import { claimSpot, huntInfo, useHuntVersion, visibleSpots } from '@/lib/treasur
  * inside a positioned box; each spot sits at its x / y percent of that box.
  */
 export function HuntSpot({ slot, part = 0 }: { slot: string; part?: number }) {
-  useHuntVersion()
+  // 0 = server snapshot during hydration — render nothing so client matches SSR
+  if (!useHuntVersion()) return null
   const spots = visibleSpots(slot, part)
   if (!spots.length) return null
   const hunt = huntInfo()

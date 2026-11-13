@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import { ChevronDown, MapPin, Navigation, Phone } from 'lucide-react'
@@ -36,7 +37,7 @@ function StoreCard({ store, base }: { store: MallStore; base: 'stores' | 'wellne
       name={store.name}
       meta={meta || undefined}
       tagline={[store.category, store.subcategory].filter(Boolean).join(', ') || undefined}
-      offerLabel={store.store_offers?.[0]?.badge_text ?? undefined}
+      offerLabel={cardOfferText(store.store_offers)}
       cardBadge={getCardBadge(store, plan)}
     />
   )

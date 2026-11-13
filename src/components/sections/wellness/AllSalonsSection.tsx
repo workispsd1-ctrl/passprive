@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useState, useMemo } from 'react'
 import { getCardChips } from '@/lib/cardChips'
 import { SlidersHorizontal, ChevronDown, Percent } from 'lucide-react'
@@ -11,6 +12,8 @@ import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard } from '@/components/sections/home/MerchantCard'
 import { storeCardTags } from '@/lib/storeBadges'
 import type { StoreRow } from '@/lib/types/stores'
+import { EMPTY_STORE_FILTERS, applyStoreFilters, storeCategoryOptions, storeFilterCount, type StoreFilters } from '@/lib/storeFilters'
+import { StoreFilterDialog } from '@/components/sections/stores/StoreFilterDialog'
 
 const DISTANCE_OPTIONS = [
   { label: 'Under 5km', km: 5 },
@@ -39,6 +42,9 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
   const [minDiscount, setMinDiscount] = useState<number | null>(null)
   const [sort, setSort] = useState<'recommended' | 'nearest'>('recommended')
   const [showSortOptions, setShowSortOptions] = useState(false)
+  // the Filter popup — the store filter sheet in the dining pop-up design
+  const [filters, setFilters] = useState<StoreFilters>(EMPTY_STORE_FILTERS)
+  const [filterOpen, setFilterOpen] = useState(false)
 
   const storesWithDist = useMemo(() => {
     // app parity: WellnessHome.jsx's `matchesUserLocation(s, locationMeta, null, 50)`.
@@ -46,12 +52,12 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
     // from the user's GPS (loadWellnessStores), so the app keeps stores within
     // 50 km and only falls back to a city match for stores without coordinates.
     const scoped = scopeByLocation(stores, userCoords, location.city, 50, [location.city, location.state])
-    return scoped.map(s => ({
-      ...s,
-      dist: userCoords && s.lat != null && s.lng != null
+    return scoped.map(s => {
+      const dist = userCoords && s.lat != null && s.lng != null
         ? haversineKm(userCoords.lat, userCoords.lng, s.lat, s.lng)
-        : null,
-    }))
+        : null
+      return { ...s, dist, distance_km: dist }
+    })
   }, [stores, userCoords, location.city, location.state])
 
   const filtered = useMemo(() => {
@@ -73,12 +79,19 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
       result = sortByMerchant(result)
     }
 
-    return result
-  }, [storesWithDist, distanceKm, minDiscount, sort, userCoords])
+    // the popup's picks last, so its "Distance: Nearby to Far" sort wins
+    return applyStoreFilters(result, filters)
+  }, [storesWithDist, distanceKm, minDiscount, sort, userCoords, filters])
+
+  const categoryOptions = useMemo(
+    () => storeCategoryOptions(storesWithDist).sort((a, b) => a.localeCompare(b)),
+    [storesWithDist],
+  )
+  const filterCount = storeFilterCount(filters, null)
 
   const activeDistLabel = DISTANCE_OPTIONS.find(o => o.km === distanceKm)?.label
   const activeSortLabel = SORT_OPTIONS.find(o => o.value === sort)?.label
-  const isFiltered = distanceKm != null || minDiscount != null
+  const isFiltered = distanceKm != null || minDiscount != null || filterCount > 0
 
   if (!stores.length) return null
 
@@ -90,12 +103,27 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            aria-label="Filter"
-            className="flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand"
+            onClick={() => setFilterOpen(true)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors',
+              filterCount > 0
+                ? 'border-brand bg-brand-tint text-brand'
+                : 'border-gray-300 bg-white text-gray-700 hover:border-brand hover:text-brand',
+            )}
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filter
+            {filterCount > 0 ? `Filter (${filterCount})` : 'Filter'}
           </button>
+          {filterOpen && (
+            <StoreFilterDialog
+              open
+              onClose={() => setFilterOpen(false)}
+              initial={filters}
+              categoryOptions={categoryOptions}
+              categoryLabel="Category"
+              onApply={next => { setFilters(next); setFilterOpen(false) }}
+            />
+          )}
 
           <div className="relative">
             <button
@@ -194,16 +222,7 @@ export function AllSalonsSection({ stores }: { stores: StoreRow[] }) {
               .filter(Boolean)
               .join(' • ')
 
-            const primaryOffer = store.store_offers?.[0]
-            const extraOffers = (store.store_offers?.length ?? 0) - 1
-            const discountText = primaryOffer?.discount_value
-              ? `Flat ${primaryOffer.discount_value}% OFF`
-              : primaryOffer?.badge_text
-            const offerLabel = discountText
-              ? extraOffers > 0
-                ? `${discountText} + ${extraOffers} offers`
-                : discountText
-              : undefined
+            const offerLabel = cardOfferText(store.store_offers, true)
 
             
             return (

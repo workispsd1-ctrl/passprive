@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return NextResponse.json({ error: 'Please log in to continue.' }, { status: 401 })
 
-  const body = await request.json() as { restaurant_id?: string; store_id?: string; total_amount: number; coins_amount: number; order_items?: { id?: unknown; qty?: unknown }[] }
+  const body = await request.json() as { restaurant_id?: string; store_id?: string; total_amount: number; coins_amount: number; bill_amount?: number; order_items?: { id?: unknown; qty?: unknown }[] }
   // app parity: buildPayload — a store / salon bill carries store_id instead of restaurant_id
   const isStore = !!body.store_id && !body.restaurant_id
   const merchantId = isStore ? body.store_id : body.restaurant_id
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
         ...(isStore ? { store_id: merchantId } : { restaurant_id: merchantId }),
         total_amount: Number(body.total_amount),
         coins_amount: Number(body.coins_amount) || 0,
+        // app parity (fbaf070): the bill before discounts, so the backend can check the deal — not for an order cart
+        ...(!orderItems.length && Number(body.bill_amount) > 0 ? { bill_amount: Number(body.bill_amount) } : {}),
         currency: 'MUR',
         custom_redirect_url: MIPS_RETURN_URL,
         ...(orderItems.length ? { order_items: orderItems } : {}),

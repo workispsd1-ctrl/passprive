@@ -1,7 +1,8 @@
+import { getStampGate } from '@/lib/services/platformFlags'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getRestaurantBySlugOrId } from '@/lib/services/dining'
-import { getBookingById, getBookingRewardAmount } from '@/lib/services/bookings'
+import { getBookingById, getBookingFee, getBookingRewardAmount } from '@/lib/services/bookings'
 import { createClient } from '@/lib/supabase/server'
 import { cn } from '@/lib/utils'
 import { DiningBookingFlow } from '@/components/sections/dining/booking/DiningBookingFlow'
@@ -37,7 +38,7 @@ export default async function BookTablePage({
   const { restaurant, allHours, offers, tags, reviewSummary, galleryPhotos } = detail
   if (!restaurant) notFound()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const [{ data: { user } }, bookingFee, stampGate] = await Promise.all([supabase.auth.getUser(), getBookingFee(), getStampGate()])
   const { data: policy } = await supabase
     .from('restaurants')
     .select('cancellation_available, cancellation_cutoff_minutes')
@@ -75,6 +76,13 @@ export default async function BookTablePage({
                 proposed_date: booking.proposed_date,
                 proposed_time: booking.proposed_time,
               },
+              restaurantId: restaurant.id,
+              coverRequest: {
+                cover_request_status: booking.cover_request_status,
+                cover_request_amount: booking.cover_request_amount,
+                cover_request_total: booking.cover_request_total,
+                cover_request_due_at: booking.cover_request_due_at,
+              },
               rewardAmount,
             }}
           />
@@ -98,6 +106,7 @@ export default async function BookTablePage({
             name: restaurant.name,
             cover_charge_enabled: restaurant.cover_charge_enabled,
             cover_charge_amount: restaurant.cover_charge_amount,
+            booking_fee: bookingFee,
             merchant_type: restaurant.merchant_type,
             merchant_plan: restaurant.merchant_plan,
             pay_bill_enabled: restaurant.pay_bill_enabled,
@@ -116,7 +125,7 @@ export default async function BookTablePage({
             cuisines: tagsOf('cuisine').slice(0, 2),
             costForTwo: restaurant.cost_for_two,
             rating: reviewSummary,
-            stampSheet: tagsOf('mood').some(m => m.toLowerCase().includes('stamp')),
+            stampSheet: stampGate(restaurant.id) && tagsOf('mood').some(m => m.toLowerCase().includes('stamp')),
             trending: !!restaurant.is_advertised,
             exclusive: String(restaurant.merchant_type ?? '').toLowerCase() === 'preferred',
           }}

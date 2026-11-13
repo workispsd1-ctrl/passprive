@@ -1,3 +1,4 @@
+import { cardOfferText } from '@/lib/deals'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
@@ -85,7 +86,7 @@ export default async function CollectionPage({
               name={s.name}
               meta={[s.location_name, s.city].filter(Boolean).join(' • ') || undefined}
               tagline={s.description ?? undefined}
-              offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
+              offerLabel={cardOfferText(s.store_offers)}
               cardBadge={getCardBadge(s, plan)}
             />
           ))}

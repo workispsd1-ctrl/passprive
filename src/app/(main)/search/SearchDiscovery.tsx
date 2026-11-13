@@ -1,5 +1,6 @@
 'use client'
 
+import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -256,11 +257,13 @@ const TILES = [
 
 function PopularSearches() {
   const [picked, setPicked] = useState<string | null>(null)
+  const { stampsVisible } = usePlatformFlags()
   return (
     <section className='flex flex-col gap-20 max-lg:gap-12'>
       <SectionTitle>Popular searches</SectionTitle>
-      <div className='scrollbar-hide grid grid-cols-5 gap-24 max-lg:-mx-16 max-lg:flex max-lg:gap-12 max-lg:overflow-x-auto max-lg:px-16'>
-        {TILES.map(t => {
+      <div className={cn('scrollbar-hide grid gap-24 max-lg:-mx-16 max-lg:flex max-lg:gap-12 max-lg:overflow-x-auto max-lg:px-16', stampsVisible ? 'grid-cols-5' : 'grid-cols-4')}>
+        {/* "Collect stamps" only while the admin repeat-rewards switch is on */}
+        {TILES.filter(t => stampsVisible || t.key !== 'stamps').map(t => {
           const on = picked === t.key
           return (
             <button

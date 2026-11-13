@@ -58,7 +58,7 @@ export function useHuntVersion() {
 }
 
 export function useHuntProgress() {
-  useHuntVersion()
+  if (!useHuntVersion()) return null
   return hunt ? { found: found.size, total: Number(hunt.total) || hunt.spots?.length || 0 } : null
 }
 

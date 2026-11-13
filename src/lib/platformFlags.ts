@@ -10,6 +10,10 @@ export type PlatformFlags = {
   referralEnabled: boolean
   referralAmount: number
   referralRefereeAmount: number
+  /** app parity: repeat_reward_enabled — stamp sheets / visit rewards, unless a merchant overrides it */
+  repeatRewards: boolean
+  /** stamp pages and menu entries show — the switch is on, or some merchant has its stamps forced on */
+  stampsVisible: boolean
 }
 
 export const DEFAULT_PLATFORM_FLAGS: PlatformFlags = {
@@ -19,6 +23,8 @@ export const DEFAULT_PLATFORM_FLAGS: PlatformFlags = {
   referralEnabled: false,
   referralAmount: 0,
   referralRefereeAmount: 0,
+  repeatRewards: false,
+  stampsVisible: false,
 }
 
 let flags = DEFAULT_PLATFORM_FLAGS
@@ -33,6 +39,18 @@ export function burnOn() {
   return flags.burn
 }
 
+/**
+ * Whether a merchant's repeat rewards (stamp sheet, visit offers) show — app
+ * parity: platformFlags.js repeatRewardsOn. The merchant's `repeat_reward_mode`
+ * ('on' / 'off') wins; 'inherit' (the default) follows the platform switch.
+ */
+export function repeatRewardsOn(merchant?: { repeat_reward_mode?: string | null } | null) {
+  const mode = String(merchant?.repeat_reward_mode ?? 'inherit').toLowerCase()
+  if (mode === 'on') return true
+  if (mode === 'off') return false
+  return flags.repeatRewards
+}
+
 export function flagsFromRow(row: {
   cashback_earn_enabled?: boolean | null
   cashback_burn_enabled?: boolean | null
@@ -41,6 +59,7 @@ export function flagsFromRow(row: {
   referral_enabled?: boolean | null
   referral_reward_amount?: number | string | null
   referral_referee_amount?: number | string | null
+  repeat_reward_enabled?: boolean | null
 } | null | undefined): PlatformFlags {
   if (!row) return DEFAULT_PLATFORM_FLAGS
   const earn = row.cashback_earn_enabled !== false
@@ -51,5 +70,7 @@ export function flagsFromRow(row: {
     referralEnabled: earn && !!row.referral_enabled && Number(row.referral_reward_amount) > 0,
     referralAmount: Number(row.referral_reward_amount || 0),
     referralRefereeAmount: Number(row.referral_referee_amount || 0),
+    repeatRewards: row.repeat_reward_enabled !== false,
+    stampsVisible: row.repeat_reward_enabled !== false,
   }
 }

@@ -305,6 +305,12 @@ export type BillQuote = {
   repeatReward: { tierId: string | number | null; discount: number; label: string } | null
   burn: BurnQuote | null
   balance: number
+  /** a deal redeemed today (in the app, or from today's booking) coming off this bill — deal_bill_quote */
+  deal: { discount: number; label: string; source: string | null } | null
+  /** a deal that can still be redeemed onto this bill — bill_deal_offer */
+  dealOffer: { kind: string; itemId: string; label: string; minSpend: number; fromBooking: boolean } | null
+  /** cover charge already paid at booking, credited to the bill — bill_cover_credit_quote */
+  coverPaid: number
 }
 
 /** sessionStorage — what the return page needs to draw the receipt */

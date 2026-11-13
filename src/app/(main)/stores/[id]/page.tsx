@@ -1,3 +1,4 @@
+import { getStampGate } from '@/lib/services/platformFlags'
 import { cache } from 'react'
 import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { getCardChips } from '@/lib/cardChips'
@@ -80,7 +81,7 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
   if (isWellnessStore(data.store)) permanentRedirect(storeHref(data.store))
 
   const { store, gallery, hours, collections, tags, offers } = data
-  const [reviews, stamp] = await Promise.all([getStoreReviews(store.id), getStoreStampCard(store.id)])
+  const [reviews, stamp, stampGate] = await Promise.all([getStoreReviews(store.id), getStoreStampCard(store.id), getStampGate()])
   const reviewSummary = {
     avg: reviews.length ? reviews.reduce((sum, r) => sum + Number(r.rating ?? 0), 0) / reviews.length : 0,
     count: reviews.length,
@@ -124,8 +125,8 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
           {/* css.txt "Privé benefits · Desktop 1921": 1576×480, radius 18, pager dots */}
           <RestaurantDesktopHero id={store.id} name={store.name} cover={store.cover_image} photos={allPhotos} saveType='STORE' backHref='/stores' radius={18} />
 
-          {/* the title card (1128×192) beside the Pay bill card (390×120), 24 under the photo */}
-          <div className={cn(COLUMNS, 'lg:items-start')}>
+          {/* the title card (1128×192) beside the Pay bill card (390×120), 24 under the photo; no Pay bill card → the title card takes the full row */}
+          <div className={payHref ? cn(COLUMNS, 'lg:items-start') : 'flex flex-col'}>
             <RestaurantTitleCard
               id={store.id}
               gauge={false}
@@ -142,13 +143,13 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
               phone={store.phone}
               rating={reviewSummary}
               hours={hours}
-              stampSheet={hasStampSheet(store)}
+              stampSheet={stampGate(store.id) && hasStampSheet(store)}
               trending={store.is_promoted === true}
               exclusive={isSubscribed(store)}
               exclusiveZone={isPickupPremium(store)}
               chips={chips}
             />
-            <RestaurantCtaCard merchant={store} bookHref={null} payHref={payHref} leftCoin={false} className='mt-4 lg:mt-[max(14px,calc(24*var(--t)))]' />
+            {payHref && <RestaurantCtaCard merchant={store} bookHref={null} payHref={payHref} leftCoin={false} className='mt-4 lg:mt-[max(14px,calc(24*var(--t)))]' />}
           </div>
 
           <DetailSectionTabs tabs={tabs} title={store.name} cta={payCta} className='mt-6' variant='figma' />

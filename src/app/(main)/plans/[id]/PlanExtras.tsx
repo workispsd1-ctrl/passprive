@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useRouter } from 'next/navigation'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
@@ -24,7 +25,7 @@ export function StoreRail({ stores, hrefBase }: { stores: StoreRow[]; hrefBase: 
           name={s.name}
           meta={s.location_name ?? s.city ?? undefined}
           tagline={[s.category, s.subcategory].filter(Boolean).join(', ') || undefined}
-          offerLabel={s.store_offers?.[0]?.discount_value ? `Flat ${s.store_offers[0].discount_value}% OFF` : s.store_offers?.[0]?.badge_text ?? undefined}
+          offerLabel={cardOfferText(s.store_offers)}
           cardBadge={getCardBadge(s, plan)}
         />
       ))}

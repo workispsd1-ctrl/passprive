@@ -72,21 +72,6 @@ export function storeConfirmBody(b: ServiceBooking) {
   }
 }
 
-/**
- * app parity: `sanitizeBookingOptionForCoverChargePayment` — a discount option
- * paid as a cover charge is recorded as a regular reservation.
- */
-function coverChargeOption(option: BookingOption): BookingOption {
-  if (!option.type.toLowerCase().startsWith('discount')) return option
-  const amount = option.coverChargeAmount ?? 0
-  return {
-    type: 'Regular table reservation',
-    label: amount > 0 ? `MUR ${amount} cover charge required` : 'No cover charge required',
-    coverChargeRequired: option.coverChargeRequired || amount > 0,
-    coverChargeAmount: amount > 0 ? amount : null,
-  }
-}
-
 /** iVeri `initiate` fields for a BOOKING that still needs its cover charge paid. */
 export function bookingPaymentBody(b: DiningBooking | ServiceBooking) {
   const common = {
@@ -104,18 +89,21 @@ export function bookingPaymentBody(b: DiningBooking | ServiceBooking) {
         ...common,
         restaurant: { id: b.restaurantId },
         meal: b.meal,
-        option: coverChargeOption(b.option),
+        // app parity (fbaf070): the option goes as picked — a paid booking keeps its deal
+        option: b.option,
       },
     }
   }
+  // app parity (fbaf070): PaymentProcessingScreen — buildStoreBookingRequest without its payment
   return {
     store_id: b.storeId,
-    booking_payload: {
-      ...common,
+    service_booking_payload: {
       store: { id: b.storeId },
-      serviceBooking: true,
+      guests: b.guests,
+      selectedDate: b.dateId,
+      selectedTime: b.time24,
       selectedServices: b.services,
-      meal: null,
+      notes: b.notes,
       option: b.option,
     },
   }

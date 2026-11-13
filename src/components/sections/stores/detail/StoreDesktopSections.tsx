@@ -195,7 +195,9 @@ function VibeTile({ src, index, more }: { src: string; index: number; more: numb
 
 /**
  * Catalogue and vibes (css.txt "Catalogue and vibes": 950 + 66 + 560 across
- * the 1576 frame), then About the brand. The photo above already shows the
+ * the 1576 frame), then About the brand. The catalogue hugs its collections
+ * (up to 950) and Vibes keeps its 560 width, so one collection leaves no gap
+ * and a store without a catalogue doesn't blow the vibe tiles up. The photo above already shows the
  * cover, so Vibes starts after it.
  */
 export function StoreShowcase({
@@ -225,11 +227,11 @@ export function StoreShowcase({
     <div className='font-(family-name:--font-dm-sans)'>
       {(collections.length > 0 || shown.length > 0) && (
         <div
-          className={cn('flex flex-col gap-8 lg:grid lg:gap-x-[calc(66*var(--u))]', collections.length > 0 && shown.length > 0 && 'lg:grid-cols-[minmax(0,950fr)_minmax(0,560fr)]')}
+          className='flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-x-[calc(66*var(--u))]'
           style={{ marginTop: tMin(68, 32) }}
         >
           {collections.length > 0 && (
-            <section data-section='catalogue' className='min-w-0' style={{ scrollMarginTop: t(170) }}>
+            <section data-section='catalogue' className='min-w-0 lg:max-w-[calc(950*var(--u))]' style={{ scrollMarginTop: t(170) }}>
               <BlockTitle>Catalogue</BlockTitle>
               {/* two collections fill the 950 column; more scroll sideways */}
               <div className='scrollbar-hide flex snap-x overflow-x-auto' style={{ gap: tMin(24, 12) }}>
@@ -238,7 +240,7 @@ export function StoreShowcase({
             </section>
           )}
           {shown.length > 0 && (
-            <section data-section='vibes' className='min-w-0' style={{ scrollMarginTop: t(170) }}>
+            <section data-section='vibes' className='min-w-0 lg:w-[calc(560*var(--u))] lg:shrink-0' style={{ scrollMarginTop: t(170) }}>
               <BlockTitle>Vibes</BlockTitle>
               <div className='grid grid-cols-2' style={{ gap: tMin(24, 12) }}>
                 {shown.map((src, i) => (
@@ -252,7 +254,8 @@ export function StoreShowcase({
 
       {about.length > 0 && (
         <Section id='about' title='About the brand' top={68} gap={16}>
-          <div className='flex flex-col' style={{ gap: tMin(16, 12) }}>
+          {/* side by side like dining's "About the Restaurant"; stacked on phones */}
+          <div className='grid grid-cols-1 lg:grid-cols-2' style={{ gap: tMin(24, 12) }}>
             {about.map(a => <AboutCard key={a.title} title={a.title} body={a.body} />)}
           </div>
         </Section>

@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useMemo, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -24,12 +25,7 @@ type WithDist = StoreRow & { dist: number | null }
 
 /** The first offer's strip text — app parity: ServiceStoreDetails.jsx `exclusiveOfferItems`. */
 function offerLabel(s: StoreRow) {
-  const offer = s.store_offers?.[0]
-  if (!offer) return undefined
-  if (!offer.discount_value) return offer.badge_text ?? undefined
-  return String(offer.offer_type ?? '').toLowerCase().startsWith('percent')
-    ? `Flat ${offer.discount_value}% OFF`
-    : `Flat MUR ${offer.discount_value} OFF`
+  return cardOfferText(s.store_offers)
 }
 
 function Rail({ title, stores }: { title: string; stores: WithDist[] }) {

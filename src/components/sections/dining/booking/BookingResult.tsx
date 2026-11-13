@@ -13,6 +13,8 @@ import { CheckRings } from '@/components/sections/dining/PaymentScreens'
 import { cancelDeadline } from './bookingTimes'
 import { hasLiveProposal, isBookingConfirmed, isBookingRejected, type ProposalRow } from '@/lib/booking/status'
 import { BookingProposalBanner } from '@/components/shared/BookingProposalBanner'
+import { CoverRequestBox } from '@/components/shared/CoverRequestBox'
+import type { CoverRequestFields } from '@/lib/types/bookings'
 import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
 
 const P = '/assets/pay-bill'
@@ -31,6 +33,9 @@ export type BookingResultData = {
   cancellation: { available: boolean; cutoffMinutes: number | null }
   /** the restaurant's counter-offer, when it made one */
   proposal: ProposalRow
+  restaurantId: string
+  /** the restaurant asking for a cover charge after booking (app: PaymentSuccessScreen CoverRequestBox) */
+  coverRequest: CoverRequestFields
   rewardAmount: number
 }
 
@@ -149,6 +154,7 @@ export function BookingResult({ b }: { b: BookingResultData }) {
       </div>
 
       {proposed && <BookingProposalBanner booking={proposal} restaurantName={b.restaurantName} className='relative mt-4 w-full text-left' />}
+      <CoverRequestBox booking={{ ...b.coverRequest, id: b.id }} kind='restaurant' merchantId={b.restaurantId} merchantName={b.restaurantName} className='relative mt-4 w-full text-left' />
 
       {!confirmed && !cancelled && !proposed && (
         <div className='relative w-full rounded-[inherit] bg-[#fff8f5] text-left' style={{ marginTop: t(20), borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>

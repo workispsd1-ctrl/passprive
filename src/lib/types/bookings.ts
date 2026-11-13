@@ -12,6 +12,7 @@ export type DiningBooking = {
   proposed_date?: string | null
   proposed_time?: string | null
   proposed_at?: string | null
+} & CoverRequestFields & {
   restaurants: {
     id: string
     name: string
@@ -26,8 +27,18 @@ export type DiningBooking = {
   } | null
 }
 
+/** A merchant's request for a cover charge on a booking — app parity: CoverRequestBox COVER_REQUEST_COLUMNS. */
+export type CoverRequestFields = {
+  cover_request_status?: string | null
+  /** still to pay */
+  cover_request_amount?: number | string | null
+  /** the whole cover charge asked for */
+  cover_request_total?: number | string | null
+  cover_request_due_at?: string | null
+}
+
 /** A store order / service appointment — app parity: YourBookingsScreen `store_orders` rows. */
-export type StoreBooking = {
+export type StoreBooking = CoverRequestFields & {
   id: string
   store_id: string
   status: string

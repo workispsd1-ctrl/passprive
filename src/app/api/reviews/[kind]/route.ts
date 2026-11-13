@@ -11,7 +11,10 @@ function star(v: unknown): number | null {
 
 type Ctx = { params: Promise<{ kind: string }> }
 
-/** Whether the viewer is logged in and has already reviewed this place. */
+/**
+ * Whether the viewer is logged in, and their own review of this place (any
+ * approval state) so it can be edited — app parity: restaurantReviews.js fetchMyReview.
+ */
 export async function GET(request: Request, { params }: Ctx) {
   const { kind } = await params
   const entityId = new URL(request.url).searchParams.get('entityId') ?? ''
@@ -22,17 +25,34 @@ export async function GET(request: Request, { params }: Ctx) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ loggedIn: false, reviewed: false })
+  if (!user) return NextResponse.json({ loggedIn: false, reviewed: false, mine: null })
 
   const config = REVIEW_CONFIG[kind]
+  const columns = config.steps.map(step => step.column).filter(Boolean)
   // includes reviews still awaiting approval
   const { data } = await supabase
     .from(config.table)
-    .select('id')
+    .select(['id', 'rating', 'review_text', ...columns].join(', '))
     .eq(config.entityColumn, entityId)
     .eq('user_id', user.id)
+    .order('updated_at', { ascending: false })
     .limit(1)
-  return NextResponse.json({ loggedIn: true, reviewed: !!data?.length })
+    .maybeSingle()
+  const row = data as Record<string, unknown> | null
+  // each aspect's stars, falling back to the overall rating (app: fetchMyReview prefill)
+  const overall = Math.round(Number(row?.rating) || 0)
+  const ratings = row
+    ? Object.fromEntries(
+        usesAspectRatings(kind)
+          ? config.steps.map(step => [step.key, Math.round(Number(row[step.column as string]) || overall)])
+          : [['rating', overall]],
+      )
+    : null
+  return NextResponse.json({
+    loggedIn: true,
+    reviewed: !!row,
+    mine: row ? { ratings, text: String(row.review_text ?? '') } : null,
+  })
 }
 
 /**
@@ -86,13 +106,13 @@ export async function POST(request: Request, { params }: Ctx) {
     .select('id')
     .eq(config.entityColumn, entityId)
     .eq('user_id', user.id)
+    .order('updated_at', { ascending: false })
     .limit(1)
   if (existingErr) {
     return NextResponse.json({ error: existingErr.message }, { status: 500 })
   }
-  if (existing?.length) {
-    return NextResponse.json({ error: 'You have already left a review here.' }, { status: 409 })
-  }
+  // app parity (fbaf070): a second review updates the member's existing one
+  const existingId = existing?.[0]?.id as string | number | undefined
 
   const { data: userRow } = await supabase
     .from('users')
@@ -113,28 +133,27 @@ export async function POST(request: Request, { params }: Ctx) {
     photoUrls.push(supabase.storage.from(REVIEW_PHOTO_BUCKET).getPublicUrl(path).data.publicUrl)
   }
 
-  const { data, error } = await supabase
-    .from(config.table)
-    .insert({
-      [config.entityColumn]: entityId,
-      user_id: user.id,
-      rating,
-      ...Object.fromEntries(aspects.map(a => [a.column, a.value])),
-      review_text: text || null,
-      liked_tags: [],
-      photo_urls: photoUrls,
-      username_snapshot: userRow?.full_name || (user.user_metadata?.full_name as string | undefined) || null,
-      avatar_snapshot: userRow?.profile_image || null,
-    })
-    .select('id, is_approved')
-    .single()
+  const payload = {
+    [config.entityColumn]: entityId,
+    user_id: user.id,
+    rating,
+    ...Object.fromEntries(aspects.map(a => [a.column, a.value])),
+    review_text: text || null,
+    // an edit without new images keeps the ones already on the review
+    ...(existingId == null || photos.length ? { photo_urls: photoUrls } : {}),
+    username_snapshot: userRow?.full_name || (user.user_metadata?.full_name as string | undefined) || null,
+    avatar_snapshot: userRow?.profile_image || null,
+  }
+  const { data, error } = existingId != null
+    ? await supabase.from(config.table).update(payload).eq('id', existingId).eq('user_id', user.id).select('id, is_approved').single()
+    : await supabase.from(config.table).insert({ ...payload, liked_tags: [] }).select('id, is_approved').single()
   if (error) {
     // 42501 = blocked by the table's row-level security policy
     const message =
       error.code === '42501'
         ? 'Reviews can’t be saved here yet. Please try again later.'
         : error.message
-    console.error(`[reviews] insert into ${config.table} failed:`, error.code, error.message)
+    console.error(`[reviews] ${existingId != null ? 'update' : 'insert'} of ${config.table} failed:`, error.code, error.message)
     return NextResponse.json({ error: message }, { status: error.code === '42501' ? 403 : 500 })
   }
 

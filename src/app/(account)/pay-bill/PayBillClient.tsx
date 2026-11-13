@@ -113,7 +113,7 @@ function PaymentFrame({ src, srcDoc, onCancel }: { src: string; srcDoc: string; 
  */
 export function PayBillClient({
   restaurant: r,
-  offers,
+  offers: allOffers,
   plan,
   sharePct,
   cashbackPct,
@@ -177,6 +177,17 @@ export function PayBillClient({
   })
 
   const amount = Number(digits) || 0
+  // app parity (fbaf070): merchant offers no longer apply on the bill — their discount
+  // comes through a redeemed deal (deal_bill_quote) instead
+  const offers = useMemo(() => allOffers.filter(o => o.source !== 'MERCHANT'), [allOffers])
+  // bumped after redeeming a deal, so the quote is fetched again
+  const [dealVersion, setDealVersion] = useState(0)
+  const [dealDialog, setDealDialog] = useState<
+    | { type: 'confirm' | 'busy'; label: string; fromBooking: boolean }
+    | { type: 'result'; label: string; discount: number }
+    | { type: 'error'; message: string }
+    | null
+  >(null)
 
   // each step is a history entry, so the browser's back button steps back (as the app's does)
   useEffect(() => {
@@ -215,7 +226,7 @@ export function PayBillClient({
         .catch(() => {})
     }, 300)
     return () => { live = false; clearTimeout(id) }
-  }, [amount, r.id, idParam, authTick])
+  }, [amount, r.id, idParam, authTick, dealVersion])
 
   useEffect(() => {
     let live = true
@@ -237,11 +248,17 @@ export function PayBillClient({
   const application = useMemo(() => applyOffers(amount, selected ? [shareOffer(selected, sharePct)] : []), [amount, selected, sharePct])
   const offerDiscount = Math.round(application.discount * 100) / 100
   const rewardDiscount = q?.repeatReward?.discount ?? 0
-  const discount = Math.round((offerDiscount + rewardDiscount) * 100) / 100
+  const dealDiscount = q?.deal?.discount ?? 0
+  const discount = Math.round((offerDiscount + rewardDiscount + dealDiscount) * 100) / 100
+  // app parity: BillSummaryScreen — a cover charge paid at booking comes off, leaving at least MUR 1
+  const coverCredit = Math.round(Math.min(q?.coverPaid ?? 0, Math.max(0, amount - discount - 1)) * 100) / 100
+  const dealOffer = q && !q.deal ? q.dealOffer : null
+  const dealBelowMin = !!dealOffer && amount > 0 && amount < dealOffer.minSpend
+  const canRedeemDeal = !!dealOffer && amount > 0 && !dealBelowMin
   const cashback = Math.round((application.cashback + (q?.cashback ?? 0)) * 100) / 100
   const upgradeAmount = upgradeApplied && upsell ? upsell.amount : 0
   const burnCap = q?.burn ? q.burn.burnableNow : balance
-  const { creditsUsable, creditsApplied, toPay } = billTotals({ amount, discount, balance, burnCap, useCredits: useCredits && burnEnabled, upgradeAmount })
+  const { creditsUsable, creditsApplied, toPay } = billTotals({ amount, discount: discount + coverCredit, balance, burnCap, useCredits: useCredits && burnEnabled, upgradeAmount })
   const creditsBlocked = q?.burn && !(q.burn.burnableNow > 0) ? q.burn.blockMessage : ''
   const earnCredits = (Math.max(0, toPay - upgradeAmount) * cashbackPct) / 100
 
@@ -262,6 +279,30 @@ export function PayBillClient({
     window.history.pushState({ payBill: next }, '', `#${next}`)
     setStep(next)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // app parity: PayBillScreen redeemDealNow — redeem_deal_for_bill, then quote the bill again
+  async function redeemDeal() {
+    if (!dealOffer || dealDialog?.type !== 'confirm') return
+    setDealDialog({ ...dealDialog, type: 'busy' })
+    const res = await fetch('/api/pay-bill/redeem-deal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: dealOffer.kind, id: dealOffer.itemId }),
+    }).catch(() => null)
+    if (res?.status === 401) { setDealDialog(null); promptLogin(); return }
+    const result = (await res?.json().catch(() => null)) as { allowed?: boolean; reason?: string } | null
+    if (!result?.allowed) {
+      const reason = String(result?.reason ?? '').trim()
+      setDealDialog({ type: 'error', message: reason ? reason.charAt(0).toUpperCase() + reason.slice(1) : 'Please try again.' })
+      return
+    }
+    const fresh = await fetch(`/api/pay-bill/quote?${idParam}=${r.id}&amount=${amount}`, { cache: 'no-store' })
+      .then(x => (x.ok ? (x.json() as Promise<BillQuote>) : null))
+      .catch(() => null)
+    if (fresh) setQuote({ amount, data: fresh })
+    setDealVersion(v => v + 1)
+    setDealDialog(fresh?.deal ? { type: 'result', label: fresh.deal.label, discount: fresh.deal.discount } : null)
   }
 
   function toSummary() {
@@ -333,6 +374,7 @@ export function PayBillClient({
           [idParam]: r.id,
           total_amount: Math.round((toPay + creditsApplied) * 100) / 100,
           coins_amount: creditsApplied,
+          bill_amount: amount,
           ...(orderLines ? { order_items: orderLines.map(l => ({ id: l.id, qty: l.qty })) } : {}),
         }),
       })
@@ -445,7 +487,43 @@ export function PayBillClient({
                   </span>
                   <span aria-hidden='true' className='block max-w-full rounded-full bg-linear-to-r from-[#bfc7ff] to-[#999fcc] opacity-50' style={{ marginTop: t(10), width: t(638), height: t(2.5) }} />
                 </label>
-                <p className='text-[#8e8e93]' style={{ marginTop: t(30), fontSize: t(24), letterSpacing: t(0.4) }}>Enter total amount as shown on the bill</p>
+                {dealDiscount > 0 && amount > 0 ? (
+                  // app parity: PayBillScreen savings badge once a deal is on the bill
+                  <p className='self-start rounded-full bg-[#3aa456] text-white' style={{ marginTop: t(26), padding: `${t(8)} ${t(20)}`, fontSize: t(20) }}>
+                    Wow! You are saving <span className='font-bold'>MUR {fmtMur(dealDiscount)}!</span> You pay MUR {fmtMur(Math.max(0, amount - dealDiscount))}
+                  </p>
+                ) : (
+                  <p className='text-[#8e8e93]' style={{ marginTop: t(30), fontSize: t(24), letterSpacing: t(0.4) }}>Enter total amount as shown on the bill</p>
+                )}
+
+                {/* app parity: PayBillScreen deal card — the deal on this bill, or one to redeem onto it */}
+                {q?.deal ? (
+                  <div className='self-start rounded-[length:var(--r)] border-solid border-[#fecdc4] bg-[#fff1ee] [--r:calc(32*var(--u))]' style={{ marginTop: t(28), padding: `${t(12)} ${t(26)}`, borderWidth: t(1.5) }}>
+                    <p className='font-semibold text-[#ff4800]' style={{ fontSize: t(20) }}>{q.deal.label} deal applied</p>
+                    <p className='text-[#5b5a5a]' style={{ fontSize: t(16) }}>{q.deal.source === 'booking' ? 'From your booking today' : 'Deal redeemed today'}</p>
+                  </div>
+                ) : dealOffer ? (
+                  <div className='flex items-center self-start rounded-[length:var(--r)] border-solid border-[#fecdc4] bg-[#fff1ee] [--r:calc(32*var(--u))]' style={{ marginTop: t(28), padding: `${t(10)} ${t(12)} ${t(10)} ${t(26)}`, gap: t(20), borderWidth: t(1.5) }}>
+                    <span className='min-w-0'>
+                      <span className='block font-semibold text-[#ff4800]' style={{ fontSize: t(20) }}>{dealOffer.label}</span>
+                      <span className='block text-[#5b5a5a]' style={{ fontSize: t(16) }}>
+                        {dealBelowMin
+                          ? `Min bill MUR ${fmtMur(dealOffer.minSpend)}`
+                          : dealOffer.fromBooking ? 'From your table booking today'
+                          : amount > 0 ? 'Redeem to apply your deal to this bill' : 'Enter your bill amount to redeem'}
+                      </span>
+                    </span>
+                    <button
+                      type='button'
+                      disabled={!canRedeemDeal}
+                      onClick={() => setDealDialog({ type: 'confirm', label: dealOffer.label, fromBooking: dealOffer.fromBooking })}
+                      className='shrink-0 rounded-full bg-[#ff4800] font-semibold text-white disabled:opacity-45'
+                      style={{ padding: `${t(10)} ${t(24)}`, fontSize: t(18) }}
+                    >
+                      Redeem
+                    </button>
+                  </div>
+                ) : null}
 
                 {/* app parity: PayBillScreen offer cards — the first merchant offer has a tick */}
                 {(primary || extraOffers.length > 0) && (
@@ -596,6 +674,8 @@ export function PayBillClient({
                         />
                       )}
                       {rewardDiscount > 0 && <Row label='Visit reward' value={`-MUR ${fmtMur(rewardDiscount)}`} accent />}
+                      {dealDiscount > 0 && q?.deal && <Row label={`Deal · ${q.deal.label}`} value={`-MUR ${fmtMur(dealDiscount)}`} accent />}
+                      {coverCredit > 0 && <Row label='Cover charge paid at booking' value={`-MUR ${fmtMur(coverCredit)}`} accent />}
                       {creditsApplied > 0 && <Row label='Privé Credits' value={`-MUR ${fmtMur(creditsApplied)}`} accent />}
                       <div className='bg-linear-to-r from-[#fff3ee] to-[#ffe8de]'>
                         <Row label='To be paid' value={`MUR ${fmtMur(toPay)}`} strong />
@@ -668,6 +748,53 @@ export function PayBillClient({
           </DialogContent>
         </Dialog>
       )}
+
+      {/* app parity: DealRedeemDialog — confirm, then the deal and what comes off, or why it can't */}
+      <Dialog open={!!dealDialog} onOpenChange={o => { if (!o && dealDialog?.type !== 'busy') setDealDialog(null) }}>
+        <DialogContent showCloseButton={false} className='gap-0 rounded-3xl bg-white p-6 text-center font-(family-name:--font-dm-sans) sm:max-w-sm'>
+          {dealDialog?.type === 'result' ? (
+            <>
+              <p className='text-[12px] font-bold tracking-[0.12em] text-[#6B6670]'>YOUR DEAL</p>
+              <DialogTitle className='mt-2 text-[34px] leading-10 font-bold text-[#FF4800]'>{dealDialog.label}</DialogTitle>
+              <DialogDescription className='mt-2 text-[14px] leading-5 text-[#6B6670]'>MUR {fmtMur(dealDialog.discount)} comes off this bill.</DialogDescription>
+              <button type='button' onClick={() => setDealDialog(null)} className='mt-5 flex h-12 items-center justify-center rounded-full bg-[#FF4800] text-[16px] font-semibold text-white hover:bg-[#E64200]'>
+                Continue
+              </button>
+            </>
+          ) : dealDialog?.type === 'error' ? (
+            <>
+              <DialogTitle className='text-[18px] font-bold text-[#1C1007]'>Couldn&rsquo;t redeem this deal</DialogTitle>
+              <DialogDescription className='mt-2 text-[14px] leading-5 text-[#6B6670]'>{dealDialog.message}</DialogDescription>
+              <button type='button' onClick={() => setDealDialog(null)} className='mt-5 flex h-12 items-center justify-center rounded-full bg-[#FF4800] text-[16px] font-semibold text-white hover:bg-[#E64200]'>
+                Okay
+              </button>
+            </>
+          ) : dealDialog ? (
+            <>
+              <DialogTitle className='text-[18px] font-bold text-[#1C1007]'>Redeem your deal?</DialogTitle>
+              <p className='mt-2 text-[22px] font-bold text-[#FF4800]'>{dealDialog.label.replace(/^up to/i, 'Up to')}</p>
+              <DialogDescription className='mt-2 text-[14px] leading-5 text-[#6B6670]'>
+                {dealDialog.fromBooking
+                  ? 'Your deal from today’s table booking. Redeem it now and it comes straight off this bill.'
+                  : /^up\s*to/i.test(dealDialog.label)
+                    ? 'Redeem now to reveal your deal. It comes straight off this bill.'
+                    : 'Redeem now and your deal comes straight off this bill.'}
+              </DialogDescription>
+              <button
+                type='button'
+                onClick={redeemDeal}
+                disabled={dealDialog.type === 'busy'}
+                className='mt-5 flex h-12 items-center justify-center rounded-full bg-[#FF4800] text-[16px] font-semibold text-white hover:bg-[#E64200] disabled:opacity-70'
+              >
+                {dealDialog.type === 'busy' ? 'Redeeming…' : 'Redeem'}
+              </button>
+              <button type='button' onClick={() => setDealDialog(null)} disabled={dealDialog.type === 'busy'} className='mt-2 h-10 text-[15px] font-semibold text-[#6B6670] disabled:opacity-50'>
+                Not now
+              </button>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       {paying && !frame && <ProcessingScreen />}
       {frame && (

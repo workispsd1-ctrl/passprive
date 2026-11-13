@@ -1,3 +1,4 @@
+import { getBookingFee } from '@/lib/services/bookings'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -29,9 +30,10 @@ export default async function WellnessBookPage({
   if (!data || !canBook(data.store)) notFound()
 
   const { store, categories, hours, inStoreOffers } = data
-  const [settings, { data: { user } }] = await Promise.all([
+  const [settings, { data: { user } }, bookingFee] = await Promise.all([
     getStoreBookingSettings(store.id),
     supabase.auth.getUser(),
+    getBookingFee(),
   ])
 
   const href = `/wellness/${store.slug ?? store.id}`
@@ -65,6 +67,7 @@ export default async function WellnessBookPage({
               href,
               address: address || null,
               ...settings,
+              bookingFee,
             }}
             categories={categories}
             hours={hours}

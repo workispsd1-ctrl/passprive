@@ -9,6 +9,7 @@ import { formatBookingDateTime } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
 import { hasLiveProposal } from '@/lib/booking/status'
 import { BookingProposalBanner } from '@/components/shared/BookingProposalBanner'
+import { CoverRequestBox } from '@/components/shared/CoverRequestBox'
 
 function getStatusBadge(status: string, bookingDate: string) {
   const today = new Date()
@@ -78,6 +79,7 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
       </div>
 
       <BookingProposalBanner booking={booking} restaurantName={restaurant?.name} className="mx-4 mb-3" />
+      <CoverRequestBox booking={booking} kind="restaurant" merchantId={booking.restaurant_id} merchantName={restaurant?.name} className="mx-4 mb-3" />
 
       <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
         <div className="flex items-center gap-2">
@@ -172,6 +174,8 @@ function StoreBookingCard({ booking }: { booking: StoreBooking }) {
           ) : null}
         </div>
       </div>
+
+      <CoverRequestBox booking={booking} kind="store" merchantId={booking.store_id} merchantName={store?.name} className="mx-4 mb-3" />
 
       <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
         <div className="flex items-center gap-2">

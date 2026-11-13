@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
@@ -75,7 +76,7 @@ export function ContinueWhereLeftOff({ stores }: { stores: StoreRow[] }) {
             name={s.name}
             meta={meta || undefined}
             tagline={s.description ?? ([s.category, s.subcategory].filter(Boolean).join(', ') || undefined)}
-            offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
+            offerLabel={cardOfferText(s.store_offers)}
             cardBadge={getCardBadge(s, plan)}
           />
         )

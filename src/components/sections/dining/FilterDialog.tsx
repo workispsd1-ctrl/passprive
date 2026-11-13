@@ -76,7 +76,7 @@ export type Section = (typeof SECTIONS)[number]
 const UNIT = '[--u:1px] lg:[--u:calc(100vw/1920)] [--spacing:var(--u)]'
 
 /** One option row: radio (single choice) or filled check circle (multi choice). */
-function Option({
+export function FilterOption({
   label,
   selected,
   multi,
@@ -149,13 +149,13 @@ export function FilterDialog({
   const flag = (key: 'openNow' | 'veg') => setDraft((d) => ({ ...d, [key]: !d[key] }))
 
   const multi = (key: ListKey, options: readonly string[]) =>
-    options.map((o) => <Option key={o} multi label={o} selected={has(key, o)} onClick={() => toggle(key, o)} />)
+    options.map((o) => <FilterOption key={o} multi label={o} selected={has(key, o)} onClick={() => toggle(key, o)} />)
 
   function options() {
     switch (section) {
       case 'Sort':
         return DIALOG_SORT_OPTIONS.map((o) => (
-          <Option
+          <FilterOption
             key={o.label}
             label={o.label}
             selected={(draft.sort ?? null) === o.key}
@@ -165,17 +165,17 @@ export function FilterDialog({
       case 'Availability':
         return (
           <>
-            <Option multi label="Open Now" selected={!!draft.openNow} onClick={() => flag('openNow')} />
+            <FilterOption multi label="Open Now" selected={!!draft.openNow} onClick={() => flag('openNow')} />
             {multi('availability', AVAILABILITY_OPTIONS)}
           </>
         )
       case 'Distance':
         return DISTANCE_OPTIONS.map((o) => (
-          <Option key={o.key} label={o.label} selected={draft.distance === o.key} onClick={() => pick('distance', o.key)} />
+          <FilterOption key={o.key} label={o.label} selected={draft.distance === o.key} onClick={() => pick('distance', o.key)} />
         ))
       case 'Ratings':
         return RATING_OPTIONS.map((r) => (
-          <Option
+          <FilterOption
             key={r}
             label={`★ ${r.toFixed(1)} & above`}
             selected={draft.minRating === r}
@@ -187,13 +187,13 @@ export function FilterDialog({
       case 'Dietary Preferences':
         return (
           <>
-            <Option multi label="Pure Veg" selected={!!draft.veg} onClick={() => flag('veg')} />
+            <FilterOption multi label="Pure Veg" selected={!!draft.veg} onClick={() => flag('veg')} />
             {multi('diets', DIET_OPTIONS)}
           </>
         )
       case 'Cost for two':
         return COST_BUCKETS.map((b) => (
-          <Option key={b.key} label={b.label} selected={draft.cost === b.key} onClick={() => pick('cost', b.key)} />
+          <FilterOption key={b.key} label={b.label} selected={draft.cost === b.key} onClick={() => pick('cost', b.key)} />
         ))
       case 'Cuisines':
         return multi('cuisines', cuisineOptions)
@@ -204,6 +204,49 @@ export function FilterDialog({
     }
   }
 
+  return (
+    <FilterShell
+      open={open}
+      onClose={onClose}
+      sections={sections}
+      section={section}
+      onSection={setSection}
+      single={section === 'Sort' || ['Distance', 'Ratings', 'Cost for two'].includes(section)}
+      onReset={() => setDraft(EMPTY)}
+      onApply={() => onApply(draft)}
+    >
+      {options()}
+    </FilterShell>
+  )
+}
+
+/**
+ * The filter popup's frame — Figma "Explore more restaurants – filter pop-up":
+ * header with close, section list on the left, the active section's options
+ * on the right, "Reset" / "Apply Filters". Dining, Stores and Wellness share it.
+ */
+export function FilterShell<S extends string>({
+  open,
+  onClose,
+  sections,
+  section,
+  onSection,
+  single,
+  onReset,
+  onApply,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  sections: readonly S[]
+  section: S
+  onSection: (s: S) => void
+  /** the active section is single-choice (radios) */
+  single: boolean
+  onReset: () => void
+  onApply: () => void
+  children: React.ReactNode
+}) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -241,7 +284,7 @@ export function FilterDialog({
                 <button
                   key={s}
                   type="button"
-                  onClick={() => setSection(s)}
+                  onClick={() => onSection(s)}
                   aria-current={active}
                   className={cn(
                     'relative flex h-48 w-full shrink-0 items-center pr-20 pl-28 text-left text-[length:var(--t)] leading-20 [--t:calc(14*var(--u))] max-lg:h-auto max-lg:min-h-44 max-lg:py-8 max-lg:pr-8 max-lg:pl-14 max-lg:leading-16 max-lg:[--t:12.5px]',
@@ -257,14 +300,14 @@ export function FilterDialog({
           </nav>
 
           <div
-            role={section === 'Sort' || ['Distance', 'Ratings', 'Cost for two'].includes(section) ? 'radiogroup' : 'group'}
+            role={single ? 'radiogroup' : 'group'}
             aria-label={section}
             className="flex min-w-0 flex-1 flex-col gap-8 overflow-y-auto bg-white px-32 py-28 max-lg:gap-4 max-lg:px-16 max-lg:py-16"
           >
             <h3 className="shrink-0 text-[length:var(--t)] leading-26 font-bold text-[#322F35] [--t:calc(18*var(--u))] max-lg:leading-22 max-lg:[--t:16px]">
               {section}
             </h3>
-            {options()}
+            {children}
           </div>
         </div>
 
@@ -272,14 +315,14 @@ export function FilterDialog({
         <div className="flex h-88 shrink-0 items-center justify-end gap-12 border-t border-[#F5EFF7] px-32 max-lg:h-72 max-lg:gap-10 max-lg:px-16">
           <button
             type="button"
-            onClick={() => setDraft(EMPTY)}
+            onClick={onReset}
             className="flex h-54 w-120 items-center justify-center rounded-full border border-[#FF4800] text-[length:var(--t)] leading-21 font-semibold tracking-[-0.02em] text-[#FF4800] [--t:calc(16*var(--u))] hover:bg-[#FFF3EE] max-lg:h-44 max-lg:flex-1 max-lg:[--t:15px]"
           >
             Reset
           </button>
           <button
             type="button"
-            onClick={() => onApply(draft)}
+            onClick={onApply}
             className="flex h-54 w-168 items-center justify-center rounded-full bg-[#FF4800] text-[length:var(--t)] leading-21 font-semibold tracking-[-0.02em] text-white [--t:calc(16*var(--u))] hover:bg-[#E84100] max-lg:h-44 max-lg:flex-[1.4] max-lg:[--t:15px]"
           >
             Apply Filters

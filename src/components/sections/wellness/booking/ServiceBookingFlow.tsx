@@ -44,6 +44,8 @@ export interface ServiceBookingStore {
   address: string | null
   coverChargeEnabled: boolean
   coverChargeAmount: number | null
+  /** the platform booking fee (booking_fee_amount) */
+  bookingFee: number
   bookingTerms: string[]
 }
 
@@ -114,9 +116,8 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
     ? { type: offer.title, label: offer.description || offer.title, coverChargeRequired: false, coverChargeAmount: null }
     : { type: 'Regular appointment slot', label: 'No cover charge required', coverChargeRequired: false, coverChargeAmount: null }
 
-  // app parity: ReviewStoreBooking `bookingSummaryAmount`
-  const coverAmount = Number(store.coverChargeAmount)
-  const payAmount = store.coverChargeEnabled && Number.isFinite(coverAmount) && coverAmount > 0 ? coverAmount : 0
+  // app parity (fbaf070): ReviewStoreBooking `bookingSummaryAmount` — the platform booking fee
+  const payAmount = store.bookingFee > 0 ? store.bookingFee : 0
   const isFree = payAmount <= 0
 
   /** app parity: ServiceBookSlotScreen `onProceed` — login, then the existing-booking check. */

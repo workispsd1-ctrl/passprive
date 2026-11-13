@@ -17,9 +17,13 @@ export async function POST(request: Request) {
     restaurant_id?: string
     store_id?: string
     booking_payload?: Record<string, unknown>
+    /** salon / service bookings (app fbaf070) */
+    service_booking_payload?: Record<string, unknown>
+    /** paying a merchant's cover-charge request on an existing booking (app: CoverRequestBox) */
+    cover_request_booking_id?: string
   }
 
-  if ((!body.restaurant_id && !body.store_id) || !body.booking_payload) {
+  if ((!body.restaurant_id && !body.store_id) || (!body.booking_payload && !body.service_booking_payload && !body.cover_request_booking_id)) {
     return NextResponse.json({ error: 'Missing booking details.' }, { status: 400 })
   }
 
@@ -33,7 +37,11 @@ export async function POST(request: Request) {
     platform: 'web',
     return_url: returnUrl,
     ...(body.store_id ? { store_id: body.store_id } : { restaurant_id: body.restaurant_id }),
-    booking_payload: body.booking_payload,
+    ...(body.cover_request_booking_id
+      ? { cover_request_booking_id: body.cover_request_booking_id }
+      : body.service_booking_payload
+        ? { service_booking_payload: body.service_booking_payload }
+        : { booking_payload: body.booking_payload }),
   }
 
   let upstream: Response

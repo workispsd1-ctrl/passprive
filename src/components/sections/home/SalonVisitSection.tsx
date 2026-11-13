@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useMemo } from 'react'
 import { getCardChips } from '@/lib/cardChips'
 import { useLocation } from '@/lib/context/LocationContext'
@@ -95,7 +96,7 @@ export function SalonVisitSection({
             name={s.name}
             meta={meta || undefined}
             tagline={s.description ?? undefined}
-            offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
+            offerLabel={cardOfferText(s.store_offers)}
             cardBadge={getCardBadge(s, plan)}
             chips={getCardChips(s)}
           />

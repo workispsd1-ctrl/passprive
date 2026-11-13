@@ -1,3 +1,4 @@
+import { getPlatformFlags } from '@/lib/services/platformFlags';
 import { NewKickInStores } from '@/components/sections/home/NewKickInStores';
 import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { ServiceAreaGate } from '@/components/shared/ServiceAreaGate';
@@ -43,7 +44,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [user, coords, order] = await Promise.all([getCurrentUser(), getUserCoords(), getHomeSectionOrder()]);
+  const [user, coords, order, flags] = await Promise.all([getCurrentUser(), getUserCoords(), getHomeSectionOrder(), getPlatformFlags()]);
   // app parity: HomeContent.jsx — sections come from the CMS order ("Home Screen"
   // rows of session_sorting_titles), and only the enabled ones are fetched.
   const on = new Set(order.map((r) => r.section_key));
@@ -96,7 +97,8 @@ export default async function Home() {
       case 'fresh-spots':
         return <NowTrendingSection restaurants={freshSpots} title={title || 'New Dining Spots'} presorted />;
       case 'more-with-passprive':
-        return <StampsGiftPromo />;
+        // the "Collect Stamps" banner — only while repeat rewards are on
+        return flags.stampsVisible ? <StampsGiftPromo /> : null;
       case 'offers-for-you':
         return (
           <BankOffersSection

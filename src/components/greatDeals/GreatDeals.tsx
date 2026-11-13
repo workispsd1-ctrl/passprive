@@ -1,5 +1,6 @@
 'use client'
 
+import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -540,6 +541,7 @@ function AllOffers({ restaurants, stores, initialMin }: { restaurants: DealCard[
 // ─── Page ────────────────────────────────────────────────────────────────
 
 export function GreatDeals({ data, initialMin }: { data: GreatDealsData; initialMin: number }) {
+  const flags = usePlatformFlags()
   return (
     <div className={GD_PAGE}>
       <Hero />
@@ -561,7 +563,8 @@ export function GreatDeals({ data, initialMin }: { data: GreatDealsData; initial
         )}
 
         <Rail title='More offers'>
-          {COUPONS.map((c) => (
+          {/* "Collect rewards" goes to the stamp pages — gone while repeat rewards are off */}
+          {COUPONS.filter((c) => c.key !== 'rewards' || flags.stampsVisible).map((c) => (
             <CouponCard key={c.key} c={c} />
           ))}
         </Rail>

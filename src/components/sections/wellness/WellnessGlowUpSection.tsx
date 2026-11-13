@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useMemo } from 'react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
@@ -77,8 +78,7 @@ export function WellnessGlowUpSection({
               <HScroll>
                 {rail.map(({ s, dist }) => {
 
-                  const offer = s.store_offers?.[0]
-                  const offerLabel = offer?.discount_value ? `Flat ${offer.discount_value}% OFF` : offer?.badge_text ?? undefined
+                  const offerLabel = cardOfferText(s.store_offers)
 
                   return (
                     <MerchantCard

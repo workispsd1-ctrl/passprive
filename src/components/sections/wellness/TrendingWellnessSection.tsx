@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useMemo } from 'react'
 import { getCardChips } from '@/lib/cardChips'
 import { useLocation } from '@/lib/context/LocationContext'
@@ -53,7 +54,7 @@ export function TrendingWellnessSection({ stores }: { stores: StoreRow[] }) {
             name={s.name}
             meta={meta || undefined}
             tagline={s.description ?? ([s.category, s.subcategory].filter(Boolean).join(', ') || undefined)}
-            offerLabel={s.store_offers?.[0]?.badge_text ?? undefined}
+            offerLabel={cardOfferText(s.store_offers)}
             cardBadge={getCardBadge(s, plan)}
             chips={getCardChips(s)}
           />

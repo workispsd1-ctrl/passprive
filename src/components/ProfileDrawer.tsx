@@ -1,5 +1,6 @@
 'use client'
 
+import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -65,6 +66,8 @@ interface Props {
  * Data comes from /api/profile when the drawer opens.
  */
 export function ProfileDrawer({ open, onClose, user }: Props) {
+  // admin repeat-rewards switch — stamps leave the menu and the cards when it's off
+  const { stampsVisible } = usePlatformFlags()
   const router = useRouter()
   const [data, setData] = useState<ProfileSummary | null>(null)
   const [failed, setFailed] = useState(false)
@@ -175,8 +178,8 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
               <span className='mt-1.5 text-[12px] font-semibold'>Learn more →</span>
             </div>
           </Link>
-          <div className='mt-3 grid grid-cols-2 gap-3'>
-            <div className='relative aspect-[692/532] overflow-hidden rounded-3xl'>
+          <div className={cn('mt-3 grid gap-3', stampsVisible ? 'grid-cols-2' : 'grid-cols-1')}>
+            <div className={cn('relative overflow-hidden rounded-3xl', stampsVisible ? 'aspect-[692/532]' : 'aspect-[692/266]')}>
               <Image src='/assets/profile/card-savings.webp' alt='' fill className='object-cover' sizes='210px' />
               <div className='relative p-3.5'>
                 <span className='rounded-full bg-black/10 px-2 py-0.5 text-[8.5px] font-bold tracking-wider text-[#1A1A1A]'>TOTAL SAVINGS</span>
@@ -184,7 +187,7 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
                 <p className='mt-2 text-[15px] font-bold text-[#1A1A1A]'>Coming soon</p>
               </div>
             </div>
-            <Link href='/visit-rewards' onClick={onClose} className='relative block aspect-[692/532] overflow-hidden rounded-3xl'>
+            {stampsVisible && <Link href='/visit-rewards' onClick={onClose} className='relative block aspect-[692/532] overflow-hidden rounded-3xl'>
               <Image src='/assets/profile/card-stamps.webp' alt='' fill className='object-cover' sizes='210px' />
               <div className='relative p-3.5'>
                 <span className='rounded-full bg-black/10 px-2 py-0.5 text-[8.5px] font-bold tracking-wider text-[#1A1A1A]'>STAMP REWARDS</span>
@@ -196,7 +199,7 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
                 <p className='text-[11px] text-[#1A1A1A]/70'>collected</p>
                 <span className='text-[11px] font-semibold text-[#1A1A1A]'>Learn more →</span>
               </div>
-            </Link>
+            </Link>}
           </div>
 
           {/* Active bookings */}
@@ -259,7 +262,7 @@ export function ProfileDrawer({ open, onClose, user }: Props) {
             <section key={g.title} className='mt-6'>
               <h2 className='mb-2 px-1 text-[14px] font-bold text-[#161616]'>{g.title}</h2>
               <div className='divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-100 bg-white'>
-                {g.items.map(({ label, href, icon: Icon }) => (
+                {g.items.filter(item => stampsVisible || item.href !== '/visit-rewards').map(({ label, href, icon: Icon }) => (
                   <Link key={href} href={href} onClick={onClose} className='flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50'>
                     <span className='flex h-8 w-8 items-center justify-center rounded-full bg-brand-tint'>
                       <Icon className='h-4 w-4 text-brand' />

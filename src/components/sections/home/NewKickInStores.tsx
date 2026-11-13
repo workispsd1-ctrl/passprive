@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { HScroll } from './HScroll'
 import { getCardChips } from '@/lib/cardChips'
 import { MerchantCard } from './MerchantCard'
@@ -42,7 +43,7 @@ export function NewKickInStores({
             name={store.store_name}
             meta={meta}
             tagline={store.description ?? undefined}
-            offerLabel={store.offers?.[0]?.badge_text ?? undefined}
+            offerLabel={cardOfferText(store.offers)}
             cardBadge={capabilities[store.store_id] ? getCardBadge(capabilities[store.store_id], plan) : null}
             chips={getCardChips({ store_type: 'PRODUCT', store_offers: store.offers })}
           />

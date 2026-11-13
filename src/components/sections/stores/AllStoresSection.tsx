@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { getCardChips } from '@/lib/cardChips'
 import { SlidersHorizontal } from 'lucide-react'
@@ -156,7 +157,6 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
           initial={filters}
           categoryOptions={[...categoryOptions].sort((a, b) => a.localeCompare(b))}
           onApply={next => { setFilters(next); setFilterOpen(false) }}
-          onReset={() => { setFilters(EMPTY_STORE_FILTERS); setQuick(null) }}
         />
       )}
 
@@ -176,16 +176,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
               .filter(Boolean)
               .join(' • ')
 
-            const primaryOffer = store.store_offers?.[0]
-            const extraOffers = (store.store_offers?.length ?? 0) - 1
-            const discountText = primaryOffer?.discount_value
-              ? `Flat ${primaryOffer.discount_value}% OFF`
-              : primaryOffer?.badge_text
-            const offerLabel = discountText
-              ? extraOffers > 0
-                ? `${discountText} + ${extraOffers} offers`
-                : discountText
-              : undefined
+            const offerLabel = cardOfferText(store.store_offers, true)
 
             
             return (

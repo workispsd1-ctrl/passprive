@@ -33,7 +33,7 @@ export default async function ProfilePage() {
       <HuntSpot slot='profile' />
       <ProfileBackLink />
       <ProfileOverview summary={summary} className='mt-16 lg:mt-24' />
-      <ProfileStatCards credits={summary.credits} stamps={summary.stamps} className='mt-24 lg:mt-32' />
+      <ProfileStatCards credits={summary.credits} stamps={summary.stamps} showStamps={flags.stampsVisible} className='mt-24 lg:mt-32' />
 
       <div className='mt-32 flex flex-col gap-40 lg:mt-48 lg:flex-row lg:items-start'>
         {/* the menu sits on the left on desktop, after everything else on phones */}

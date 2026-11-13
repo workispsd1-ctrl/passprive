@@ -1,5 +1,6 @@
 'use client'
 
+import { repeatRewardsOn } from '@/lib/platformFlags'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { formatDistanceKm, haversineKm } from '@/lib/utils'
@@ -20,8 +21,9 @@ export function FeedRestaurantCard({ r }: { r: FeaturedRestaurant }) {
       : (r.distance_km ?? null)
 
   const meta = [formatDistanceKm(dist), r.area ?? r.city].filter(Boolean).join(' • ')
+  // app parity: repeatRewardsOn — no stamp tag while the admin switch is off
   const stampSheet =
-    r.repeat_rewards_enabled || r.mood.some((m) => m.toLowerCase().includes('stamp'))
+    repeatRewardsOn() && (r.repeat_rewards_enabled || r.mood.some((m) => m.toLowerCase().includes('stamp')))
 
   return (
     <DiningMerchantCard

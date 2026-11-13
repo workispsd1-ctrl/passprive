@@ -78,6 +78,11 @@ function CoverChargeReturnInner() {
         if (!fRes.ok) throw new Error((finalData?.error as string) ?? 'Could not confirm your booking. Please contact support.')
 
         clear()
+        // a cover-charge request on an existing booking — nothing new to show, back to the bookings
+        if (stored?.coverRequest) {
+          router.replace('/bookings')
+          return
+        }
         if (stored?.kind === 'store') {
           setPhase({ status: 'store-done', storeName: stored.storeName, storeHref: stored.storeHref })
           return

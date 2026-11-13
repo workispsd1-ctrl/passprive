@@ -59,6 +59,8 @@ export interface DiningBookingRestaurant extends MerchantCapabilityFields {
   name: string
   cover_charge_enabled: boolean
   cover_charge_amount: number | null
+  /** the platform booking fee (booking_fee_amount) */
+  booking_fee: number
 }
 
 interface Props {
@@ -232,8 +234,11 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
         }
     : null
 
-  // app parity: the cover charge is one amount per booking, redeemed on the bill
-  const payAmount = bookingOption?.coverChargeRequired ? (bookingOption.coverChargeAmount ?? 0) : 0
+  // app parity (fbaf070): ReviewRestaurantBooking bookingSummaryAmount — the booking fee, or the
+  // cover charge when that's higher; one amount per booking, redeemed on the bill
+  const payAmount = bookingOption
+    ? Math.max(restaurant.booking_fee, bookingOption.coverChargeRequired ? (bookingOption.coverChargeAmount ?? 0) : 0)
+    : 0
   const isFree = payAmount <= 0
   const deadline = slot ? cancelDeadline(dateId, slot.time24, cancellation.cutoffMinutes) : null
 

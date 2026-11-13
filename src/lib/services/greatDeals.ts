@@ -1,3 +1,4 @@
+import { getStampGate } from '@/lib/services/platformFlags'
 import { getRestaurantFeed } from '@/lib/services/dining'
 import { getActiveStores } from '@/lib/services/stores'
 import { getCollectStamps } from '@/lib/services/visitRewards'
@@ -131,11 +132,12 @@ function badgedNearbyFirst(cards: DealCard[]): DealCard[] {
  * with a logo (the app has no such row).
  */
 export async function getGreatDeals(coords: Coords | null): Promise<GreatDealsData> {
-  const [feed, storeRows, stamps, offersForYou] = await Promise.all([
+  const [feed, storeRows, stamps, offersForYou, stampGate] = await Promise.all([
     getDiningPool(coords),
     getActiveStores(),
     getCollectStamps().catch(() => ({ restaurants: [], salons: [], stores: [] })),
     getOffersForYou(),
+    getStampGate(),
   ])
 
   const dining: DealCard[] = feed.map((r) => {
@@ -160,7 +162,7 @@ export async function getGreatDeals(coords: Coords | null): Promise<GreatDealsDa
       area: r.area ?? r.city,
       tagline: r.cuisines.length ? r.cuisines.join(', ') : null,
       costForTwo: r.cost_for_two,
-      stampSheet: r.repeat_rewards_enabled || r.mood.some((m) => m.toLowerCase().includes('stamp')),
+      stampSheet: stampGate(r.id) && (r.repeat_rewards_enabled || r.mood.some((m) => m.toLowerCase().includes('stamp'))),
       trending: r.is_advertised,
       isVeg: r.is_pure_veg,
       cuisines: r.cuisines,
@@ -213,7 +215,7 @@ export async function getGreatDeals(coords: Coords | null): Promise<GreatDealsDa
       area: s.location_name ?? s.city,
       tagline: [s.category, s.subcategory].filter(Boolean).join(', ') || null,
       costForTwo: null,
-      stampSheet: sub,
+      stampSheet: sub && stampGate(s.id),
       trending: !!s.is_advertised,
       isVeg: false,
       cuisines: [],

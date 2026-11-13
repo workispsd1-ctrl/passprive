@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getStampGate } from '@/lib/services/platformFlags';
 import { sheetProgress, stampVisits, storeCollectsStamps, type StampCardData, type StampSubscription, type StampTier } from '@/lib/stamps';
 
 // ─── Types (mirror the app's restaurants.ts exactly) ─────────────────────────
@@ -73,6 +74,8 @@ const FEED_PAGE_SIZE = 20;
  */
 export async function getUserVisitRewards(): Promise<VisitRewardEntry[]> {
   const supabase = await createClient();
+  // admin repeat-rewards switch / merchant override (app: repeatRewardsOn)
+  const gate = await getStampGate();
 
   // ── Step 1: drain all pages of the repeat-rewards feed ────────────────────
   // repeat_rewards_feed already filters for repeat_rewards_enabled=true in
@@ -94,7 +97,7 @@ export async function getUserVisitRewards(): Promise<VisitRewardEntry[]> {
     }
 
     const page = (feedData ?? []) as RestaurantFeedRow[];
-    allRows.push(...page);
+    allRows.push(...page.filter(r => gate(r.id)));
     if (page.length < FEED_PAGE_SIZE) break;
     offset += FEED_PAGE_SIZE;
   }
@@ -168,7 +171,8 @@ async function getStampStores(): Promise<StampStoreRow[]> {
     .select(STAMP_STORE_SELECT)
     .eq('is_active', true)
     .eq('store_subscriptions.repeat_rewards_enabled', true);
-  return ((data ?? []) as unknown as StampStoreRow[]).filter(row => storeCollectsStamps(row));
+  const gate = await getStampGate();
+  return ((data ?? []) as unknown as StampStoreRow[]).filter(row => storeCollectsStamps(row) && gate(row.id));
 }
 
 export type CollectStampsData = { restaurants: StampCardData[]; salons: StampCardData[]; stores: StampCardData[] };
@@ -181,7 +185,9 @@ export async function getCollectStamps(): Promise<CollectStampsData> {
     getStampStores(),
   ]);
 
+  const gate = await getStampGate();
   const restaurants = ((feed ?? []) as RestaurantFeedRow[])
+    .filter(r => gate(r.id))
     .map(r => ({
       id: r.id,
       name: r.name,
@@ -239,8 +245,9 @@ export async function getStampSheets(): Promise<StampSheetsData> {
     getStampStores(),
   ]);
 
+  const gate = await getStampGate();
   const places = [
-    ...((feed ?? []) as RestaurantFeedRow[]).map(r => ({
+    ...((feed ?? []) as RestaurantFeedRow[]).filter(r => gate(r.id)).map(r => ({
       kind: 'restaurant' as const,
       id: r.id,
       name: r.name,
@@ -318,6 +325,7 @@ async function paidBillVisits(supabase: Awaited<ReturnType<typeof createClient>>
 
 /** One venue's stamp card — app parity: screens/StampDetailScreen.jsx. */
 export async function getStampDetail(kind: string, id: string): Promise<StampDetail | null> {
+  if (!(await getStampGate())(id)) return null;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -372,6 +380,7 @@ export async function getStampStoreIds(): Promise<string[]> {
 
 /** A salon's stamp card, null when it has no stamp program — app parity: RepeatRewardSection.jsx. */
 export async function getStoreStampCard(storeId: string) {
+  if (!(await getStampGate())(storeId)) return null;
   const supabase = await createClient();
   const { data } = await supabase.rpc('store_repeat_reward', { in_store_id: storeId });
   const row = (Array.isArray(data) ? data[0] : data) as { enabled?: boolean; visit_count?: number; tiers?: StampTier[] } | null;
@@ -381,6 +390,7 @@ export async function getStoreStampCard(storeId: string) {
 
 /** The "Collect stamps here" card, null when the place has no stamp program — app parity: RepeatRewardSection.jsx. */
 export async function getRestaurantStampCard(restaurantId: string) {
+  if (!(await getStampGate())(restaurantId)) return null;
   const supabase = await createClient();
   const { data } = await supabase.rpc('restaurant_repeat_reward', { in_restaurant_id: restaurantId });
   const row = (Array.isArray(data) ? data[0] : data) as { enabled?: boolean; visit_count?: number; tiers?: StampTier[] } | null;

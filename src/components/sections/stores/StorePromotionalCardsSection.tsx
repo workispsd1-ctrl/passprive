@@ -1,5 +1,6 @@
 'use client'
 
+import { cardOfferText } from '@/lib/deals'
 import { useMemo } from 'react'
 import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard, type MerchantCardTag } from '@/components/sections/home/MerchantCard'
@@ -83,16 +84,7 @@ export function StorePromotionalCardsSection({
                     .filter(Boolean)
                     .join(' • ')
 
-                  const primaryOffer = store.store_offers?.[0]
-                  const extraOffers = (store.store_offers?.length ?? 0) - 1
-                  const discountText = primaryOffer?.discount_value
-                    ? `Flat ${primaryOffer.discount_value}% OFF`
-                    : primaryOffer?.badge_text
-                  const offerLabel = discountText
-                    ? extraOffers > 0
-                      ? `${discountText} + ${extraOffers} offers`
-                      : discountText
-                    : undefined
+                  const offerLabel = cardOfferText(store.store_offers, true)
 
                   const tags: MerchantCardTag[] = []
                   if (store.store_offers?.length) tags.push({ label: 'Sale is live' })

@@ -1,3 +1,4 @@
+import { getStampGate } from '@/lib/services/platformFlags';
 import { cache } from 'react';
 import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { getCardChips } from '@/lib/cardChips'
@@ -95,13 +96,14 @@ export default async function RestaurantPage({
   const [{ restaurant, offers, tags, reviews, reviewSummary, galleryPhotos, menuImages, allHours }, caps] =
     await Promise.all([fetchRestaurant(id), getDiscountCaps()]);
   if (!restaurant) notFound();
-  const [orderCollect, stampCard, offersTable, dealRows, more] = await Promise.all([
+  const [orderCollect, stampCard, offersTable, dealRows, more, stampGate] = await Promise.all([
     getOrderCollect(restaurant.id),
     getRestaurantStampCard(restaurant.id),
     // the sample bill's offers + deals — the same sources pay-bill and the app's SampleBill use
     getOffersTableRows(),
     getRestaurantDealRows(restaurant.id),
     getUserCoords().then(coords => getExploreMoreRestaurants(restaurant.id, coords)),
+    getStampGate(),
   ]);
 
   const tagsOf = (type: string) => tags.filter((t) => t.tag_type === type).map((t) => t.tag_value);
@@ -166,7 +168,7 @@ export default async function RestaurantPage({
     bookHref,
     dealRows,
   };
-  const stampSheet = tagsOf('mood').some((m) => m.toLowerCase().includes('stamp'));
+  const stampSheet = stampGate(restaurant.id) && tagsOf('mood').some((m) => m.toLowerCase().includes('stamp'));
   const exclusive = String(restaurant.merchant_type ?? '').toLowerCase() === 'preferred';
 
   return (
