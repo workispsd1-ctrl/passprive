@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { SetPageTitle } from '@/components/layout/MinimalHeader/SetPageTitle'
 import { getMembershipPlans, getUserMembership } from '@/lib/services/subscription'
 import { MembershipClient } from './MembershipClient'
 
@@ -8,6 +7,7 @@ export const metadata: Metadata = {
   title: 'Membership | PassPrivé',
 }
 
+// Figma "Subscription plan" carries its own title row, so no PageTitleBar here
 export default async function MembershipPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,12 +19,7 @@ export default async function MembershipPage() {
 
   return (
     <main className="min-h-screen">
-      <SetPageTitle title="Membership" />
-      <MembershipClient
-        plans={plans}
-        membership={membership}
-        isLoggedIn={!!user}
-      />
+      <MembershipClient plans={plans} membership={membership} />
     </main>
   )
 }

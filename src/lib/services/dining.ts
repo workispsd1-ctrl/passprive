@@ -107,6 +107,41 @@ export async function getRestaurantFeed(
   return near.slice(offset, offset + limit);
 }
 
+/**
+ * "New Dining Spots" — app parity: components/Home/FreshSpots.jsx: the scoped
+ * feed in newest order, photo cards only, first 10.
+ */
+export async function getFreshSpots(coords?: Coords | null): Promise<FeaturedRestaurant[]> {
+  const rows = await getRestaurantFeed({ sort: 'newest' }, 0, NEARBY_FEED_FETCH, coords, { nearbyOnly: true });
+  return rows.filter((r) => r.cover_image).slice(0, 10);
+}
+
+const isFamily = (r: FeaturedRestaurant) =>
+  [...(r.mood ?? []), ...(r.cuisines ?? [])].some((t) => String(t).toLowerCase().includes('family'));
+
+/**
+ * "Family Feast" — app parity: components/Home/FamilyFeast.jsx: restaurants
+ * tagged family (mood or cuisine; every restaurant when none are), kept to the
+ * 3–5 km radius when the location is known, then advertised first (by
+ * ad_priority), best rated, most rated, nearest, name. Top 8.
+ * The app also ranks premium subscribers and same-city ahead; the feed rows
+ * don't carry the subscription, and the radius already keeps them local.
+ */
+export async function getFamilyFeast(coords?: Coords | null): Promise<FeaturedRestaurant[]> {
+  const rows = await getRestaurantFeed({}, 0, NEARBY_FEED_FETCH, coords);
+  const family = rows.filter(isFamily);
+  const pool = scopeToRadius(family.length ? family : rows, (r) => r.distance_km, !!coords);
+  const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  return [...pool]
+    .sort((a, b) =>
+      Number(!!b.is_advertised) - Number(!!a.is_advertised)
+      || (a.is_advertised && b.is_advertised ? (num(a.ad_priority) ?? 100) - (num(b.ad_priority) ?? 100) : 0)
+      || (num(b.rating) ?? 0) - (num(a.rating) ?? 0)
+      || (num(b.rating_count) ?? 0) - (num(a.rating_count) ?? 0)
+      || (num(a.distance_km) ?? Infinity) - (num(b.distance_km) ?? Infinity)
+      || a.name.localeCompare(b.name))
+    .slice(0, 8);
+}
 
 export type PromotionalCollection = {
   id: string;

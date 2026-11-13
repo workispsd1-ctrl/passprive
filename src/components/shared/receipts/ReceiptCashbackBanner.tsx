@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Check, ChevronRight, Clock, X } from 'lucide-react'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 import { useAppPrompt } from '@/lib/context/AppPromptContext'
-import { hasBillCashback, isCashbackEnabled, type MerchantCapabilityFields } from '@/lib/cashback'
+import { isCashbackEnabled, type MerchantCapabilityFields } from '@/lib/cashback'
 import { earnOn } from '@/lib/platformFlags'
 import {
   RECEIPT_STATUS,
@@ -59,15 +59,10 @@ export function ReceiptStatusBanner({ claim, className }: { claim: ReceiptClaim;
  * sized in container units (1cqw = 3.72 design px) so the card scales as one
  * piece: the receipt art is an opaque square painted to sit in its right 40%.
  */
-function ReceiptArtCard({ children, className }: { children: React.ReactNode; className?: string }) {
+function ReceiptArtCard({ children, className, fill = false }: { children: React.ReactNode; className?: string; /** fill the parent's height, the 372×104 artwork centred in it (a grid cell beside taller cards) */ fill?: boolean }) {
   // the container is the wrapper: cqw resolves against an ancestor, never the element itself
-  return (
-    <span className={cn('block w-full @container', className)}>
-    <span className="relative block aspect-372/104 w-full overflow-hidden rounded-[4.301cqw] bg-[linear-gradient(223.48deg,#2A0C63_18.2%,#38107C_46.93%,#2F0E6D_75.66%)] text-left text-white">
-      {/* "Ellipse 43908": #20094C, 160 at -17,-70, blur 29 */}
-      <span className="pointer-events-none absolute top-[-18.817cqw] left-[-4.57cqw] size-[43.011cqw] rounded-full bg-[#20094C] blur-[7.796cqw]" />
-      {/* "Ellipse 43907": #38117D, 40×104 at 177,0, blur 12.5 */}
-      <span className="pointer-events-none absolute top-0 left-[47.581cqw] h-[27.957cqw] w-[10.753cqw] rounded-full bg-[#38117D] blur-[3.36cqw]" />
+  const art = (
+    <>
       <Image
         src="/assets/receipts/cashback-upload-receipt.jpeg"
         alt=""
@@ -77,6 +72,29 @@ function ReceiptArtCard({ children, className }: { children: React.ReactNode; cl
         className="pointer-events-none absolute top-[-7.527cqw] left-[63.978cqw] size-[45.699cqw] max-w-none"
       />
       {children}
+    </>
+  )
+  return (
+    <span className={cn('block w-full @container', fill && 'h-full', className)}>
+    <span className={cn('relative block w-full overflow-hidden rounded-[4.301cqw] bg-[linear-gradient(223.48deg,#2A0C63_18.2%,#38107C_46.93%,#2F0E6D_75.66%)] text-left text-white', fill ? 'h-full min-h-[27.957cqw]' : 'aspect-372/104')}>
+      {/* "Ellipse 43908": #20094C, 160 at -17,-70, blur 29 */}
+      <span className="pointer-events-none absolute top-[-18.817cqw] left-[-4.57cqw] size-[43.011cqw] rounded-full bg-[#20094C] blur-[7.796cqw]" />
+      {/* "Ellipse 43907": #38117D, 40×104 at 177,0, blur 12.5 */}
+      <span className="pointer-events-none absolute top-0 left-[47.581cqw] h-[27.957cqw] w-[10.753cqw] rounded-full bg-[#38117D] blur-[3.36cqw]" />
+      {fill ? (
+        <>
+          {/* the art keeps its 104-tall frame's proportions (45.7 of 27.96 cqw) against the taller card, centred where the frame puts it, so its edges stay outside the card */}
+          <Image
+            src="/assets/receipts/cashback-upload-receipt.jpeg"
+            alt=""
+            width={340}
+            height={340}
+            sizes="(min-width: 768px) 280px, 60vw"
+            className="pointer-events-none absolute top-1/2 left-[86.828cqw] aspect-square h-[163.4%] w-auto max-w-none -translate-x-1/2 -translate-y-1/2"
+          />
+          <span className="absolute inset-x-0 top-1/2 block aspect-372/104 -translate-y-1/2">{children}</span>
+        </>
+      ) : art}
     </span>
     </span>
   )
@@ -102,12 +120,14 @@ export function ReceiptCashbackBanner({
   /** TierPills preview — that plan's rate, greyed (app parity: ReceiptCashbackBanner previewTier) */
   previewTier?: 'free' | 'plus' | 'black' | null
   /** 'figma' — desktop restaurant page: an "Offers for today" card */
-  variant?: 'default' | 'figma'
+  /** 'art' — the app's purple receipt artwork as an "Offers for today" grid card (store page) */
+  variant?: 'default' | 'figma' | 'art'
 }) {
   const router = useRouter()
   const { promptLogin } = useAuthPrompt()
   const openAppPrompt = useAppPrompt()
-  const eligible = earnOn() && !hasBillCashback(merchant)
+  // app parity: ReceiptCashbackBanner.jsx `eligible = earn && !!restaurant?.id` — pay-bill merchants too
+  const eligible = earnOn()
   // fetchedAt: "rejected in the last day" is judged against when the claim was loaded
   const [state, setState] = useState<(ReceiptMerchantState & { fetchedAt: number }) | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -214,6 +234,42 @@ export function ReceiptCashbackBanner({
     />
   )
 
+  const artText = (
+    <>
+          {/* "0.5%" 40/52 Black Italic, -3.6 tracking at 18,12; "Cashback" 20/26 Medium Italic at 112,32 */}
+          <span className="absolute top-[3.226cqw] left-[4.839cqw] flex items-baseline">
+            {pct > 0 && (
+              <span className="text-[10.753cqw] leading-[13.978cqw] font-black tracking-[-0.968cqw] italic">{formatPct(pct)}</span>
+            )}
+            <span className={cn('font-medium italic', pct > 0 ? 'ml-[0.806cqw] text-[5.376cqw] leading-[6.989cqw]' : 'text-[8.2cqw] leading-[13.978cqw] font-bold')}>
+              Cashback
+            </span>
+          </span>
+          {/* 14/16 #DFBEFF at 18,61, 184 wide */}
+          <span className="absolute top-[16.398cqw] left-[4.839cqw] w-[49.462cqw] text-[3.763cqw] leading-[4.301cqw] text-[#DFBEFF]">
+            When you upload the receipt today.
+          </span>
+    </>
+  )
+
+  if (variant === 'art') {
+    return (
+      <>
+        <button
+          type="button"
+          data-offer-card
+          onClick={onTap}
+          aria-label={pct > 0 ? `${formatPct(pct)} cashback when you upload the receipt today` : 'Cashback when you upload the receipt'}
+          className={cn('block h-full min-w-0 rounded-[calc(18.88*var(--t))] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand', previewing && 'grayscale', className)}
+          style={{ minHeight: 'max(112px, calc(170 * var(--t)))' }}
+        >
+          <ReceiptArtCard fill className="[&>span]:rounded-[calc(18.88*var(--t))]">{artText}</ReceiptArtCard>
+        </button>
+        {upgrade}
+      </>
+    )
+  }
+
   if (figma) {
     return (
       <>
@@ -238,19 +294,7 @@ export function ReceiptCashbackBanner({
         )}
       >
         <ReceiptArtCard>
-          {/* "0.5%" 40/52 Black Italic, -3.6 tracking at 18,12; "Cashback" 20/26 Medium Italic at 112,32 */}
-          <span className="absolute top-[3.226cqw] left-[4.839cqw] flex items-baseline">
-            {pct > 0 && (
-              <span className="text-[10.753cqw] leading-[13.978cqw] font-black tracking-[-0.968cqw] italic">{formatPct(pct)}</span>
-            )}
-            <span className={cn('font-medium italic', pct > 0 ? 'ml-[0.806cqw] text-[5.376cqw] leading-[6.989cqw]' : 'text-[8.2cqw] leading-[13.978cqw] font-bold')}>
-              Cashback
-            </span>
-          </span>
-          {/* 14/16 #DFBEFF at 18,61, 184 wide */}
-          <span className="absolute top-[16.398cqw] left-[4.839cqw] w-[49.462cqw] text-[3.763cqw] leading-[4.301cqw] text-[#DFBEFF]">
-            When you upload the receipt today.
-          </span>
+          {artText}
         </ReceiptArtCard>
       </button>
 

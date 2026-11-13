@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { BannerCarousel } from '@/components/shared/BannerCarousel'
 import type { WebsiteBanner } from '@/lib/types/websiteBanners'
+import { useUserPlan } from '@/lib/context/PlanContext'
+import { planCashbackPct } from '@/lib/cashback'
 
 /**
  * Home-page hero, shown under the top bar (inside the sticky <header>, which
@@ -18,6 +20,7 @@ import type { WebsiteBanner } from '@/lib/types/websiteBanners'
  * silhouette are placeholders.
  */
 export function HomeHero({ banners }: { banners: WebsiteBanner[] }) {
+  const cashbackPct = planCashbackPct(useUserPlan())
   const pathname = usePathname()
   if (pathname !== '/') return null
 
@@ -26,7 +29,7 @@ export function HomeHero({ banners }: { banners: WebsiteBanner[] }) {
       <BannerCarousel
         banners={banners}
         // spec: 1920 × 600 → 16/5; min height guards narrow screens
-        className="aspect-16/5 min-h-55 rounded-none!"
+        className="aspect-16/5 md:min-h-55 rounded-none!"
       />
     )
   }
@@ -70,7 +73,8 @@ export function HomeHero({ banners }: { banners: WebsiteBanner[] }) {
               Privé Credits
             </p>
             <span className="mt-3 inline-block rounded-md bg-[#2C55D4] px-2 py-1 text-[11px] font-semibold">
-              Get 6x cashback of up to 3% with every bill payment
+              {/* app parity: CashbackIntroStrip — the user's own plan rate, not a fixed figure */}
+              Earn {cashbackPct.toLocaleString('en-US', { maximumFractionDigits: 2 })}% cashback on every bill payment
             </span>
             <p className="mt-4 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold text-[#B4652F]">
               Learn more <ArrowRight className="h-3.5 w-3.5" />

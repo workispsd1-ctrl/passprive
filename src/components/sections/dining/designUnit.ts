@@ -7,11 +7,13 @@
 export const u = (px: number) => `calc(${px} * var(--u))`
 
 /**
- * `--u` for the salon page (Figma "Salon details – Desktop"): exactly 1px on a
- * 1920 screen and proportional on every other width — same styling, only the
- * size changes. Shared by the page and its loading skeleton.
+ * `--u` for the salon/store pages (Figma "Salon details – Desktop"), as Tailwind
+ * classes: from `md` exactly 1px on a 1920 screen and proportional on every
+ * other width; phones get the website layout at 1 design px = 1px (proportional
+ * would be unreadable), with `max-md:` tweaks stacking the wide rows.
+ * Shared by the pages and their loading skeleton.
  */
-export const SALON_UNIT = 'calc(100vw / 1920)'
+export const SALON_UNIT = '[--u:1px] md:[--u:calc(100vw/1920)]'
 
 /** Tailwind class pointing `--t` (the type scale shared components use) at `--u` on desktop. */
 export const SALON_TYPE = 'md:[--t:var(--u)]'

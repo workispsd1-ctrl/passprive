@@ -27,10 +27,14 @@ export function ProfileOverview({ summary, className }: { summary: ProfileSummar
         <h1 className='line-clamp-2 text-[calc(32*var(--u))] leading-42 font-bold'>{summary.name}</h1>
         {summary.email && <p className='mt-6 truncate text-[calc(16*var(--u))] leading-21'>{summary.email}</p>}
         {summary.phone && <p className='mt-7 truncate text-[calc(16*var(--u))] leading-21'>{summary.phone}</p>}
-        <span className='mt-28 flex h-27.5 w-122.5 items-center justify-center gap-6 rounded-[calc(14*var(--u))] bg-white font-(family-name:--font-inter) text-[calc(15*var(--u))] leading-20 font-medium text-[#0044FF]'>
+        {/* app parity: Profile.jsx "View details" → ProfileDetails */}
+        <Link
+          href='/profile/details'
+          className='mt-28 flex h-27.5 w-122.5 items-center justify-center gap-6 rounded-[calc(14*var(--u))] bg-white font-(family-name:--font-inter) text-[calc(15*var(--u))] leading-20 font-medium text-[#0044FF] hover:bg-[#EEF2FF]'
+        >
           View details
           <ArrowRight className='size-14' strokeWidth={2.2} />
-        </span>
+        </Link>
       </div>
 
       {/* Profile actions + More actions — 40×39, 8 apart, 24 from the top */}

@@ -3,7 +3,7 @@ import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { MobileHeaderClient } from './MobileHeaderClient'
 import { HideOnRoutes } from './HideOnRoutes'
 import { getCurrentUser } from '@/lib/services/user'
-import { getAllAppBanners, getWebsiteBanners } from '@/lib/services/websiteBanners'
+import { getWebsiteBanners } from '@/lib/services/websiteBanners'
 import { getUserMembership } from '@/lib/services/subscription'
 
 /**
@@ -15,13 +15,11 @@ export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
   // Home/wellness hero banners live in the header so the category-nav
   // pill can be positioned relative to them per-route (overlap on home, below
   // on wellness); HeaderHeroNav picks the right one by pathname.
-  // Phones show the app's own (portrait) banners under an overlaid header — the
-  // website creatives are wide desktop art that crops badly on a narrow screen.
-  const [user, homeBanners, wellnessBanners, appBanners] = await Promise.all([
+  // Phones get the same website banners as desktop (website look, not the app's).
+  const [user, homeBanners, wellnessBanners] = await Promise.all([
     getCurrentUser(),
     getWebsiteBanners('home'),
     getWebsiteBanners('wellness'),
-    minimal ? null : getAllAppBanners(),
   ])
 
   // App parity: components/PackageBadge.jsx — logged-out or free-tier users
@@ -53,7 +51,6 @@ export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
           user={user}
           banners={homeBanners}
           wellnessBanners={wellnessBanners}
-            appBanners={appBanners}
           minimal={minimal}
         />
       </div>

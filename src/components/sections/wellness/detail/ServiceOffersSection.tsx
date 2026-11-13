@@ -9,23 +9,9 @@ import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
 import type { ServiceOffer } from '@/lib/types/stores'
 
-type Body = { main: string; sub: string; logo?: string | null }
+import { bankBody, exclusiveBody, type OfferBodyText as Body } from '@/lib/offerBodies'
 
-/** app parity: ServiceStoreDetails.jsx `exclusiveOfferItems` */
-export function exclusiveBody(o: ServiceOffer): Body {
-  const main = o.discount_value
-    ? o.discount_type === 'PERCENT'
-      ? `Flat ${o.discount_value}% OFF`
-      : `Flat MUR ${o.discount_value} OFF`
-    : o.title
-  return { main, sub: o.description || o.title || '' }
-}
-
-/** app parity: OffersForYouSection.jsx `bankOfferBody` */
-export function bankBody(o: ServiceOffer): Body {
-  const bank = o.sponsor_name?.trim() || 'Bank'
-  return { main: o.title, sub: o.description || `using ${bank} cards`, logo: o.logo_url }
-}
+export { bankBody, exclusiveBody }
 
 function PagerCard({ icon, title, titleClass, items }: {
   icon: React.ReactNode

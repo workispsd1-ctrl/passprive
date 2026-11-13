@@ -6,7 +6,7 @@ import type { CardChipKey } from '@/lib/cardChips'
 import { CardChips } from '@/components/shared/CardChips'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Check, ChevronDown, Heart, Share2 } from 'lucide-react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { canPayBill, getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
@@ -42,22 +42,46 @@ function Tag({ icon, label, color, iconW, iconH }: { icon: string; label: string
 const ICON_BUTTON = 'flex shrink-0 items-center justify-center rounded-full bg-[rgba(217,217,217,0.1)] text-white backdrop-blur-md hover:bg-[rgba(217,217,217,0.25)]'
 
 /**
- * Top of the restaurant page on desktop — Figma "Dining": Back, then the full
- * column photo with save and share over it. Phones keep the app's cover hero.
+ * Top of the restaurant (and shopping store) page — Figma "Dining" / "Shopping
+ * details": Back, then the full-width photo with save and share over it. With
+ * `photos`, the photo pages through them (Figma's pager dots under the image).
  */
-export function RestaurantDesktopHero({ id, name, cover }: { id: string; name: string; cover: string | null }) {
+export function RestaurantDesktopHero({
+  id,
+  name,
+  cover,
+  photos,
+  saveType = 'RESTAURANT',
+  backHref = '/dining',
+  radius = 12.03,
+}: {
+  id: string
+  name: string
+  cover: string | null
+  /** every photo, cover first — the hero pages through them */
+  photos?: string[]
+  saveType?: 'RESTAURANT' | 'STORE'
+  /** where Back goes without in-site history */
+  backHref?: string
+  /** the photo's corner radius in design px */
+  radius?: number
+}) {
   const router = useRouter()
   const { openAt } = useGallery()
-  const saver = useSaveMerchant(id, 'RESTAURANT')
+  const saver = useSaveMerchant(id, saveType)
   const [copied, setCopied] = useState(false)
+  const [page, setPage] = useState(0)
+  const railRef = useRef<HTMLDivElement>(null)
+  const slides = photos && photos.length > 0 ? photos : cover ? [cover] : []
 
   function back() {
     if (window.history.length > 1 && document.referrer.startsWith(window.location.origin)) router.back()
-    else router.push('/dining')
+    else router.push(backHref)
   }
+  const goTo = (i: number) => railRef.current?.scrollTo({ left: i * railRef.current.clientWidth, behavior: 'smooth' })
 
   return (
-    <section className='relative hidden font-(family-name:--font-dm-sans) md:block'>
+    <section className='relative font-(family-name:--font-dm-sans)'>
       {/* the frame's blurred peach circle, at the screen's top-left corner (550px circle at -388,-454) */}
       <Image
         src={`${A}/peach-glow.svg`}
@@ -75,10 +99,36 @@ export function RestaurantDesktopHero({ id, name, cover }: { id: string; name: s
           Back
         </button>
 
-        <div className='relative overflow-hidden bg-[rgba(241,241,241,1)]' style={{ marginTop: t(25), height: u(480), borderRadius: u(12.03) }}>
-          <button type='button' onClick={() => openAt(0)} aria-label={`View photos of ${name}`} className='group absolute inset-0'>
-            {cover && <Image src={cover} alt={name} fill priority sizes='(min-width: 1920px) 1576px, 90vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.02]' />}
-          </button>
+        <div className='relative overflow-hidden bg-[rgba(241,241,241,1)]' style={{ marginTop: t(25), height: u(480), borderRadius: u(radius) }}>
+          <div
+            ref={railRef}
+            onScroll={e => setPage(Math.round(e.currentTarget.scrollLeft / (e.currentTarget.clientWidth || 1)))}
+            className='scrollbar-hide absolute inset-0 flex snap-x snap-mandatory overflow-x-auto'
+          >
+            {(slides.length ? slides : [null]).map((src, i) => (
+              <button key={i} type='button' onClick={() => openAt(i)} aria-label={`View photos of ${name}`} className='group relative h-full w-full shrink-0 snap-start overflow-hidden'>
+                {src && <Image src={src} alt={i === 0 ? name : ''} fill priority={i === 0} sizes='(min-width: 1920px) 1576px, 90vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.02]' />}
+              </button>
+            ))}
+          </div>
+          {slides.length > 1 && (
+            // css.txt "Group 2085664855": 2px dots 22 above the bottom — the active one 25.71 wide, its neighbours 9
+            <div className='absolute inset-x-0 flex items-center justify-center' style={{ bottom: tMin(22, 10), gap: tMin(8, 5) }}>
+              {slides.map((_, i) => {
+                const d = Math.abs(i - page)
+                return (
+                  <button
+                    key={i}
+                    type='button'
+                    aria-label={`Photo ${i + 1}`}
+                    onClick={() => goTo(i)}
+                    className={cn('rounded-full transition-all', d === 0 ? 'bg-[#979393]' : 'bg-[rgba(173,173,173,0.5)]')}
+                    style={{ height: tMin(2, 2), width: d === 0 ? tMin(25.71, 18) : d === 1 ? tMin(9, 7) : tMin(2, 2) }}
+                  />
+                )
+              })}
+            </div>
+          )}
           <div className='absolute flex' style={{ top: tMin(32, 12), right: tMin(40, 12), gap: tMin(24, 8) }}>
             <button type='button' onClick={saver.onSave} aria-label={saver.saved ? 'Edit saved lists' : 'Save'} aria-pressed={saver.saved} className={ICON_BUTTON} style={{ width: tMin(48, 34), height: tMin(48, 34) }}>
               <Heart className={cn(saver.saved && 'fill-brand text-brand')} style={{ width: tMin(22, 17), height: tMin(22, 17) }} />
@@ -117,10 +167,22 @@ export function RestaurantTitleCard({
   stampSheet,
   trending,
   exclusive,
+  exclusiveZone = false,
   chips = [],
+  logo = null,
+  subtitle,
+  gauge = true,
 }: {
   /** restaurant id — the unlocks gauge loads this restaurant's deal quota */
   id: string
+  /** shopping stores: the 78×85 brand logo left of the name (Figma "Shopping details") */
+  logo?: string | null
+  /** replaces the cuisines • cost line (stores: their categories) */
+  subtitle?: string
+  /** the restaurant's deal-unlocks gauge */
+  gauge?: boolean
+  /** app parity: pickup-premium stores' "Exclusive Zone" tag */
+  exclusiveZone?: boolean
   name: string
   cuisines: string[]
   costForTwo: number | null
@@ -144,7 +206,7 @@ export function RestaurantTitleCard({
     location.lat != null && location.lng != null && lat != null && lng != null
       ? formatDistanceKm(haversineKm(location.lat, location.lng, Number(lat), Number(lng)))
       : null
-  const line1 = [cuisines.slice(0, 2).join(', '), costForTwo != null ? `MUR ${costForTwo.toLocaleString('en-US')} for two` : null]
+  const line1 = subtitle ?? [cuisines.slice(0, 2).join(', '), costForTwo != null ? `MUR ${costForTwo.toLocaleString('en-US')} for two` : null]
     .filter(Boolean)
     .join(' • ')
   const line2 = [distance, areaLabel(area, city)].filter(Boolean).join(' • ')
@@ -153,12 +215,19 @@ export function RestaurantTitleCard({
 
   return (
     <section
-      className='relative hidden bg-white/80 font-(family-name:--font-dm-sans) drop-shadow-[0_4px_43.5px_rgba(0,0,0,0.1)] md:block'
+      className='relative bg-white/80 font-(family-name:--font-dm-sans) drop-shadow-[0_4px_43.5px_rgba(0,0,0,0.1)]'
       style={{ marginTop: tMin(24, 14), minHeight: t(192), padding: `${tMin(14, 11)} ${tMin(24, 14)}`, borderRadius: t(18) }}
     >
       {/* app parity: MerchantInfoCard.jsx HuntSpot */}
       <HuntSpot slot='merchant-card' />
       <div className='flex items-start justify-between' style={{ gap: tMin(16, 10) }}>
+        <div className='flex min-w-0 items-start' style={{ gap: tMin(20, 12) }}>
+        {/* css.txt "Rectangle 240649227": 78×85 on white, radius 16, 5 below the name's top */}
+        {logo && (
+          <span className='relative shrink-0 overflow-hidden bg-white' style={{ width: tMin(78, 52), height: tMin(85, 56), borderRadius: t(16), marginTop: t(5) }}>
+            <Image src={logo} alt='' fill sizes='80px' className='object-contain' />
+          </span>
+        )}
         <div className='min-w-0'>
           <h1 className='font-bold wrap-break-word text-[#2c2d32]' style={{ fontSize: tMin(30, 20), lineHeight: 1.4, letterSpacing: t(-0.5) }}>{name}</h1>
           {line1 && <p className='font-medium wrap-break-word text-[#5b5a5a]' style={{ marginTop: t(2), fontSize: tMin(14, 13), lineHeight: 1.43 }}>{line1}</p>}
@@ -177,9 +246,10 @@ export function RestaurantTitleCard({
           )}
           {showAddress && address && <p className='wrap-break-word text-[#767677]' style={{ marginTop: t(4), fontSize: tMin(14, 12) }}>{address}</p>}
         </div>
+        </div>
         <div className='flex shrink-0 items-start' style={{ gap: tMin(29, 14) }}>
         {/* app parity: MerchantInfoCard's DealQuotaGauge — Figma: a 120-wide slot left of the rating */}
-        <DealQuotaGauge restaurantId={id} className='relative z-10 -mb-[calc(44*var(--t))] w-[max(64px,calc(100*var(--t)))] text-[max(11px,calc(13*var(--t)))]' />
+        {gauge && <DealQuotaGauge restaurantId={id} className='relative z-10 -mb-[calc(44*var(--t))] w-[max(64px,calc(100*var(--t)))] text-[max(11px,calc(13*var(--t)))]' />}
         {rating.avg > 0 && (
           <button type='button' onClick={() => findSection('reviews')?.scrollIntoView({ behavior: 'smooth' })} className='flex shrink-0 flex-col items-end' style={{ marginTop: t(8), gap: tMin(11, 5) }}>
             <span className={`flex items-center justify-center bg-[#3aa456] font-bold text-white ${INTER}`} style={{ width: tMin(68, 54), height: tMin(26, 22), borderRadius: t(20.9), gap: tMin(6, 4), fontSize: tMin(13.38, 12), letterSpacing: t(0.24) }}>
@@ -208,6 +278,7 @@ export function RestaurantTitleCard({
           {stampSheet && <Tag icon='tag-stamp.svg' label='Stamp sheet' color='#ff4800' iconW={11} iconH={12} />}
           {trending && <Tag icon='tag-trending.svg' label='Trending' color='#ff6a30' iconW={8.13} iconH={11} />}
           {exclusive && <Tag icon='tag-exclusive.svg' label='Exclusive' color='#ff6a30' iconW={10.98} iconH={9.61} />}
+          {exclusiveZone && <Tag icon='tag-exclusive.svg' label='Exclusive Zone' color='#ff6a30' iconW={10.98} iconH={9.61} />}
         </span>
       </div>
       <CardChips chips={chips} height='max(17px, calc(21*var(--t)))' className='mt-[max(8px,calc(12*var(--t)))]' />
@@ -216,7 +287,7 @@ export function RestaurantTitleCard({
 }
 
 /** "Earn up to X% cashback" with Book table and Pay bill — first in the sidebar. */
-export function RestaurantCtaCard({ merchant, bookHref, payHref, className }: { merchant: MerchantCapabilityFields; bookHref: string | null; payHref: string | null; className?: string }) {
+export function RestaurantCtaCard({ merchant, bookHref, payHref, className, leftCoin = true }: { merchant: MerchantCapabilityFields; bookHref: string | null; payHref: string | null; className?: string; /** Figma "Shopping details" draws only the right-hand coin */ leftCoin?: boolean }) {
   // "up to" — what a Black member earns here
   const upTo = canPayBill(merchant) ? getCashbackPct(merchant, 'black') : 0
   if (!bookHref && !payHref && !upTo) return null
@@ -238,7 +309,7 @@ export function RestaurantCtaCard({ merchant, bookHref, payHref, className }: { 
       {upTo > 0 && (
         <>
           {/* css.txt "image 4754": a 42.85 coin in a 56.08 box at -2.9,1.3 and a 50.37 coin in a 63.45 box at 342.6,4.65 (both turned) */}
-          <Image src='/assets/merchant-detail/earn-coin.png' alt='' width={96} height={96} className='pointer-events-none absolute -rotate-20' style={{ left: t(3.71), top: t(7.92), width: t(42.85), height: t(42.85) }} />
+          {leftCoin && <Image src='/assets/merchant-detail/earn-coin.png' alt='' width={96} height={96} className='pointer-events-none absolute -rotate-20' style={{ left: t(3.71), top: t(7.92), width: t(42.85), height: t(42.85) }} />}
           <Image src='/assets/merchant-detail/earn-coin.png' alt='' width={96} height={96} className='pointer-events-none absolute -rotate-16' style={{ right: t(-9.5), top: t(11.19), width: t(50.37), height: t(50.37) }} />
         </>
       )}

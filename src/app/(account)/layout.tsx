@@ -6,6 +6,7 @@ import { getPlatformFlags } from '@/lib/services/platformFlags'
 import { LocationProvider } from '@/lib/context/LocationContext'
 import { getHeaderLocation } from '@/lib/location'
 import { AuthPromptProvider } from '@/lib/context/AuthPromptContext'
+import { HeaderGate } from '@/components/layout/HeaderGate'
 
 /** Account pages (bookings, wallet, membership, …): the site header + an app-style title row. */
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +16,9 @@ export default async function AccountLayout({ children }: { children: React.Reac
     <LocationProvider initial={headerLocation}>
     <AuthPromptProvider>
     <PageTitleProvider>
-      <Header minimal />
+      <HeaderGate>
+        <Header minimal />
+      </HeaderGate>
       <PageTitleBar />
       <div className="flex-1">
         {children}

@@ -5,26 +5,19 @@ import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { getActiveStores, getBankOffers, getStoreBySlugOrId, getStoreReviews } from '@/lib/services/stores'
 import { getStoreStampCard } from '@/lib/services/visitRewards'
-import { SALON_TYPE, SALON_UNIT } from '@/components/sections/dining/designUnit'
-import { PhotoGalleryProvider, PhotoGrid } from '@/components/sections/dining/PhotoGalleryClient'
-import { MenuGalleryProvider, MenuGalleryImageButton } from '@/components/sections/dining/MenuGalleryClient'
-import { MerchantRewardsSection } from '@/components/shared/MerchantRewardsSection'
-import { DetailSectionTabs, type DetailTab } from '@/components/shared/detail/DetailSectionTabs'
-import { DetailSection } from '@/components/shared/detail/DetailSection'
-import { DetailReviews } from '@/components/shared/detail/DetailReviews'
-import { DetailAbout, type Fact } from '@/components/shared/detail/DetailAbout'
-import { DetailLocation } from '@/components/shared/detail/DetailLocation'
-import { CtaMobileBar } from '@/components/shared/detail/DetailCtaBar'
-import { canPayBill, showsCashbackBadge } from '@/lib/cashback'
-import { HelpCard } from '@/components/shared/detail/HelpCard'
-import { MobileTitleCard } from '@/components/shared/detail/MobileTitleCard'
+import { PhotoGalleryProvider } from '@/components/sections/dining/PhotoGalleryClient'
+import { RestaurantCtaCard, RestaurantDesktopHero, RestaurantTitleCard } from '@/components/sections/dining/RestaurantDesktopHero'
+import { ReviewsSection } from '@/components/sections/dining/RestaurantDesktopSections'
 import { UpsellBannerPager } from '@/components/shared/detail/UpsellBannerPager'
-import { ServiceOffersSection } from '@/components/sections/wellness/detail/ServiceOffersSection'
-import { ServiceStoreColumns, ServiceStoreRails } from '@/components/sections/wellness/detail/ServiceStoreRails'
-import { WellnessBackLink, WellnessDesktopHero } from '@/components/sections/wellness/detail/WellnessDesktopHero'
-import { StoreDesktopSections } from '@/components/sections/stores/detail/StoreDesktopSections'
+import { HelpSideCard } from '@/components/sections/dining/RestaurantSidebar'
+import { t, tMin } from '@/components/sections/dining/designUnit'
+import { DetailSectionTabs, type DetailTab } from '@/components/shared/detail/DetailSectionTabs'
+import { canPayBill, isCashbackEnabled } from '@/lib/cashback'
+import { ServiceStoreColumns } from '@/components/sections/wellness/detail/ServiceStoreRails'
+import { bankBody, exclusiveBody } from '@/lib/offerBodies'
+import { StoreOffers, StoreShowcase, StoreStampCard } from '@/components/sections/stores/detail/StoreDesktopSections'
 import { getDiscountCaps } from '@/lib/services/membershipCaps'
-import { isPickupPremium, isSubscribed } from '@/lib/storeBadges'
+import { hasStampSheet, isPickupPremium, isSubscribed } from '@/lib/storeBadges'
 import { isWellnessStore, storeHref } from '@/lib/storeType'
 import { cn } from '@/lib/utils'
 import type { ServiceOffer, StoreOffer } from '@/lib/types/stores'
@@ -69,17 +62,16 @@ function toServiceOffer(o: StoreOffer): ServiceOffer {
   }
 }
 
-/** "Updated 3 Oct" for the catalogue — an absolute date keeps the render pure. */
-function updatedLabel(iso: string | null) {
-  const t = iso ? Date.parse(iso) : NaN
-  return Number.isFinite(t)
-    ? `Updated ${new Date(t).toLocaleDateString('en-GB', { timeZone: 'Indian/Mauritius', day: 'numeric', month: 'short' })}`
-    : undefined
-}
-
 const RAIL_TITLES = { explore: 'Explore more stores', nearby: 'Nearby stores' }
 
-/** Store detail — app parity: screens/StoreDetails.jsx, laid out like the salon page. */
+/**
+ * Store detail — app parity: screens/StoreDetails.jsx. Desktop is Figma
+ * "Shopping details" (1920 frame, css.txt): exact at 1920 and proportional on
+ * every other desktop width (layout in --u, type in --t). It shares the
+ * restaurant page's frame — photo, title card, Pay bill card, offers, reviews
+ * and sidebar — with the store's catalogue collections, vibes and About the
+ * brand across the full width. Phones get the same website layout, stacked.
+ */
 export default async function StorePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const [data, caps, allStores, bankOffers] = await Promise.all([fetchStore(id), getDiscountCaps(), getActiveStores(), getBankOffers()])
@@ -87,7 +79,7 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
   // wellness stores have one screen: /wellness/[id] (app parity: storeDetailsRouting)
   if (isWellnessStore(data.store)) permanentRedirect(storeHref(data.store))
 
-  const { store, gallery, hours, items, tags, offers } = data
+  const { store, gallery, hours, collections, tags, offers } = data
   const [reviews, stamp] = await Promise.all([getStoreReviews(store.id), getStoreStampCard(store.id)])
   const reviewSummary = {
     avg: reviews.length ? reviews.reduce((sum, r) => sum + Number(r.rating ?? 0), 0) / reviews.length : 0,
@@ -95,173 +87,105 @@ export default async function StorePage({ params }: { params: Promise<{ id: stri
   }
 
   const allPhotos = [store.cover_image, ...gallery.map(g => g.file_url)].filter(Boolean) as string[]
-  const categories = [store.category, store.subcategory].filter(Boolean) as string[]
   const address = store.address_line1 ?? [store.location_name, store.city].filter(Boolean).join(', ')
   // app parity: MerchantInfoCard.jsx — getCardChips(entity), with the review summary as its rating
   const chips = getCardChips({ ...store, store_type: store.store_type ?? 'PRODUCT', rating: reviewSummary.avg, rating_count: reviewSummary.count, store_offers: offers })
-  const inStoreOffers = offers.map(toServiceOffer)
+  const exclusiveOffers = offers.map(toServiceOffer).map(o => ({ id: o.id, ...exclusiveBody(o) }))
+  const bankCards = bankOffers.map(o => ({ id: o.id, ...bankBody(o) }))
   const tagValues = tags.map(t => t.tag_value)
   // app parity: StoreDetails `matchesCurrentStoreType` — the rails only show shopping stores
   const shoppingStores = allStores.filter(s => !isWellnessStore(s))
-
-  const latestItemUpdate = items.reduce<string | null>((latest, item) => {
-    if (!item.updated_at) return latest
-    return !latest || item.updated_at > latest ? item.updated_at : latest
-  }, null)
-  const catalogueImages = items.map(i => i.image_url).filter(Boolean) as string[]
-  const itemGalleryIndices = (() => {
-    let idx = 0
-    return items.map(item => (item.image_url ? idx++ : -1))
-  })()
-
-  const facts: Fact[] = []
-  if (categories.length) facts.push({ icon: 'category', label: 'Category', value: categories.join(' · ') })
-  if (store.location_name || store.city) facts.push({ icon: 'tag', label: 'Area', value: [store.location_name, store.city].filter(Boolean).join(', ') })
+  const vibes = allPhotos.filter(p => p !== store.cover_image)
   const hasAbout = !!store.description || tagValues.length > 0
 
-  // app parity: the Offers tab only shows when the offers block has content.
-  // Tabs drop out on their own when their section isn't showing at this screen size.
-  const hasOffers = inStoreOffers.length > 0 || bankOffers.length > 0 || showsCashbackBadge(store) || !!stamp
+  // Figma tab row: Offers, Reviews, Catalogue, About — each drops out on its own when its section isn't on the page
   const tabs = [
-    { id: 'deals', label: 'Deals' },
-    hasOffers && { id: 'offers', label: 'Offers' },
-    items.length > 0 && { id: 'catalogue', label: 'Catalogue' },
-    gallery.length > 0 && { id: 'vibes', label: 'Vibes' },
+    { id: 'offers', label: 'Offers' },
+    reviews.length > 0 && { id: 'reviews', label: 'Reviews' },
+    collections.length > 0 && { id: 'catalogue', label: 'Catalogue' },
+    collections.length === 0 && vibes.length > 0 && { id: 'vibes', label: 'Vibes' },
     hasAbout && { id: 'about', label: 'About' },
-    { id: 'reviews', label: 'Reviews' },
-    !!address && { id: 'location', label: 'Location' },
   ].filter((t): t is DetailTab => !!t)
 
   // app parity: upsellOfferPct — the first percentage offer is what the tiers share
   const offerPct = Number(offers.find(o => String(o.offer_type ?? '').toLowerCase().startsWith('percent') && Number(o.discount_value) > 0)?.discount_value) || 0
-  const payCta = canPayBill(store) ? { label: 'Pay bill', href: `/pay-bill?store_id=${store.id}` } : null
+  // app parity: StoreDetails "Pay bill" (Paybill with paymentSource 'store')
+  const payHref = canPayBill(store) ? `/pay-bill?store_id=${store.id}` : null
+  const payCta = payHref ? { label: 'Pay bill', href: payHref } : null
+  const COLUMNS = 'flex flex-col lg:grid lg:grid-cols-[minmax(0,1128fr)_minmax(270px,390fr)] lg:gap-x-[calc(58*var(--u))]'
 
   return (
     <PhotoGalleryProvider photos={allPhotos}>
-      {/* desktop breaks out of the site's 1280px column and scales with the screen */}
-      <main
-        className={cn('relative min-h-screen bg-white pb-16 md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen md:pb-0', SALON_TYPE)}
-        style={{ ['--u' as string]: SALON_UNIT }}
-      >
+      {/* desktop breaks out of the site's 1280px column; phones use the restaurant page's phone units */}
+      <main className='relative min-h-screen bg-white pb-10 [--t:0.62px] [--u:0.5px] md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen md:pb-0 md:[--t:var(--u)] md:[--u:calc(100vw/1920)]'>
         <HuntSpot slot='merchant-page' />
-        {/* phones: the app's cover hero */}
-        <PhotoGrid photos={allPhotos} restaurantName={store.name} backHref='/stores' save={{ id: store.id, type: 'STORE' }} cover={store.cover_image} desktop={false} />
 
-        <div className='relative z-10 mx-auto flex max-w-7xl flex-col rounded-t-[20px] bg-white px-4 md:max-w-none md:rounded-none md:px-[calc(172*var(--u))]'>
-          <WellnessBackLink backHref='/stores' />
-          <WellnessDesktopHero
-            store={store}
-            address={address}
-            hours={hours}
-            bookHref={null}
-            offerPct={offerPct}
-            caps={caps}
-            chips={chips}
-            backHref='/stores'
-            trending={store.is_promoted === true}
-            website={store.website}
-          />
-          <MobileTitleCard
+        <div className='relative z-10 mx-auto flex max-w-7xl flex-col px-4 md:max-w-none md:px-[calc(172*var(--u))]'>
+          {/* css.txt "Privé benefits · Desktop 1921": 1576×480, radius 18, pager dots */}
+          <RestaurantDesktopHero id={store.id} name={store.name} cover={store.cover_image} photos={allPhotos} saveType='STORE' backHref='/stores' radius={18} />
+
+          {/* the title card (1128×192) beside the Pay bill card (390×120), 24 under the photo */}
+          <div className={cn(COLUMNS, 'lg:items-start')}>
+            <RestaurantTitleCard
+              id={store.id}
+              gauge={false}
+              logo={store.logo_url}
+              name={store.name}
+              subtitle={[store.category, store.subcategory].filter(Boolean).join(' • ')}
+              cuisines={[]}
+              costForTwo={null}
+              area={store.location_name}
+              city={store.city}
+              lat={store.lat ?? null}
+              lng={store.lng ?? null}
+              address={address}
+              phone={store.phone}
+              rating={reviewSummary}
+              hours={hours}
+              stampSheet={hasStampSheet(store)}
+              trending={store.is_promoted === true}
+              exclusive={isSubscribed(store)}
+              exclusiveZone={isPickupPremium(store)}
+              chips={chips}
+            />
+            <RestaurantCtaCard merchant={store} bookHref={null} payHref={payHref} leftCoin={false} className='mt-4 lg:mt-[max(14px,calc(24*var(--t)))]' />
+          </div>
+
+          <DetailSectionTabs tabs={tabs} title={store.name} cta={payCta} className='mt-6' variant='figma' />
+
+          {/* the main column (offers, reviews) beside the rewards sidebar; phones put the sidebar between them */}
+          <div className={cn(COLUMNS, 'lg:grid-rows-[auto_1fr]')}>
+            <div className='min-w-0 lg:col-start-1 lg:row-start-1'>
+              <StoreOffers storeId={store.id} name={store.name} merchant={store} exclusiveOffers={exclusiveOffers} bankOffers={bankCards} />
+            </div>
+            {/* css.txt "Frame 2147225106": level with the offer cards (24 + 24 + 20 under the tabs) */}
+            <aside className='mt-6 flex flex-col font-(family-name:--font-dm-sans) empty:hidden lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-[calc(68*var(--t))] lg:self-start' style={{ gap: tMin(24, 14) }}>
+              {/* css.txt "Earn 6x cashback": the tier upsell banners (the deals and receipt cashback sit in Offers for today) */}
+              <UpsellBannerPager eligible={isCashbackEnabled(store)} merchantType={store.merchant_type} merchantId={store.id} kind='store' offerPct={offerPct} caps={caps} variant='figma' />
+              {stamp && <StoreStampCard href={`/visit-rewards/store/${store.id}`} image={store.cover_image} name={store.name} area={store.location_name ?? store.city} {...stamp} />}
+              <div style={{ marginTop: t(27) }}>
+                <HelpSideCard />
+              </div>
+            </aside>
+            {/* no approved reviews yet: the section (and its tab) stays off the page */}
+            {reviews.length > 0 && (
+              <div className='min-w-0 lg:col-start-1 lg:row-start-2'>
+                <ReviewsSection kind='store' entityId={store.id} name={store.name} reviews={reviews} summary={reviewSummary} top={56} />
+              </div>
+            )}
+          </div>
+
+          <StoreShowcase
             name={store.name}
-            subtitle={categories.join(', ')}
-            logo={store.logo_url}
-            showLogo
-            area={store.location_name}
-            city={store.city}
-            lat={store.lat}
-            lng={store.lng}
-            address={address}
-            phone={store.phone}
-            rating={reviewSummary}
-            hours={hours}
-            trending={store.is_promoted === true}
-            offerZone={isPickupPremium(store)}
-            exclusive={isSubscribed(store)}
-            chips={chips}
-          />
-          {/* app parity: StoreDetails "Pay bill" (Paybill with paymentSource 'store') */}
-          <DetailSectionTabs tabs={tabs} title={store.name} cta={payCta} className='max-md:mt-6' orderClassName='max-md:order-2' variant='wellness' />
-          <MerchantRewardsSection merchant={store} kind='store' name={store.name} className='max-md:order-1 md:hidden' />
-          <UpsellBannerPager
-            merchantType={store.merchant_type}
-            merchantId={store.id}
-            kind='store'
-            offerPct={offerPct}
-            caps={caps}
-            className='mt-4 max-md:order-1 md:hidden'
-          />
-          <StoreDesktopSections
-            storeId={store.id}
-            name={store.name}
-            merchant={store}
-            inStoreOffers={inStoreOffers}
-            bankOffers={bankOffers}
-            stamp={stamp}
-            items={items}
-            catalogueSubtitle={updatedLabel(latestItemUpdate)}
-            gallery={allPhotos}
+            collections={collections}
             photos={allPhotos}
             cover={store.cover_image}
-            area={store.location_name ?? store.city}
             highlights={tagValues.join(', ')}
-            worthIt={store.description ?? ''}
-            reviews={reviews}
-            summary={reviewSummary}
+            description={store.description}
           />
-          <ServiceStoreColumns stores={shoppingStores} currentId={store.id} category={store.category} subcategory={store.subcategory} titles={RAIL_TITLES} />
-          <div className='max-md:order-3 md:hidden max-md:[&>section:first-of-type]:mt-2 max-md:[&>section:first-of-type]:border-t-0 max-md:[&>section:first-of-type]:pt-5'>
-            <ServiceOffersSection inStoreOffers={inStoreOffers} bankOffers={bankOffers} merchant={store} />
 
-            {items.length > 0 && (
-              <DetailSection id='catalogue' title='Catalogue' subtitle={updatedLabel(latestItemUpdate)}>
-                <MenuGalleryProvider images={catalogueImages}>
-                  <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
-                    {items.slice(0, 8).map((item, i) => (
-                      <figure key={item.id} className='group'>
-                        <MenuGalleryImageButton
-                          src={item.image_url}
-                          alt={item.title ?? ''}
-                          index={itemGalleryIndices[i]}
-                          className='aspect-square w-full rounded-2xl'
-                          sizes='45vw'
-                        />
-                        {(item.title || item.price != null) && (
-                          <figcaption className='mt-2 px-0.5'>
-                            {item.title && <p className='truncate text-[13px] font-semibold text-gray-900'>{item.title}</p>}
-                            {item.price != null && (
-                              <p className='text-[12.5px] text-gray-500'>MUR {Number(item.price).toLocaleString('en-US')}</p>
-                            )}
-                          </figcaption>
-                        )}
-                      </figure>
-                    ))}
-                  </div>
-                </MenuGalleryProvider>
-              </DetailSection>
-            )}
-
-            <DetailAbout
-              title='About the brand'
-              description={store.description}
-              facts={facts}
-              chips={tagValues}
-              chipsTitle='Known for'
-            />
-            <DetailReviews kind='store' entityId={store.id} entityName={store.name} reviews={reviews} summary={reviewSummary} />
-            <DetailLocation name={store.name} address={address} lat={store.lat} lng={store.lng} phone={store.phone} hours={hours} />
-            <HelpCard className='mt-10' />
-          </div>
+          <ServiceStoreColumns row stores={shoppingStores} currentId={store.id} category={store.category} subcategory={store.subcategory} titles={RAIL_TITLES} />
         </div>
-
-        <ServiceStoreRails
-          stores={shoppingStores}
-          currentId={store.id}
-          category={store.category}
-          subcategory={store.subcategory}
-          titles={RAIL_TITLES}
-          className='md:hidden'
-        />
-        {payCta && <CtaMobileBar actions={[payCta]} merchant={store} />}
       </main>
     </PhotoGalleryProvider>
   )

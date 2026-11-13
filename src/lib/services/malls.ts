@@ -19,25 +19,6 @@ const withDistance = (mall: Mall, coords?: Coords | null): Mall => ({
   distance: coords && mall.lat != null && mall.lng != null ? haversineKm(coords.lat, coords.lng, Number(mall.lat), Number(mall.lng)) : null,
 })
 
-/**
- * The rail's title, or null while the section is off — app parity:
- * useSectionOrder("Home Screen"): malls show only when enabled there, and aren't
- * in the app's default sections, so a failed read hides them too.
- */
-export const getMallsSectionTitle = cachedCatalog('malls-section-title', async (): Promise<string | null> => {
-  const supabase = createPublicClient()
-  const screen = unwrap(await supabase.from('session_sorting').select('id').eq('name', 'Home Screen').maybeSingle())
-  if (!screen) return null
-  const data = unwrap(await supabase
-    .from('session_sorting_titles')
-    .select('title')
-    .eq('screen_id', screen.id)
-    .eq('section_key', 'malls')
-    .eq('enabled', true)
-    .maybeSingle())
-  return data ? data.title || 'Explore Malls' : null
-}, null)
-
 const getMallRows = cachedCatalog('malls', async (): Promise<Mall[]> =>
   (unwrap(await createPublicClient().from('malls').select(MALL_SELECT).eq('is_active', true)) ?? []) as Mall[], [])
 

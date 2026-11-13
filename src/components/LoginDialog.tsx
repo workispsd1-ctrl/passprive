@@ -15,6 +15,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { GoogleSignInButton } from '@/components/GoogleSignInButton'
 import { CODE_LENGTH, COUNTRY_CODE, RESEND_SECONDS, describeOtpError, normalizeLocalPhone } from '@/lib/phoneAuth'
+import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
+import { describeReferralError } from '@/lib/referral'
 
 /**
  * Login / sign-up by mobile number — app parity: screens/Login.jsx →
@@ -61,6 +63,14 @@ export default function LoginDialog({
   const [notice, setNotice] = useState('')
   // new number: verify-otp's single-use token, traded for the account on the details step
   const [signupToken, setSignupToken] = useState<string | null>(null)
+  // app parity: Details.jsx referral field — shown when referrals are on and
+  // the account is new, or (already signed in) `my_referral.can_apply`
+  const platformFlags = usePlatformFlags()
+  const [referralCode, setReferralCode] = useState('')
+  const [referralEligible, setReferralEligible] = useState(false)
+  // account saved but the code wasn't applied: show why, then Continue
+  const [referralNotice, setReferralNotice] = useState('')
+  const showReferral = platformFlags.referralEnabled && (!!signupToken || referralEligible)
 
   // resend countdown
   useEffect(() => {
@@ -82,6 +92,9 @@ export default function LoginDialog({
     setLocked(false)
     setNotice('')
     setSignupToken(null)
+    setReferralCode('')
+    setReferralEligible(false)
+    setReferralNotice('')
   }
 
   function handleOpenChange(next: boolean) {
@@ -163,6 +176,12 @@ export default function LoginDialog({
       setCode('')
       return
     }
+    if (!data.signupToken && platformFlags.referralEnabled) {
+      fetch('/api/referral')
+        .then(r => (r.ok ? r.json() : null))
+        .then((info: { can_apply?: boolean } | null) => setReferralEligible(!!info?.can_apply))
+        .catch(() => setReferralEligible(false))
+    }
     setStep('details')
   }
 
@@ -170,6 +189,22 @@ export default function LoginDialog({
     if (!fullName.trim() || !email.trim()) { setError('Please fill all fields.'); return }
     setLoading(true)
     setError('')
+    // app parity: an unknown code stops the save; a failed check doesn't
+    const enteredCode = showReferral ? referralCode.trim().toUpperCase() : ''
+    if (enteredCode) {
+      const check = await fetch('/api/referral/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: enteredCode }),
+      })
+        .then(r => (r.ok ? (r.json() as Promise<{ valid?: boolean }>) : null))
+        .catch(() => null)
+      if (check?.valid === false) {
+        setLoading(false)
+        setError("That referral code doesn't exist. Check it or leave the field empty.")
+        return
+      }
+    }
     const details = { fullName: fullName.trim(), email: email.trim(), phone: `${COUNTRY_CODE}${phone}` }
     // Already signed in (older backend) → just fill the profile; otherwise the
     // signup token creates the account first (app parity: Details.jsx).
@@ -184,6 +219,24 @@ export default function LoginDialog({
       const raw = data?.error ?? 'network'
       setError(/network|timeout/i.test(raw) ? describeOtpError(raw).message : raw)
       return
+    }
+    if (enteredCode) {
+      setLoading(true)
+      const applyRes = await fetch('/api/referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: enteredCode }),
+      })
+        .then(r => (r.ok ? (r.json() as Promise<{ ok?: boolean; code?: string } | null>) : null))
+        .catch(() => null)
+      setLoading(false)
+      if (!applyRes?.ok) {
+        // the account exists now, so don't save again — explain and continue
+        setReferralNotice(
+          applyRes ? describeReferralError(applyRes.code) : 'We could not add your referral code. You can add it later from Profile.',
+        )
+        return
+      }
     }
     finish()
   }
@@ -366,19 +419,45 @@ export default function LoginDialog({
                   placeholder="Email address"
                   value={email}
                   onChange={e => { setEmail(e.target.value); setError('') }}
-                  onKeyDown={e => e.key === 'Enter' && !busy && saveDetails()}
+                  onKeyDown={e => e.key === 'Enter' && !busy && !referralNotice && saveDetails()}
                   className="h-13.5 rounded-[28px] border-[1.5px] border-[#E2E2EA] bg-white px-5 text-[15px] text-[#1A1325] outline-none placeholder:text-[#BCBCC4] focus:border-brand"
                 />
+                {showReferral && (
+                  <input
+                    aria-label="Referral code, optional"
+                    placeholder="Referral code (optional)"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    maxLength={12}
+                    value={referralCode}
+                    disabled={!!referralNotice}
+                    onChange={e => { setReferralCode(e.target.value.toUpperCase()); setError('') }}
+                    onKeyDown={e => e.key === 'Enter' && !busy && !referralNotice && saveDetails()}
+                    className="h-13.5 rounded-[28px] border-[1.5px] border-[#E2E2EA] bg-white px-5 text-[15px] text-[#1A1325] uppercase outline-none placeholder:text-[#BCBCC4] placeholder:normal-case focus:border-brand disabled:bg-[#F2F2F5]"
+                  />
+                )}
+                {showReferral && platformFlags.referralRefereeAmount > 0 && (
+                  <p className="px-2 text-[12px] leading-[17px] text-[#9890A6]">
+                    Got a code from a friend? You get {platformFlags.referralRefereeAmount.toLocaleString('en-US')} Privé Credits after
+                    your first bill paid through PassPrivé.
+                  </p>
+                )}
               </div>
               {error && <p className="mt-3 text-center text-[13px] font-semibold text-[#E23B3B]">{error}</p>}
+              {referralNotice && (
+                <p className="mt-3 text-center text-[13px] font-semibold text-[#E23B3B]">
+                  Your account is ready, but your referral code wasn’t added: {referralNotice}
+                </p>
+              )}
 
               <button
                 type="button"
                 disabled={busy}
-                onClick={saveDetails}
+                onClick={referralNotice ? finish : saveDetails}
                 className="mt-4.5 flex h-13.5 w-full items-center justify-center rounded-full bg-brand text-[16px] font-semibold tracking-[-0.32px] text-white transition-colors hover:bg-brand-dark disabled:opacity-70"
               >
-                {loading ? <Loader2 className="size-5 animate-spin" /> : 'Save & continue'}
+                {loading ? <Loader2 className="size-5 animate-spin" /> : referralNotice ? 'Continue' : 'Save & continue'}
               </button>
               <Terms />
             </>

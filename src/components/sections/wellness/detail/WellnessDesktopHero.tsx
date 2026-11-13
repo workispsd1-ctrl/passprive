@@ -84,7 +84,7 @@ export function WellnessBackLink({ backHref = '/wellness' }: { backHref?: string
     <button
       type='button'
       onClick={() => (history.length > 1 ? router.back() : router.push(backHref))}
-      className='hidden h-[calc(40*var(--u))] items-center self-start text-[calc(24*var(--u))] leading-[calc(31*var(--u))] font-semibold text-[#ff4800] hover:opacity-80 md:mt-[calc(60*var(--u))] md:ml-[calc(-10*var(--u))] md:flex'
+      className='mt-4 flex h-[calc(40*var(--u))] items-center self-start text-[calc(24*var(--u))] leading-[calc(31*var(--u))] font-semibold text-[#ff4800] hover:opacity-80 max-md:h-8 max-md:text-[16px] md:mt-[calc(60*var(--u))] md:ml-[calc(-10*var(--u))] max-md:[&>svg]:size-5'
     >
       <ChevronLeft className='size-[calc(40*var(--u))]' strokeWidth={1.8} />
       Back
@@ -139,9 +139,9 @@ export function WellnessDesktopHero({
   const exclusive = isSubscribed(store)
 
   return (
-    <section className='hidden grid-cols-[minmax(0,980fr)_minmax(0,568fr)] gap-x-[calc(28*var(--u))] pt-[calc(24*var(--u))] font-(family-name:--font-dm-sans) md:grid'>
+    <section className='grid grid-cols-1 gap-y-4 pt-[calc(24*var(--u))] font-(family-name:--font-dm-sans) max-md:pt-3 md:grid-cols-[minmax(0,980fr)_minmax(0,568fr)] md:gap-x-[calc(28*var(--u))] md:gap-y-0'>
       {/* Salon photograph — 980×480, 18 radius, actions in a 24px-padded row */}
-      <div className='relative min-h-[calc(480*var(--u))] overflow-hidden rounded-[calc(18*var(--u))] bg-[#f1f1f1]'>
+      <div className='relative min-h-[calc(480*var(--u))] overflow-hidden rounded-[calc(18*var(--u))] bg-[#f1f1f1] max-md:aspect-16/10 max-md:min-h-0'>
         <button type='button' onClick={() => openAt(0)} aria-label={`View photos of ${name}`} className='group absolute inset-0'>
           {store.cover_image && <Image src={store.cover_image} alt={name} fill priority sizes='52vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.02]' />}
         </button>
@@ -184,12 +184,12 @@ export function WellnessDesktopHero({
           <HuntSpot slot='merchant-card' />
           <div className='flex items-center gap-[calc(18*var(--u))]'>
             {logo && (
-              <span className='relative h-[calc(88*var(--u))] w-[calc(82*var(--u))] shrink-0 overflow-hidden rounded-[calc(16*var(--u))] bg-gray-100'>
+              <span className='relative h-[calc(88*var(--u))] w-[calc(82*var(--u))] max-md:h-16 max-md:w-15 shrink-0 overflow-hidden rounded-[calc(16*var(--u))] bg-gray-100'>
                 <Image src={logo} alt='' fill sizes='82px' className='object-cover' />
               </span>
             )}
             <div className='flex min-w-0 flex-1 flex-col gap-[calc(8*var(--u))]'>
-              <h1 className='text-[calc(30*var(--u))] leading-[calc(39*var(--u))] font-bold tracking-[calc(-0.7*var(--u))] wrap-break-word text-[#2c2d32]'>{name}</h1>
+              <h1 className='text-[calc(30*var(--u))] leading-[calc(39*var(--u))] max-md:text-[22px] max-md:leading-7 font-bold tracking-[calc(-0.7*var(--u))] wrap-break-word text-[#2c2d32]'>{name}</h1>
               {subtitle && <p className='text-[calc(14*var(--u))] leading-[calc(20*var(--u))] font-medium wrap-break-word text-[#717171]'>{subtitle}</p>}
               {place && (
                 <button

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createPublicClient } from '@/lib/supabase/public'
 import { cachedCatalog, unwrap } from '@/lib/catalogCache'
 import { isRepeatRewardOffer } from '@/lib/deals'
+import { buildCatalogueCollections, type CatalogueCategoryRow } from '@/lib/storeCatalogue'
 import { sortByMerchant } from '@/lib/utils'
 import { isWellnessStore } from '@/lib/storeType'
 import { scopeStoresToRadius, scopeToRadius } from '@/lib/nearby'
@@ -56,7 +57,7 @@ export async function getNewKickInStores(
 export const getActiveStores = cachedCatalog('active-stores', async (): Promise<StoreRow[]> => {
   const res = await createPublicClient()
     .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_type, is_advertised, booking_service_type, store_subscriptions(status, repeat_rewards_enabled, starts_at, expires_at), store_offers(id, title, badge_text, discount_value, offer_type)')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, store_type, is_advertised, booking_service_type, store_subscriptions(status, repeat_rewards_enabled, starts_at, expires_at), store_offers(id, title, badge_text, discount_value, offer_type, is_active, start_at, end_at)')
     .eq('is_active', true)
     .order('sort_order')
     .order('name')
@@ -163,7 +164,7 @@ export async function getShoppingPromotionalCollections(): Promise<StorePromotio
 export const getWellnessStores = cachedCatalog('wellness-stores', async (): Promise<StoreRow[]> => {
   const res = await createPublicClient()
     .from('stores')
-    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, is_advertised, store_type, booking_service_type, store_subscriptions(status, repeat_rewards_enabled, starts_at, expires_at), store_offers(id, title, badge_text, discount_value, offer_type)')
+    .select('id, name, slug, category, subcategory, location_name, city, logo_url, cover_image, description, lat, lng, merchant_type, merchant_plan, pay_bill_enabled, service_level, on_boarded, booking_enabled, cashback_enabled, is_promoted, is_advertised, store_type, booking_service_type, store_subscriptions(status, repeat_rewards_enabled, starts_at, expires_at), store_offers(id, title, badge_text, discount_value, offer_type, is_active, start_at, end_at)')
     .eq('is_active', true)
     .eq('store_type', 'SERVICE')
     .order('sort_order')
@@ -216,20 +217,28 @@ export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail 
 
   if (!store) return null
 
-  const [galleryRes, hoursRes, itemsRes, tagsRes, offersRes, socialRes] = await Promise.allSettled([
+  const [galleryRes, hoursRes, catalogueCatsRes, itemsRes, tagsRes, offersRes, socialRes] = await Promise.allSettled([
     supabase.from('store_media_assets').select('file_url, sort_order').eq('store_id', store.id).eq('asset_type', 'gallery').eq('is_active', true).order('sort_order'),
     supabase.from('store_opening_hours').select('day_of_week, open_time, close_time, is_closed').eq('store_id', store.id).order('day_of_week'),
-    supabase.from('store_catalogue_items').select('id, category_id, title, price, description, image_url, is_available, updated_at').eq('store_id', store.id).eq('is_available', true).order('sort_order'),
+    // app parity: StoreCatalogueSection prefetchStoreCatalogue — enabled categories + available items
+    supabase.from('store_catalogue_categories').select('id, title, sort_order').eq('store_id', store.id).eq('enabled', true).order('sort_order'),
+    supabase.from('store_catalogue_items').select('id, category_id, title, price, description, image_url, is_available, updated_at, sort_order').eq('store_id', store.id).eq('is_available', true).order('sort_order'),
     supabase.from('store_tags').select('tag_value').eq('store_id', store.id).eq('tag_type', 'tag'),
     supabase.from('store_offers').select('id, title, description, badge_text, offer_type, discount_value, start_at, end_at, metadata').eq('store_id', store.id).eq('is_active', true),
     supabase.from('store_social_links').select('platform, url').eq('store_id', store.id).order('sort_order'),
   ])
 
+  const collections = buildCatalogueCollections(
+    catalogueCatsRes.status === 'fulfilled' ? (catalogueCatsRes.value.data ?? []) as CatalogueCategoryRow[] : [],
+    itemsRes.status === 'fulfilled' ? (itemsRes.value.data ?? []) as CatalogueItem[] : [],
+  )
+
   return {
     store: store as Store,
     gallery:  galleryRes.status  === 'fulfilled' ? (galleryRes.value.data  ?? []) as MediaAsset[]   : [],
     hours:    hoursRes.status    === 'fulfilled' ? (hoursRes.value.data    ?? []) as OpeningHour[]   : [],
-    items:    itemsRes.status    === 'fulfilled' ? (itemsRes.value.data    ?? []) as CatalogueItem[] : [],
+    items:    collections.flatMap(c => c.items),
+    collections,
     tags:     tagsRes.status     === 'fulfilled' ? (tagsRes.value.data     ?? []) as StoreTag[]      : [],
     // live, and not a stamp-card "on 5th visit" reward (those belong to repeat rewards)
     offers:   offersRes.status   === 'fulfilled'
@@ -540,7 +549,7 @@ export const getHomeSections = cachedCatalog('home-sections', async (): Promise<
   }))
 }, [])
 
-const STORE_REVIEW_COLS = 'id, rating, review_text, username_snapshot, service_rating, ambience_rating, created_at'
+const STORE_REVIEW_COLS = 'id, rating, review_text, username_snapshot, food_rating, service_rating, ambience_rating, created_at'
 
 /** Approved reviews for a store (`store_reviews`), newest first. */
 export async function getStoreReviews(storeId: string): Promise<ServiceReview[]> {

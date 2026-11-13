@@ -109,6 +109,7 @@ export type CatalogueItem = {
   image_url: string | null
   is_available: boolean
   updated_at: string | null
+  sort_order?: number | null
 }
 
 export type StoreTag = { tag_value: string }
@@ -121,6 +122,9 @@ export type StoreOffer = {
   badge_text?: string | null
   discount_value?: number | null
   offer_type?: string | null
+  is_active?: boolean | null
+  start_at?: string | null
+  end_at?: string | null
 }
 
 export type SocialLink = { platform: string; url: string }
@@ -172,6 +176,8 @@ export type StoreDetail = {
   gallery: MediaAsset[]
   hours: OpeningHour[]
   items: CatalogueItem[]
+  /** the catalogue by category — app parity: StoreCatalogueSection */
+  collections: { id: string; title: string; items: CatalogueItem[] }[]
   tags: StoreTag[]
   offers: StoreOffer[]
   socials: SocialLink[]

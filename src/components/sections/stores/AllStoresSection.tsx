@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { getCardChips } from '@/lib/cardChips'
-import { SlidersHorizontal, ChevronDown, Percent } from 'lucide-react'
+import { SlidersHorizontal } from 'lucide-react'
 import { cn, sortByMerchant, haversineKm } from '@/lib/utils'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
@@ -11,6 +11,17 @@ import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard } from '@/components/sections/home/MerchantCard'
 import { storeCardTags } from '@/lib/storeBadges'
 import type { StoreRow, StoreMoodCategory } from '@/lib/types/stores'
+import {
+  EMPTY_STORE_FILTERS,
+  NEAR_ME,
+  applyStoreFilters,
+  applyStoreQuickFilter,
+  isWellnessCategory,
+  storeCategoryOptions,
+  storeFilterCount,
+  type StoreFilters,
+} from '@/lib/storeFilters'
+import { StoreFilterDialog } from './StoreFilterDialog'
 
 interface Props {
   stores: StoreRow[]
@@ -25,17 +36,6 @@ interface Props {
 /** "Home & Furniture" / "home-furniture" → "home-and-furniture" style key for comparing categories. */
 const categoryKey = (value: string) =>
   value.trim().toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-
-const DISTANCE_OPTIONS = [
-  { label: 'Under 5km', km: 5 },
-  { label: 'Under 10km', km: 10 },
-  { label: 'Under 25km', km: 25 },
-]
-
-const SORT_OPTIONS = [
-  { label: 'Recommended', value: 'recommended' as const },
-  { label: 'Nearest', value: 'nearest' as const },
-]
 
 /**
  * Cards rendered up front, then appended in batches of this size as the list
@@ -54,29 +54,22 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
     [location.lat, location.lng]
   )
 
-  const [distanceKm, setDistanceKm] = useState<number | null>(null)
-  const [showDistanceOptions, setShowDistanceOptions] = useState(false)
-  const [minDiscount, setMinDiscount] = useState<number | null>(null)
-  const [sort, setSort] = useState<'recommended' | 'nearest'>('recommended')
-  const [showSortOptions, setShowSortOptions] = useState(false)
+  const [filters, setFilters] = useState<StoreFilters>(EMPTY_STORE_FILTERS)
+  const [quick, setQuick] = useState<string | null>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
 
   const activeCategoryTitle = activeCategorySlug === 'all-stores'
     ? null
     : (moodCategories.find(c => c.slug === activeCategorySlug)?.title ?? null)
 
-  const storesWithDist = useMemo(() =>
-    stores.map(s => ({
+  // the list the filters work on: location-aware distance, then the page's category
+  const scoped = useMemo(() => {
+    let result = stores.map(s => ({
       ...s,
-      dist: userCoords && s.lat != null && s.lng != null
+      distance_km: userCoords && s.lat != null && s.lng != null
         ? haversineKm(userCoords.lat, userCoords.lng, s.lat, s.lng)
         : null,
-    })),
-    [stores, userCoords]
-  )
-
-  const filtered = useMemo(() => {
-    let result = storesWithDist
-
+    }))
     if (activeCategoryTitle) {
       // app parity: storeMatchesMoodCategory — compare normalised keys, not raw text
       const wanted = new Set([categoryKey(activeCategoryTitle), categoryKey(activeCategorySlug)])
@@ -84,25 +77,25 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
         (s.category ?? '').split(',').some(c => wanted.has(categoryKey(c)))
       )
     }
+    return sortByMerchant(result)
+  }, [stores, userCoords, activeCategoryTitle, activeCategorySlug])
 
-    if (distanceKm != null) {
-      result = result.filter(s => s.dist != null && s.dist <= distanceKm)
-    }
+  // app parity: StoreHome drops wellness categories; StoreCategoryResultsScreen lists them all
+  const categoryOptions = useMemo(
+    () => storeCategoryOptions(scoped, layout === 'rail' ? isWellnessCategory : undefined),
+    [scoped, layout],
+  )
+  const quickFilters = useMemo(() => {
+    const list = [NEAR_ME, ...categoryOptions.slice(0, 10)]
+    // the picked chip moves to the front (DineFilters orderedFilters)
+    return quick && list.includes(quick) ? [quick, ...list.filter(f => f !== quick)] : list
+  }, [categoryOptions, quick])
 
-    if (minDiscount != null) {
-      result = result.filter(s =>
-        (s.store_offers ?? []).some(o => (o.discount_value ?? 0) >= minDiscount)
-      )
-    }
-
-    if (sort === 'nearest' && userCoords) {
-      result = [...result].sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity))
-    } else {
-      result = sortByMerchant(result)
-    }
-
-    return result
-  }, [storesWithDist, activeCategoryTitle, activeCategorySlug, distanceKm, minDiscount, sort, userCoords])
+  const filtered = useMemo(
+    () => applyStoreFilters(applyStoreQuickFilter(scoped, quick), filters),
+    [scoped, quick, filters],
+  )
+  const filterCount = storeFilterCount(filters, quick)
 
   // back to the first batch whenever the filters / sort produce a new list
   const [shown, setShown] = useState(BATCH)
@@ -115,105 +108,57 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
   const hasMore = shown < filtered.length
   const showMore = () => setShown(n => (n < filtered.length ? n + BATCH : n))
 
-  const activeDistLabel = DISTANCE_OPTIONS.find(o => o.km === distanceKm)?.label
-  const activeSortLabel = SORT_OPTIONS.find(o => o.value === sort)?.label
-  const isFiltered = activeCategorySlug !== 'all-stores' || distanceKm != null || minDiscount != null
+  const isFiltered = activeCategorySlug !== 'all-stores' || filterCount > 0
 
   return (
     <section className="py-5">
-      <div className={cn('mb-4 flex flex-wrap items-center justify-between gap-3 px-4 md:px-8', layout === 'rail' && 'mx-auto max-w-7xl')}>
+      <div className={cn('mb-4 px-4 md:px-8', layout === 'rail' && 'mx-auto max-w-7xl')}>
         <h2 className="font-(family-name:--font-dm-sans) text-[19px] leading-none font-bold text-[#0D141C] md:text-[20px] xl:text-[22px] 2xl:text-[26px] min-[120rem]:text-[32px]">{title}</h2>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+      {/* app parity: DineFilters — Filter button with count, then "Near Me" + top store categories */}
+      <div className={cn('scrollbar-hide mb-4 flex items-center gap-2 overflow-x-auto px-4 md:px-8', layout === 'rail' && 'mx-auto max-w-7xl')}>
+        <button
+          type="button"
+          onClick={() => setFilterOpen(true)}
+          className={cn(
+            'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-colors',
+            filterCount > 0
+              ? 'border-brand bg-brand-tint text-brand'
+              : 'border-gray-300 bg-white text-gray-700 hover:border-brand hover:text-brand',
+          )}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          {filterCount > 0 ? `Filter (${filterCount})` : 'Filter'}
+        </button>
+        {quickFilters.map(f => (
           <button
+            key={f}
             type="button"
-            aria-label="Filter"
-            className="flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filter
-          </button>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowSortOptions(v => !v)}
-              className="flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand"
-            >
-              Sort By: {activeSortLabel}
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            {showSortOptions && (
-              <div className="absolute top-full right-0 z-30 mt-1 min-w-40 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-                {SORT_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => { setSort(opt.value); setShowSortOptions(false) }}
-                    className={cn(
-                      'w-full px-4 py-2 text-left text-[13px] hover:bg-gray-50',
-                      sort === opt.value && 'font-semibold text-brand',
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowDistanceOptions(v => !v)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-colors',
-                distanceKm != null
-                  ? 'border-brand bg-brand text-white'
-                  : 'border-gray-300 bg-white text-gray-700 hover:border-brand hover:text-brand',
-              )}
-            >
-              {activeDistLabel ?? 'Under 5km'}
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            {showDistanceOptions && (
-              <div className="absolute top-full right-0 z-30 mt-1 min-w-35 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => { setDistanceKm(null); setShowDistanceOptions(false) }}
-                  className={cn('w-full px-4 py-2 text-left text-[13px] hover:bg-gray-50', distanceKm == null && 'font-semibold text-brand')}
-                >
-                  All distances
-                </button>
-                {DISTANCE_OPTIONS.map(opt => (
-                  <button
-                    key={opt.km}
-                    type="button"
-                    onClick={() => { setDistanceKm(opt.km); setShowDistanceOptions(false) }}
-                    className={cn('w-full px-4 py-2 text-left text-[13px] hover:bg-gray-50', distanceKm === opt.km && 'font-semibold text-brand')}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setMinDiscount(v => (v === 30 ? null : 30))}
+            aria-pressed={quick === f}
+            onClick={() => setQuick(cur => (cur === f ? null : f))}
             className={cn(
-              'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-colors',
-              minDiscount != null
+              'shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-colors',
+              quick === f
                 ? 'border-brand bg-brand text-white'
                 : 'border-gray-300 bg-white text-gray-700 hover:border-brand hover:text-brand',
             )}
           >
-            <Percent className="h-3.5 w-3.5" />
-            30% &amp; above
+            {f}
           </button>
-        </div>
+        ))}
       </div>
+
+      {filterOpen && (
+        <StoreFilterDialog
+          open
+          onClose={() => setFilterOpen(false)}
+          initial={filters}
+          categoryOptions={[...categoryOptions].sort((a, b) => a.localeCompare(b))}
+          onApply={next => { setFilters(next); setFilterOpen(false) }}
+          onReset={() => { setFilters(EMPTY_STORE_FILTERS); setQuick(null) }}
+        />
+      )}
 
       {isFiltered && (
         <p className={cn('mb-3 px-4 text-[12px] text-gray-400 md:px-8', layout === 'rail' && 'mx-auto max-w-7xl')}>{filtered.length} store{filtered.length !== 1 ? 's' : ''}</p>
@@ -225,7 +170,7 @@ export function AllStoresSection({ stores, moodCategories, activeCategorySlug, t
         <StoreList layout={layout} onNearEnd={hasMore ? showMore : undefined}>
           {visible.map((store) => {
             const meta = [
-              store.dist != null ? (store.dist < 1 ? `${Math.round(store.dist * 1000)}m` : `${store.dist.toFixed(1)}km`) : null,
+              store.distance_km != null ? (store.distance_km < 1 ? `${Math.round(store.distance_km * 1000)}m` : `${store.distance_km.toFixed(1)}km`) : null,
               store.location_name ?? store.city,
             ]
               .filter(Boolean)

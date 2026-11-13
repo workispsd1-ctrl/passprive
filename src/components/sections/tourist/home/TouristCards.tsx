@@ -66,7 +66,7 @@ export function CuratedCard({ place }: { place: PlaceWithDistance }) {
   return (
     <Link
       href={placeHref(place)}
-      className="flex w-75 shrink-0 flex-col overflow-hidden rounded-[18px] bg-white p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md 2xl:w-95"
+      className="flex w-75 max-md:w-[60vw] shrink-0 flex-col overflow-hidden rounded-[18px] bg-white p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md 2xl:w-95"
     >
       <div className="relative aspect-361/254 overflow-hidden rounded-xl">
         <Photo src={placeImageUrl(place)} alt={place.place_name} sizes="(min-width: 1536px) 380px, 300px" />
@@ -118,7 +118,7 @@ export function CompactPlaceCard({ place, category }: { place: PlaceWithDistance
   return (
     <Link
       href={placeHref(place)}
-      className="flex w-75 shrink-0 flex-col overflow-hidden rounded-[18px] bg-white p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md 2xl:w-95"
+      className="flex w-75 max-md:w-[60vw] shrink-0 flex-col overflow-hidden rounded-[18px] bg-white p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-md 2xl:w-95"
     >
       <div className="relative aspect-361/254 overflow-hidden rounded-xl">
         <Photo src={placeImageUrl(place)} alt={place.place_name} sizes="(min-width: 1536px) 380px, 300px" />

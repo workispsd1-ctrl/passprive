@@ -19,7 +19,7 @@ export function MallsNearYou({ malls, title }: { malls: Mall[]; title: string })
           <Link
             key={mall.id}
             href={`/malls/${mall.slug ?? mall.id}`}
-            className='block w-72 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0px_4.8px_20.4px_0px_rgba(0,0,0,0.08)] 2xl:w-96'
+            className='block w-72 max-md:w-[60vw] shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0px_4.8px_20.4px_0px_rgba(0,0,0,0.08)] 2xl:w-96'
           >
             <span className='relative block aspect-16/10 bg-gray-100'>
               {image && <Image src={image} alt={mall.name} fill className='object-cover' sizes='(min-width: 1536px) 384px, 288px' />}

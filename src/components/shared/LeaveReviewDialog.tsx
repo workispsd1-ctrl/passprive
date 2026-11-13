@@ -8,11 +8,12 @@ import { CheckCircle2, ChevronRight, Image as ImageIcon, Loader2, PenLine, Star,
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import LoginDialog from '@/components/LoginDialog'
 import { cn } from '@/lib/utils'
-import { REVIEW_MAX_TEXT as MAX_TEXT, type ReviewKind } from '@/lib/reviews'
+import { REVIEW_MAX_TEXT as MAX_TEXT, overallRating, reviewSteps, usesAspectRatings, type ReviewAspect, type ReviewKind } from '@/lib/reviews'
 import { REVIEW_PHOTO_MAX, shrinkPhoto } from '@/lib/reviewPhotos'
 import { ReviewImagePicker } from './ReviewImagePicker'
 
-// Figma "Leave a review": one star rating, text and images on one card.
+// Figma "Leave a review" card (text and images) with the app's three aspect ratings
+// (LeaveReviewModal: Food / Service / Ambience, relabelled per kind); tourist places rate once.
 interface Props {
   kind: ReviewKind
   entityId: string
@@ -21,9 +22,13 @@ interface Props {
   /** 'field' — the restaurant page's "Leave a review" pill (pencil, label, chevron) */
   /** 'add-image' — the photos section's pill; opens straight on Add image(s), as part of a review */
   variant?: 'button' | 'field' | 'figma' | 'add-image'
+  /** what the three ratings are called — wellness stores are kind 'store' with their own labels */
+  aspect?: ReviewAspect
 }
 
-export function LeaveReviewDialog({ kind, entityId, entityName, className, variant = 'button' }: Props) {
+export function LeaveReviewDialog({ kind, entityId, entityName, className, variant = 'button', aspect }: Props) {
+  // tourist places: one overall rating, sent as `rating`
+  const steps = usesAspectRatings(kind) ? reviewSteps(kind, aspect) : [{ key: 'rating', label: '', column: null }]
   const router = useRouter()
   // Fetched client-side so the detail pages don't have to read auth cookies.
   const [viewer, setViewer] = useState({ loggedIn: false, reviewed: false })
@@ -46,8 +51,10 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
   const [open, setOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [view, setView] = useState<'form' | 'images'>('form')
-  const [rating, setRating] = useState(0)
-  const [hover, setHover] = useState(0)
+  const [ratings, setRatings] = useState<Record<string, number>>({})
+  const [hover, setHover] = useState<{ key: string; n: number } | null>(null)
+  const allRated = steps.every(step => (ratings[step.key] ?? 0) > 0)
+  const anyRated = steps.some(step => (ratings[step.key] ?? 0) > 0)
   const [text, setText] = useState('')
   const [photos, setPhotos] = useState<{ file: File; url: string }[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -64,8 +71,8 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
   function start(first: 'form' | 'images' = 'form') {
     if (!viewer.loggedIn) { setLoginOpen(true); return }
     setView(first)
-    setRating(0)
-    setHover(0)
+    setRatings({})
+    setHover(null)
     setText('')
     clearPhotos()
     setError('')
@@ -90,12 +97,12 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
   }
 
   async function submit() {
-    if (!rating || submitting) return
+    if (!allRated || submitting) return
     setSubmitting(true)
     setError('')
     const form = new FormData()
     form.set('entityId', entityId)
-    form.set('rating', String(rating))
+    for (const step of steps) form.set(step.key, String(ratings[step.key]))
     form.set('text', text)
     for (const photo of await Promise.all(photos.map(p => shrinkPhoto(p.file)))) form.append('photos', photo)
     const res = await fetch(`/api/reviews/${kind}`, { method: 'POST', body: form }).catch(() => null)
@@ -229,34 +236,53 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
                 </button>
               </div>
 
-              <div
-                role="radiogroup"
-                aria-label="Your rating"
-                className="flex justify-center"
-                style={{ marginTop: t(24), gap: t(12) }}
-                onMouseLeave={() => setHover(0)}
-              >
-                {[1, 2, 3, 4, 5].map(n => {
-                  const active = n <= (hover || rating)
+              {/* app parity: LeaveReviewModal — one star row per aspect; the overall is their average */}
+              <div className="flex flex-col" style={{ marginTop: t(24), gap: t(16) }}>
+                {steps.map(step => {
+                  const value = ratings[step.key] ?? 0
+                  const shown = hover?.key === step.key ? hover.n : value
                   return (
-                    <button
-                      key={n}
-                      type="button"
-                      role="radio"
-                      aria-checked={rating === n}
-                      aria-label={`${n} star${n > 1 ? 's' : ''}`}
-                      onMouseEnter={() => setHover(n)}
-                      onClick={() => setRating(n)}
-                      className="rounded-full transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none"
-                      style={{ width: tMin(32, 24), height: tMin(32, 24) }}
-                    >
-                      <Star
-                        strokeWidth={1.5}
-                        className={cn('size-full', active ? 'fill-[#FFB400] text-[#FFB400]' : rating ? 'text-[#D5D5D5]' : 'text-[#605D64]')}
-                      />
-                    </button>
+                    <div key={step.key} className="flex flex-col items-center" style={{ gap: t(8) }}>
+                      {step.label && (
+                        <p className="font-semibold text-[#1D1B20]" style={{ fontSize: tMin(16, 13), lineHeight: 1.5 }}>How was the {step.label}?</p>
+                      )}
+                      <div
+                        role="radiogroup"
+                        aria-label={step.label ? `${step.label} rating` : 'Your rating'}
+                        className="flex justify-center"
+                        style={{ gap: t(12) }}
+                        onMouseLeave={() => setHover(null)}
+                      >
+                        {[1, 2, 3, 4, 5].map(n => {
+                          const active = n <= shown
+                          return (
+                            <button
+                              key={n}
+                              type="button"
+                              role="radio"
+                              aria-checked={value === n}
+                              aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                              onMouseEnter={() => setHover({ key: step.key, n })}
+                              onClick={() => setRatings(r => ({ ...r, [step.key]: n }))}
+                              className="rounded-full transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none"
+                              style={{ width: tMin(32, 24), height: tMin(32, 24) }}
+                            >
+                              <Star
+                                strokeWidth={1.5}
+                                className={cn('size-full', active ? 'fill-[#FFB400] text-[#FFB400]' : value ? 'text-[#D5D5D5]' : 'text-[#605D64]')}
+                              />
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
                   )
                 })}
+                {steps.length > 1 && allRated && (
+                  <p className="text-center font-medium text-[#5B5A5A]" style={{ fontSize: tMin(14, 12) }}>
+                    Overall rating: <span className="font-bold text-[#1D1B20]">{overallRating(steps.map(st => ratings[st.key]))}</span> / 5
+                  </p>
+                )}
               </div>
 
               <textarea
@@ -298,7 +324,7 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
               {error && <p role="alert" className="mt-4 text-[13px] font-semibold text-[#E23B3B]">{error}</p>}
 
               <div className="flex justify-end" style={{ marginTop: t(24), gap: tMin(16, 10) }}>
-                {rating > 0 && (
+                {anyRated && (
                   <button
                     type="button"
                     disabled={submitting}
@@ -311,7 +337,7 @@ export function LeaveReviewDialog({ kind, entityId, entityName, className, varia
                 )}
                 <button
                   type="button"
-                  disabled={!rating || submitting}
+                  disabled={!allRated || submitting}
                   onClick={submit}
                   className="flex items-center justify-center gap-2 bg-[#FF4800] font-semibold tracking-[-0.02em] text-white hover:bg-brand-dark disabled:bg-[#D5D5D5]"
                   style={{ width: tMin(180, 124), height: tMin(48, 36), borderRadius: t(27), fontSize: tMin(16, 13) }}

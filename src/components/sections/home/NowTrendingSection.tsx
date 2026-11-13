@@ -36,9 +36,12 @@ type TrendingCardItem = {
 export function NowTrendingSection({
   restaurants,
   title = 'Foodie front row',
+  presorted = false,
 }: {
   restaurants: TrendingCardItem[];
   title?: string;
+  /** keep the given order (New Dining Spots / Family Feast arrive already ranked) */
+  presorted?: boolean;
 }) {
   const { location } = useLocation();
   const userCity = location.city.trim().toLowerCase();
@@ -61,7 +64,7 @@ export function NowTrendingSection({
     // merchant tier → distance → same-city bias (stable within each key).
     // The app also weights has-offer / rating, which the listing query here
     // doesn't return.
-    withDist.sort((a, b) => {
+    if (!presorted) withDist.sort((a, b) => {
       const tier = merchantRank(a.r) - merchantRank(b.r);
       if (tier !== 0) return tier;
 
@@ -75,7 +78,7 @@ export function NowTrendingSection({
     });
 
     return withDist.slice(0, MAX_CARDS);
-  }, [restaurants, userCity, userLat, userLng]);
+  }, [restaurants, userCity, userLat, userLng, presorted]);
 
   if (!items.length) return null;
 

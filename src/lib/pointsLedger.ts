@@ -37,9 +37,12 @@ export type NextExpiry = { at: string; amount: number }
 
 const SOURCE_TITLES: Record<string, string> = {
   receipt: 'Receipt cashback',
+  booking: 'Table booking reward',
   bill_payment: 'Bill payment cashback',
   merchant_bonus: 'Merchant bonus',
   bonus: 'Privé Credits bonus',
+  treasure_hunt: 'Treasure hunt reward',
+  referral: 'Referral reward',
   spend: 'Privé Credits used',
   expiry: 'Privé Credits expired',
 }

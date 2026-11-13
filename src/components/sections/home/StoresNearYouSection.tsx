@@ -18,7 +18,7 @@ export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
         <Link
           key={store.id}
           href={`/stores/${store.slug ?? store.id}`}
-          className="relative block aspect-420/548 w-80 shrink-0 overflow-hidden rounded-[20px] bg-gray-900 [--badge-inset:70px] 2xl:w-105 2xl:[--badge-inset:78px]"
+          className="relative block aspect-420/548 w-80 max-md:w-[60vw] shrink-0 overflow-hidden rounded-[20px] bg-gray-900 [--badge-inset:70px] 2xl:w-105 2xl:[--badge-inset:78px]"
         >
           {store.cover_image ? (
             <Image

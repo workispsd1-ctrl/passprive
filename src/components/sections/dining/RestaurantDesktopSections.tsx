@@ -11,6 +11,7 @@ import { MEMBERSHIP_BADGE } from '@/lib/cashbackBadge'
 import { LeaveReviewDialog } from '@/components/shared/LeaveReviewDialog'
 import type { DetailReview } from '@/components/shared/detail/DetailReviews'
 import type { OfferBody } from '@/components/shared/detail/OffersForToday'
+import { REVIEW_ASPECT_LABELS, type ReviewAspect } from '@/lib/reviews'
 import { MenuGalleryProvider, useMenuGallery } from './MenuGalleryClient'
 import { OfferCard, OfferText } from './OfferCard'
 import { useGallery } from './PhotoGalleryClient'
@@ -114,7 +115,27 @@ function PagerCard({ head, items, bank = false }: { head: React.ReactNode; items
 }
 
 /** "Offers for today" — 508×208 cards, 26 apart, joined by "+" connectors. */
-export function OffersRow({ restaurantOffers, bankOffers, merchant, exclusiveLabel = 'Restaurant exclusive' }: { restaurantOffers: OfferBody[]; bankOffers: OfferBody[]; merchant: MerchantCapabilityFields; exclusiveLabel?: string }) {
+export function OffersRow({
+  restaurantOffers,
+  bankOffers,
+  merchant,
+  exclusiveLabel = 'Restaurant exclusive',
+  afterCashback,
+  header,
+}: {
+  restaurantOffers: OfferBody[]
+  bankOffers: OfferBody[]
+  merchant: MerchantCapabilityFields
+  exclusiveLabel?: string
+  /**
+   * Cards that load on the client (deal tickets, receipt cashback), placed
+   * after the cashback card. Each is an OfferCard grid item; the row hides
+   * while it has no card at all.
+   */
+  afterCashback?: React.ReactNode
+  /** under the heading, above the cards — e.g. the TierPills */
+  header?: React.ReactNode
+}) {
   const plan = useUserPlan()
   const pct = getCashbackPct(merchant, plan)
   const cards: React.ReactNode[] = []
@@ -155,24 +176,31 @@ export function OffersRow({ restaurantOffers, bankOffers, merchant, exclusiveLab
       />,
     )
   }
-  if (!cards.length) return null
+  if (!cards.length && !afterCashback) return null
+  // the client cards go straight after the cashback card (after the exclusive card when there's none)
+  const at = cards.findIndex(c => (c as React.ReactElement).key === 'cashback') + 1 || (restaurantOffers.length ? 1 : 0)
+  const wrap = (card: React.ReactNode, i: number) => (
+    <div key={i} className='relative min-w-0'>
+      {card}
+      {i < cards.length - 1 && (
+        <span
+          className='absolute top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full bg-[#767677] font-bold text-white xl:flex'
+          style={{ right: t(-22.86), width: t(21.71), height: t(21.71), fontSize: t(14.47), lineHeight: 1 }}
+        >
+          +
+        </span>
+      )}
+    </div>
+  )
   return (
-    <Section id='offers' title='Offers for today' top={24} gap={20} small>
+    // with client cards, the row hides until one of its cards is on the page
+    <Section id='offers' title='Offers for today' top={24} gap={20} small className={cn(afterCashback != null && '[&:not(:has([data-offer-card]))]:hidden')}>
+      {header && <div style={{ marginBottom: tMin(16, 12) }}>{header}</div>}
       {/* css.txt: 360×170 cards, 24 apart */}
       <div className={CARD_GRID} style={{ gap: tMin(24, 16) }}>
-        {cards.map((card, i) => (
-          <div key={i} className='relative min-w-0'>
-            {card}
-            {i < cards.length - 1 && (
-              <span
-                className='absolute top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full bg-[#767677] font-bold text-white xl:flex'
-                style={{ right: t(-22.86), width: t(21.71), height: t(21.71), fontSize: t(14.47), lineHeight: 1 }}
-              >
-                +
-              </span>
-            )}
-          </div>
-        ))}
+        {cards.slice(0, at).map(wrap)}
+        {afterCashback}
+        {cards.slice(at).map((card, i) => wrap(card, at + i))}
       </div>
     </Section>
   )
@@ -267,6 +295,98 @@ function aspect(reviews: DetailReview[], key: 'food_rating' | 'service_rating' |
 }
 
 /**
+ * Reviews — css.txt "Group 2085664822": the overall pill with "N ratings", the
+ * three aspect scores between 52-tall rules, two #EBEBEB review cards, then
+ * "Leave a review" and "Show all N reviews".
+ */
+export function ReviewsSection({
+  kind,
+  entityId,
+  name,
+  reviews,
+  summary,
+  allHref,
+  aspectKind,
+  top = 22,
+}: {
+  kind: 'restaurant' | 'store'
+  entityId: string
+  name: string
+  reviews: DetailReview[]
+  summary: { avg: number; count: number }
+  /** the full reviews page; without one, "Show all" opens the rest in place */
+  allHref?: string
+  /** what the three ratings are called (app parity: LeaveReviewModal STEP_LABELS) */
+  aspectKind?: ReviewAspect
+  top?: number
+}) {
+  const [all, setAll] = useState(false)
+  const labels = REVIEW_ASPECT_LABELS[aspectKind ?? (kind === 'restaurant' ? 'restaurant' : 'store')]
+  const aspects = [
+    { label: labels[0], value: aspect(reviews, 'food_rating') },
+    { label: labels[1], value: aspect(reviews, 'service_rating') },
+    { label: labels[2], value: aspect(reviews, 'ambience_rating') },
+  ].filter(a => a.value != null)
+  const ratingCount = summary.count >= 1000 ? `${(summary.count / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(summary.count)
+  return (
+      <Section id='reviews' title='Reviews' top={top} gap={20}>
+        {summary.count > 0 && (
+          <div className='flex items-center' style={{ minHeight: tMin(56, 44), marginBottom: tMin(28, 16) }}>
+            <div className='flex flex-col items-center' style={{ marginRight: tMin(70, 22) }}>
+              <span className={`flex items-center justify-center font-bold text-white ${INTER} bg-[#007c40]`} style={{ width: tMin(82, 62), height: tMin(36, 28), borderRadius: t(30.07), gap: t(11.6), fontSize: tMin(19.25, 15), lineHeight: tMin(28, 20) }}>
+                {summary.avg.toFixed(1)}
+                <Image src={`${A}/rating-star-lg.svg`} alt='' width={20} height={18} style={{ width: tMin(11.94, 10), height: tMin(11.94, 10) }} />
+              </span>
+              <span className='font-medium text-[#8b898d] underline' style={{ fontSize: tMin(11, 10), lineHeight: tMin(15, 13), marginTop: t(8.2) }}>{ratingCount} ratings</span>
+            </div>
+            {aspects.map(a => (
+              <div key={a.label} className='flex items-center self-stretch'>
+                <span className='rounded-[5.2px] bg-[#8b898d]' style={{ width: 1.3, height: tMin(52, 40) }} />
+                <div className='flex flex-col items-center font-medium' style={{ padding: `0 ${tMin(41, 16)}`, fontSize: tMin(15.6, 12), lineHeight: tMin(21, 16) }}>
+                  <span className='font-semibold text-[#443c44]'>{Number(a.value).toFixed(1)}</span>
+                  <span className='text-[#8b898d]'>{a.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {reviews.length > 0 ? (
+          <div className='grid grid-cols-1 lg:grid-cols-2' style={{ gap: tMin(24, 12) }}>
+            {(all ? reviews : reviews.slice(0, 2)).map(r => <ReviewCard key={r.id} review={r} />)}
+          </div>
+        ) : (
+          <p className='text-[#767677]' style={{ fontSize: tMin(16, 13) }}>No reviews yet — be the first to share your experience at {name}.</p>
+        )}
+        <div className='flex flex-wrap items-center justify-between' style={{ marginTop: tMin(24, 14), gap: tMin(12, 8) }}>
+          <LeaveReviewDialog kind={kind} entityId={entityId} entityName={name} variant='figma' aspect={aspectKind} />
+          {summary.count > 2 && allHref && (
+            <Link
+              href={allHref}
+              className='flex items-center justify-between border-solid border-[#e5e5e5] bg-white text-[#252427] hover:bg-gray-50'
+              style={{ width: tMin(375, 200), height: tMin(43.75, 36), borderWidth: 1.25, borderRadius: t(24.62), padding: `0 ${tMin(15, 12)} 0 ${tMin(24, 14)}`, gap: 8, fontSize: tMin(14.22, 12), lineHeight: tMin(20, 16) }}
+            >
+              Show all {summary.count} reviews
+              <ChevronRight className='shrink-0 text-[#666]' style={{ width: tMin(18, 14), height: tMin(18, 14) }} />
+            </Link>
+          )}
+          {/* no reviews page for this kind: the rest open in place */}
+          {!allHref && reviews.length > 2 && (
+            <button
+              type='button'
+              onClick={() => setAll(v => !v)}
+              className='flex items-center justify-between border-solid border-[#e5e5e5] bg-white text-[#252427] hover:bg-gray-50'
+              style={{ width: tMin(375, 200), height: tMin(43.75, 36), borderWidth: 1.25, borderRadius: t(24.62), padding: `0 ${tMin(15, 12)} 0 ${tMin(24, 14)}`, gap: 8, fontSize: tMin(14.22, 12), lineHeight: tMin(20, 16) }}
+            >
+              {all ? 'Show fewer reviews' : `Show all ${reviews.length} reviews`}
+              <ChevronRight className={cn('shrink-0 text-[#666] transition-transform', all && '-rotate-90')} style={{ width: tMin(18, 14), height: tMin(18, 14) }} />
+            </button>
+          )}
+        </div>
+      </Section>
+  )
+}
+
+/**
  * The main column of the restaurant page on desktop: Offers for today, Deals &
  * cashback, the menu banner, photos, reviews (+ "Leave a review"), About the
  * Restaurant and Amenities, sized for the 1128 column of the 1920 frame.
@@ -304,12 +424,6 @@ export function RestaurantDesktopSections({
   worthIt: string | null
   amenities: string[]
 }) {
-  const aspects = [
-    { label: 'Food', value: aspect(reviews, 'food_rating') },
-    { label: 'Service', value: aspect(reviews, 'service_rating') },
-    { label: 'Ambience', value: aspect(reviews, 'ambience_rating') },
-  ].filter(a => a.value != null)
-  const ratingCount = summary.count >= 1000 ? `${(summary.count / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(summary.count)
   const about = [
     highlights && { title: 'Restaurant highlights', body: highlights },
     worthIt && { title: 'What makes it worth it', body: worthIt },
@@ -317,7 +431,7 @@ export function RestaurantDesktopSections({
   ].filter((a): a is { title: string; body: string } => !!a)
 
   return (
-    <div className='hidden font-(family-name:--font-dm-sans) md:block' style={{ paddingBottom: t(90) }}>
+    <div className='font-(family-name:--font-dm-sans)' style={{ paddingBottom: t(90) }}>
       <OffersRow restaurantOffers={restaurantOffers} bankOffers={bankOffers} merchant={merchant} />
 
       {menuImages.length > 0 && (
@@ -337,48 +451,7 @@ export function RestaurantDesktopSections({
         </Section>
       )}
 
-      <Section id='reviews' title='Reviews' top={22} gap={20}>
-        {summary.count > 0 && (
-          <div className='flex items-center' style={{ minHeight: tMin(56, 44), marginBottom: tMin(28, 16) }}>
-            <div className='flex flex-col items-center' style={{ marginRight: tMin(70, 22) }}>
-              <span className={`flex items-center justify-center font-bold text-white ${INTER} bg-[#007c40]`} style={{ width: tMin(82, 62), height: tMin(36, 28), borderRadius: t(30.07), gap: t(11.6), fontSize: tMin(19.25, 15), lineHeight: tMin(28, 20) }}>
-                {summary.avg.toFixed(1)}
-                <Image src={`${A}/rating-star-lg.svg`} alt='' width={20} height={18} style={{ width: tMin(11.94, 10), height: tMin(11.94, 10) }} />
-              </span>
-              <span className='font-medium text-[#8b898d] underline' style={{ fontSize: tMin(11, 10), lineHeight: tMin(15, 13), marginTop: t(8.2) }}>{ratingCount} ratings</span>
-            </div>
-            {aspects.map(a => (
-              <div key={a.label} className='flex items-center self-stretch'>
-                <span className='rounded-[5.2px] bg-[#8b898d]' style={{ width: 1.3, height: tMin(52, 40) }} />
-                <div className='flex flex-col items-center font-medium' style={{ padding: `0 ${tMin(41, 16)}`, fontSize: tMin(15.6, 12), lineHeight: tMin(21, 16) }}>
-                  <span className='font-semibold text-[#443c44]'>{Number(a.value).toFixed(1)}</span>
-                  <span className='text-[#8b898d]'>{a.label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {reviews.length > 0 ? (
-          <div className='grid grid-cols-1 lg:grid-cols-2' style={{ gap: tMin(24, 12) }}>
-            {reviews.slice(0, 2).map(r => <ReviewCard key={r.id} review={r} />)}
-          </div>
-        ) : (
-          <p className='text-[#767677]' style={{ fontSize: tMin(16, 13) }}>No reviews yet — be the first to share your experience at {name}.</p>
-        )}
-        <div className='flex flex-wrap items-center justify-between' style={{ marginTop: tMin(24, 14), gap: tMin(12, 8) }}>
-          <LeaveReviewDialog kind='restaurant' entityId={restaurantId} entityName={name} variant='figma' />
-          {summary.count > 2 && (
-            <Link
-              href={`/dining/${slug}/reviews`}
-              className='flex items-center justify-between border-solid border-[#e5e5e5] bg-white text-[#252427] hover:bg-gray-50'
-              style={{ width: tMin(375, 200), height: tMin(43.75, 36), borderWidth: 1.25, borderRadius: t(24.62), padding: `0 ${tMin(15, 12)} 0 ${tMin(24, 14)}`, gap: 8, fontSize: tMin(14.22, 12), lineHeight: tMin(20, 16) }}
-            >
-              Show all {summary.count} reviews
-              <ChevronRight className='shrink-0 text-[#666]' style={{ width: tMin(18, 14), height: tMin(18, 14) }} />
-            </Link>
-          )}
-        </div>
-      </Section>
+      <ReviewsSection kind='restaurant' entityId={restaurantId} name={name} reviews={reviews} summary={summary} allHref={`/dining/${slug}/reviews`} />
 
       {about.length > 0 && (
         <Section id='about-desktop' title='About the Restaurant' top={22} gap={16}>

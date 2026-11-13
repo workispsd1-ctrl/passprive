@@ -43,7 +43,7 @@ export function Section({ id, title, className, children }: { id: string; title:
 /** Stamp sheet — 430×202, app parity: RepeatRewardSection.jsx. */
 export function StampCard({ href, image, name, area, visits, total, almostThere }: { href: string; image: string | null; name: string; area: string | null; visits: number; total: number; almostThere: boolean }) {
   return (
-    <Link href={href} className={cn('flex min-h-[calc(202*var(--u))] w-[calc(430*var(--u))] shrink-0 items-center gap-[calc(16*var(--u))] rounded-[calc(18*var(--u))] border border-[#f1f1f3] bg-white p-[calc(18*var(--u))] hover:bg-gray-50', SHADOW)}>
+    <Link href={href} className={cn('flex min-h-[calc(202*var(--u))] w-[calc(430*var(--u))] max-md:w-full shrink-0 items-center gap-[calc(16*var(--u))] rounded-[calc(18*var(--u))] border border-[#f1f1f3] bg-white p-[calc(18*var(--u))] hover:bg-gray-50', SHADOW)}>
       <span className='relative h-[calc(136*var(--u))] w-[calc(110*var(--u))] shrink-0 overflow-hidden rounded-[calc(12*var(--u))] bg-gray-100'>
         {image && <Image src={image} alt='' fill sizes='110px' className='object-cover' />}
       </span>
@@ -176,9 +176,9 @@ export function AvailableOffers({ inStoreOffers, bankOffers, merchant, exclusive
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-[calc(18*var(--u))]'>
       <h2 className='text-[calc(18*var(--u))] leading-[calc(23*var(--u))] font-bold text-[#2c2d32]'>Offers for today</h2>
-      <div className='flex gap-[calc(16*var(--u))]'>
+      <div className='flex gap-[calc(16*var(--u))] max-md:-mx-4 max-md:scrollbar-hide max-md:overflow-x-auto max-md:px-4 max-md:py-2'>
         {cards.map((card, i) => (
-          <div key={i} className='relative flex w-[calc(362*var(--u))] min-w-0 shrink-0'>
+          <div key={i} className='relative flex w-[calc(362*var(--u))] max-md:w-[78vw] min-w-0 shrink-0'>
             {card}
             {i < cards.length - 1 && (
               <span className='absolute top-1/2 right-[calc(-19*var(--u))] z-10 flex size-[calc(22*var(--u))] -translate-y-1/2 items-center justify-center rounded-full bg-[#767677] text-[calc(16*var(--u))] leading-[calc(21*var(--u))] font-bold text-white'>
@@ -201,7 +201,7 @@ function ServiceTile({ category, href }: { category: ServiceCategory; href: stri
   return (
     <AuthLink
       href={href}
-      className='relative h-[calc(186*var(--u))] w-[calc((100%-7*16*var(--u))/8)] shrink-0 snap-start overflow-hidden rounded-[calc(12*var(--u))] bg-linear-to-b from-[#ffe7de] to-[#fff7f2] transition-transform hover:-translate-y-0.5'
+      className='relative h-[calc(186*var(--u))] w-[calc((100%-7*16*var(--u))/8)] max-md:h-40 max-md:w-[calc((100%-2*16*var(--u))/3)] shrink-0 snap-start overflow-hidden rounded-[calc(12*var(--u))] bg-linear-to-b from-[#ffe7de] to-[#fff7f2] transition-transform hover:-translate-y-0.5'
     >
       {category.image ? (
         <Image src={category.image} alt={category.title} fill sizes='10vw' className='object-cover object-top' />
@@ -218,7 +218,7 @@ function ServiceTile({ category, href }: { category: ServiceCategory; href: stri
 function VideoTile({ src }: { src: string }) {
   const [muted, setMuted] = useState(true)
   return (
-    <div className={cn('relative h-[calc(320*var(--u))] min-w-0 overflow-hidden rounded-[calc(18*var(--u))] bg-[#e1e1e1]', SHADOW)}>
+    <div className={cn('relative h-[calc(320*var(--u))] max-md:h-44 min-w-0 overflow-hidden rounded-[calc(18*var(--u))] bg-[#e1e1e1]', SHADOW)}>
       <video src={src} autoPlay loop muted={muted} playsInline className='absolute inset-0 size-full object-cover' />
       <button
         type='button'
@@ -240,7 +240,7 @@ export function Vibes({ gallery, photos, cover }: { gallery: string[]; photos: s
   const tiles = media.slice(0, 4)
   const hidden = media.length - tiles.length
   return (
-    <div className='grid grid-cols-4 gap-[calc(20*var(--u))]'>
+    <div className='grid grid-cols-4 gap-[calc(20*var(--u))] max-md:grid-cols-2 max-md:gap-3'>
       {tiles.map((src, i) => {
         if (isVideoUrl(src)) return <VideoTile key={src} src={src} />
         const last = i === tiles.length - 1 && hidden > 0
@@ -250,7 +250,7 @@ export function Vibes({ gallery, photos, cover }: { gallery: string[]; photos: s
             type='button'
             onClick={() => openAt(photos.indexOf(src))}
             aria-label={last ? `View all ${media.length} photos` : `View photo ${i + 1}`}
-            className={cn('group relative h-[calc(320*var(--u))] min-w-0 overflow-hidden rounded-[calc(18*var(--u))] bg-[#e1e1e1]', SHADOW)}
+            className={cn('group relative h-[calc(320*var(--u))] max-md:h-44 min-w-0 overflow-hidden rounded-[calc(18*var(--u))] bg-[#e1e1e1]', SHADOW)}
           >
             <Image src={src} alt='' fill sizes='20vw' className='object-cover transition-transform duration-500 group-hover:scale-[1.05]' />
             {last && (
@@ -299,7 +299,7 @@ export function HelpBar() {
   )
 }
 
-/** Offers, deals, services, vibes, about and reviews on desktop; phones use the app layout. */
+/** Offers, deals, services, vibes, about and reviews — the website layout on every width (stacks on phones). */
 export function WellnessDesktopSections({
   storeId,
   name,
@@ -340,9 +340,9 @@ export function WellnessDesktopSections({
   // app parity: ServiceStoreDetails previewTier — the plan the deals and cashback are shown for
   const [previewTier, setPreviewTier] = useState<PreviewTier | null>(null)
   return (
-    <div className='hidden font-(family-name:--font-dm-sans) md:block'>
+    <div className='font-(family-name:--font-dm-sans)'>
       {/* Rewards and offers — 28 under the tabs, bottoms aligned, 28 apart */}
-      <div data-section='offers' className='mt-[calc(28*var(--u))] flex scroll-mt-[calc(170*var(--u))] items-end gap-[calc(28*var(--u))] empty:hidden'>
+      <div data-section='offers' className='mt-[calc(28*var(--u))] flex scroll-mt-[calc(170*var(--u))] items-end gap-[calc(28*var(--u))] empty:hidden max-md:flex-col max-md:items-stretch'>
         {stamp && <StampCard href={`/visit-rewards/store/${storeId}`} image={cover} name={name} area={area} {...stamp} />}
         <AvailableOffers inStoreOffers={inStoreOffers} bankOffers={bankOffers} merchant={merchant} />
       </div>
@@ -374,7 +374,7 @@ export function WellnessDesktopSections({
 
       <Section id='about' title={hasAbout ? 'About the brand' : 'Help'}>
         {hasAbout && (
-          <div className='grid grid-cols-4 gap-[calc(20*var(--u))]'>
+          <div className='grid grid-cols-4 gap-[calc(20*var(--u))] max-md:grid-cols-1'>
             {highlights && <AboutCard icon='highlights.png' title='Salon highlights' body={highlights} />}
             {worthIt && <AboutCard icon='worth-it.webp' title='What makes it worth it' body={worthIt} />}
           </div>
@@ -383,7 +383,7 @@ export function WellnessDesktopSections({
       </Section>
 
       <div className='mt-[calc(40*var(--u))] [&_h2]:text-[length:calc(18*var(--u))]'>
-        <DetailReviews kind='store' entityId={storeId} entityName={name} reviews={reviews} summary={summary} />
+        <DetailReviews kind='store' aspect='wellness' entityId={storeId} entityName={name} reviews={reviews} summary={summary} />
       </div>
     </div>
   )

@@ -21,7 +21,7 @@ export function HotOnPassprive({
         <Link
           key={c.id}
           href={`/collections/${c.slug}`}
-          className="w-81.5 shrink-0 xl:w-90 2xl:w-105 min-[120rem]:w-[489px]"
+          className="w-81.5 max-md:w-[60vw] shrink-0 xl:w-90 2xl:w-105 min-[120rem]:w-[489px]"
         >
           <div className="relative aspect-326/218 overflow-hidden rounded-[16px] bg-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
             {c.cover_image_url && (

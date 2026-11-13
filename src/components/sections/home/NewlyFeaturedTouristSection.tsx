@@ -196,7 +196,7 @@ export function NewlyFeaturedTouristSection({
             <Link
               key={place.id}
               href={`/tourist/${place.slug ?? place.id}`}
-              className='relative shrink-0 w-[72vw] max-w-70 aspect-5/4 rounded-2xl overflow-hidden block bg-gray-900'
+              className='relative shrink-0 w-[60vw] max-w-70 aspect-5/4 rounded-2xl overflow-hidden block bg-gray-900'
             >
               <CardImageSlider place={place} />
               <div className='absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-black/15 pointer-events-none z-10' />

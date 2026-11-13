@@ -5,6 +5,7 @@ import { MessageSquareText, Star, ThumbsUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LeaveReviewDialog } from '@/components/shared/LeaveReviewDialog'
 import { DetailSection } from './DetailSection'
+import type { ReviewAspect } from '@/lib/reviews'
 
 export type DetailReview = {
   id: string
@@ -102,15 +103,18 @@ export function DetailReviews({
   entityName,
   reviews,
   summary,
+  aspect,
 }: {
   kind: 'restaurant' | 'store'
+  /** what the review's three ratings are called — 'wellness' for salons and spas */
+  aspect?: ReviewAspect
   entityId: string
   entityName: string
   reviews: DetailReview[]
   summary: { avg: number; count: number }
 }) {
   const [all, setAll] = useState(false)
-  const leaveReview = <LeaveReviewDialog kind={kind} entityId={entityId} entityName={entityName} />
+  const leaveReview = <LeaveReviewDialog kind={kind} entityId={entityId} entityName={entityName} aspect={aspect} />
 
   if (!reviews.length) {
     return (

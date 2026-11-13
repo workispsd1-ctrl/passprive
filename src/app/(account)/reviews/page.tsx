@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { SetPageTitle } from '@/components/layout/MinimalHeader/SetPageTitle'
-import { REVIEW_CONFIG, type ReviewKind } from '@/lib/reviews'
+import { REVIEW_CONFIG, reviewSteps, type ReviewKind } from '@/lib/reviews'
 import { YourReviewsClient, type UserReview } from './YourReviewsClient'
 
 export const metadata: Metadata = {
@@ -45,11 +45,13 @@ export default async function YourReviewsPage() {
       ? supabase.from('restaurants').select('id, name, slug, area, city, cover_image').in('id', restaurantIds)
       : null,
     storeIds.length
-      ? supabase.from('stores').select('id, name, slug, location_name, city, cover_image, logo_url').in('id', storeIds)
+      ? supabase.from('stores').select('id, name, slug, location_name, city, cover_image, logo_url, store_type').in('id', storeIds)
       : null,
   ])
 
   const placeById = new Map<string, Place>()
+  // wellness (SERVICE) stores name their ratings Treatment / Staff / Ambience
+  const wellnessStores = new Set((stores?.data ?? []).filter(s => String(s.store_type ?? '').toUpperCase() === 'SERVICE').map(s => s.id))
   for (const r of restaurants?.data ?? []) {
     placeById.set(r.id, {
       name: r.name,
@@ -76,7 +78,7 @@ export default async function YourReviewsPage() {
         kind,
         rating: Number(row.rating ?? 0),
         text: (row.review_text as string | null) ?? '',
-        subRatings: config.steps
+        subRatings: reviewSteps(kind, kind === 'store' && wellnessStores.has(row[config.entityColumn] as string) ? 'wellness' : undefined)
           .filter(step => step.column && row[step.column] != null)
           .map(step => ({ label: step.label, value: Number(row[step.column as string]) })),
         approved: row.is_approved === true,

@@ -158,6 +158,12 @@ export function canBook(e: MerchantCapabilityFields): boolean {
 }
 
 /** App parity: cashbackBadge.js `getEntityCashbackPct` — the % rate itself, 0 when not eligible. */
+/** The plan's best rate (a preferred merchant) — app parity: CashbackIntroStrip `getCashbackPct("preferred", plan)`. */
+export function planCashbackPct(plan: CashbackPlan): number {
+  if (!earnOn()) return 0
+  return plan === 'black' ? 3 : plan === 'premiere' ? 1.5 : 0.5
+}
+
 export function getCashbackPct(e: MerchantCapabilityFields, plan: CashbackPlan): number {
   if (!earnOn()) return 0
   const tier = merchantTierOf(e)

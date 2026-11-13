@@ -19,7 +19,7 @@ export function WellnessHero({ banners }: { banners: WebsiteBanner[] }) {
         // CMS wellness banner art is a wide 7680×1584 (160/33) strip — matching
         // that ratio exactly means `cover` needs no crop and `contain` needs
         // no letterbox.
-        className="aspect-160/33 min-h-35 rounded-none!"
+        className="aspect-160/33 md:min-h-35 rounded-none!"
       />
     )
   }
