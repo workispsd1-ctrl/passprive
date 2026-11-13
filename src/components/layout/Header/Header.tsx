@@ -1,6 +1,7 @@
 import { DesktopHeaderClient } from './DesktopHeaderClient'
 import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { MobileHeaderClient } from './MobileHeaderClient'
+import { HideOnRoutes } from './HideOnRoutes'
 import { getCurrentUser } from '@/lib/services/user'
 import { getAllAppBanners, getWebsiteBanners } from '@/lib/services/websiteBanners'
 import { getUserMembership } from '@/lib/services/subscription'
@@ -37,6 +38,7 @@ export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
         : 'premium'
 
   return (
+    <HideOnRoutes>
     <header className="relative z-50">
       <HuntSpot slot="home-header" />
       <DesktopHeaderClient
@@ -56,5 +58,6 @@ export async function Header({ minimal = false }: { minimal?: boolean } = {}) {
         />
       </div>
     </header>
+    </HideOnRoutes>
   )
 }

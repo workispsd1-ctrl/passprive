@@ -3,6 +3,7 @@ import { LocationProvider } from '@/lib/context/LocationContext'
 import { AuthPromptProvider } from '@/lib/context/AuthPromptContext'
 import { SavedProvider } from '@/lib/context/SavedContext'
 import { PlanProvider } from '@/lib/context/PlanContext'
+import { AppPromptProvider } from '@/lib/context/AppPromptContext'
 import { PlatformFlagsProvider } from '@/lib/context/PlatformFlagsContext'
 import { getPlatformFlags } from '@/lib/services/platformFlags'
 import { getCurrentUser } from '@/lib/services/user'
@@ -21,6 +22,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <AuthPromptProvider>
         <SavedProvider>
           <PlanProvider plan={plan}>
+          <AppPromptProvider>
             <Header />
             {/* pt clears the category-nav pill, which overhangs the header by ~38px
                 (see translate-y / -mb in HeaderHeroNav) */}
@@ -31,6 +33,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             <Suspense fallback={null}>
               <FloatingModeNav />
             </Suspense>
+          </AppPromptProvider>
           </PlanProvider>
         </SavedProvider>
       </AuthPromptProvider>

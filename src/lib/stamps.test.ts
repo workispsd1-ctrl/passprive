@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { giftLabel, numberActivity, rewardText, sheetProgress, sheetStatus, stampColor, stampProgress, storeCollectsStamps } from './stamps'
+import { giftLabel, numberActivity, rewardText, sheetProgress, sheetStatus, stampColor, stampProgress, stampVisits, storeCollectsStamps } from './stamps'
 
 describe('giftLabel', () => {
   it('follows the visits', () => {
@@ -63,5 +63,33 @@ describe('sheet details', () => {
   })
   it('numbers activity oldest first and lists newest first', () => {
     expect(numberActivity([{ id: 'a' }, { id: 'b' }]).map(r => [r.id, r.stampNumber])).toEqual([['b', 2], ['a', 1]])
+  })
+})
+
+// app parity: CollectStampsScreen / StampDetailScreen `claimed`
+describe('claimed rewards', () => {
+  it('labels a claimed card and stops calling it complete', () => {
+    expect(giftLabel({ visits: 5, target: 5, claimed: true })).toBe('Reward claimed')
+    expect(stampProgress({ visits: 5, target: 5, claimed: true }).complete).toBe(false)
+    expect(sheetStatus(5, 5, true)).toBe('Reward claimed')
+  })
+
+  it('keeps a claimed reward out of unlocked', () => {
+    const tiers = [{ visitCount: 3 }]
+    expect(sheetProgress({ visitCount: 3, tiers }).unlocked).toBe(true)
+    expect(sheetProgress({ visitCount: 3, tiers, claimed: true })).toMatchObject({ unlocked: false, claimed: true })
+  })
+})
+
+// app parity: StampDetailScreen.jsx — paid bills, one stamp per Mauritius day
+describe('stampVisits', () => {
+  it('counts the first bill of each Mauritius day, newest first', () => {
+    const rows = stampVisits([
+      { id: 'a', created_at: '2026-11-01T05:00:00Z' }, // 09:00 MU, 1 Nov
+      { id: 'b', created_at: '2026-11-01T15:00:00Z' }, // 19:00 MU, same day
+      { id: 'c', created_at: '2026-11-01T21:00:00Z' }, // 01:00 MU, 2 Nov
+      { id: 'd', created_at: '2026-11-05T10:00:00Z' },
+    ])
+    expect(rows.map(r => [r.id, r.stampNumber])).toEqual([['d', 3], ['c', 2], ['a', 1]])
   })
 })

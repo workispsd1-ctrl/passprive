@@ -13,26 +13,22 @@ interface Props {
   pad: string
 }
 
+/** The category home screens — the only ones that carry the category-nav pill. */
+const NAV_ROUTES = new Set(['/', '/dining', '/stores', '/wellness', '/tourist'])
+
 /**
  * The hero banner + category-nav pill.
  *
  * Home overlaps the pill over the hero's bottom edge. Wellness shows
  * its own full-bleed hero with the pill sitting cleanly below it (no
- * overlap). Every other route just renders the pill below the top bar.
+ * overlap). The other category homes render the pill below the top bar;
+ * detail and every other screen opens on the top bar alone.
  */
 export function HeaderHeroNav({ banners, wellnessBanners, pad }: Props) {
   const pathname = usePathname()
+  if (!NAV_ROUTES.has(pathname)) return null
   const isHome = pathname === '/'
   const isWellness = pathname === '/wellness'
-  // the restaurant page opens straight on its own header (web design) — no category pills
-  // the stamp pages open on their own heading or hero
-  if (pathname.startsWith('/visit-rewards')) return null
-  // Favourites opens on its own page header (web design) — no category pills
-  if (pathname === '/saved' || pathname.startsWith('/saved/')) return null
-  // the location pages open on their own "Select your location" / "Add address" header
-  if (pathname === '/location') return null
-  if (/^\/wellness\/[^/]+$/.test(pathname)) return null
-  if (/^\/dining\/(?!mood\/)[^/]+(\/book|\/order|\/reviews)?$/.test(pathname)) return null
 
   if (isHome) {
     return (

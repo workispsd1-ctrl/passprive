@@ -83,6 +83,10 @@ export type RevealItem = {
   terms: DealTerms
   /** the ticket stub's "UP TO 5%" — the best any tier gets (app: dealUpToLabel) */
   upTo?: string
+  /** a percentage deal: revealed through `reveal_deal_percent` (app: isPercentDealItem) */
+  percent?: boolean
+  /** each plan's ceiling for this deal, e.g. { free: 2.5, plus: 5, black: 10 } (app: dealTierCaps) */
+  caps?: Partial<Record<string, number>>
 }
 
 /** `redeem_precheck` / `redeem_with_pin` / `redeem_with_nfc` row. */
@@ -298,6 +302,52 @@ export function pickDealsForTier(rows: RestaurantDeal[], tier: string | null | u
   })
 }
 
+/** "premiere" (the Plus plan's key) → "plus" — app parity: dealReveals.js planTierSlug. */
+export function planTierSlug(plan: string | null | undefined): string | null {
+  const slug = String(plan ?? '').trim().toLowerCase()
+  return slug === 'premiere' ? 'plus' : slug || null
+}
+
+/** "7.5%" — app parity: DealRevealCard.jsx formatPercent. */
+export function formatPercent(value: number): string {
+  return `${Number(Number(value).toFixed(2))}%`
+}
+
+function isPercentType(type: string | null | undefined): boolean {
+  const t = String(type ?? '').toLowerCase()
+  return t === 'percentage' || t === 'percent'
+}
+
+/** A deal's per-plan percent ceilings — app parity: dealReveals.js dealTierCaps (kind 'deal'). */
+export function dealTierCaps(deal: RestaurantDeal): Partial<Record<string, number>> {
+  const caps: Partial<Record<string, number>> = {}
+  for (const row of deal.restaurant_deal_tiers ?? []) {
+    const value = Number(row?.benefit_percent)
+    if (row?.is_active !== false && value > 0) caps[String(row.tier).toLowerCase()] = value
+  }
+  return caps
+}
+
+/**
+ * An offer's per-plan percent ceilings — app parity: dealReveals.js
+ * dealTierCaps: `metadata.tier_percents` when set, else a quarter / half / all
+ * of the offer's discount for Free / Plus / Black.
+ */
+export function offerTierCaps(offer: Pick<MerchantOffer, 'discount_value' | 'metadata'>): Partial<Record<string, number>> {
+  const caps: Partial<Record<string, number>> = {}
+  const set = offer.metadata?.tier_percents
+  if (set && typeof set === 'object') {
+    for (const [tier, raw] of Object.entries(set as Record<string, unknown>)) {
+      const value = Number(raw)
+      if (value > 0 && value <= 100) caps[tier] = value
+    }
+    if (Object.keys(caps).length) return caps
+  }
+  const value = Number(offer.discount_value)
+  if (!(value > 0)) return caps
+  return { free: Number((value / 4).toFixed(2)), plus: Number((value / 2).toFixed(2)), black: value }
+}
+
 export function dealItem(deal: RestaurantDeal): RevealItem | null {
   const benefit = dealBenefitLabel(deal)
   if (!benefit) return null
@@ -308,6 +358,8 @@ export function dealItem(deal: RestaurantDeal): RevealItem | null {
     benefit,
     score: benefitScore(deal.tierRow, String(deal.deal_type ?? '').toLowerCase(), null),
     upTo: dealUpToLabel(deal),
+    percent: String(deal.deal_type ?? '').toLowerCase() === 'percentage',
+    caps: dealTierCaps(deal),
     terms: {
       starts_at: deal.starts_at,
       ends_at: deal.ends_at,
@@ -329,12 +381,28 @@ export function offerItem(offer: MerchantOffer, kind: 'restaurant_offer' | 'stor
     benefit,
     score: benefitScore(undefined, String(offer.offer_type ?? '').toLowerCase(), offer.discount_value),
     upTo: offerUpToLabel(offer),
+    percent: isPercentType(offer.offer_type),
+    caps: offerTierCaps(offer),
     terms: {
       starts_at: offer.start_at,
       ends_at: offer.end_at,
       terms: offer.description ? [offer.description] : [],
     },
   }
+}
+
+/**
+ * What a reveal ticket shows — app parity: DealRevealCard.jsx `benefit` and
+ * `upTo`. Revealed: the percent `reveal_deal_percent` returned. Hidden: the
+ * viewed plan's ceiling, else the item's own benefit. The stub's "UP TO" is
+ * that plan's ceiling, else the best any tier gets.
+ */
+export function revealDisplay(item: RevealItem, tier: string | null, revealedPercent: number | null | undefined): { benefit: string; upTo: string } {
+  const cap = tier ? Number(item.caps?.[tier]) : NaN
+  const hasCap = cap > 0
+  const benefit =
+    Number(revealedPercent) > 0 ? `${formatPercent(Number(revealedPercent))} OFF` : hasCap ? `${formatPercent(cap)} OFF` : item.benefit
+  return { benefit, upTo: hasCap ? formatPercent(cap) : (item.upTo ?? '') }
 }
 
 /** Best saving first; ties keep their original order. */

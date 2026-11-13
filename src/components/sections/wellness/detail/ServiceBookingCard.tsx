@@ -1,10 +1,10 @@
 'use client'
 
-import Link from 'next/link'
 import { BadgePercent } from 'lucide-react'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { canBook, canPayBill, getCashbackPct } from '@/lib/cashback'
 import type { ServiceStore } from '@/lib/types/stores'
+import { AuthLink } from '@/components/shared/AuthLink'
 
 function CashbackLine({ store }: { store: ServiceStore }) {
   const pct = getCashbackPct(store, useUserPlan())
@@ -34,9 +34,9 @@ export function ServiceBookingBar({ store, hasServices }: { store: ServiceStore;
     <div className='fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 px-4 pt-2.5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(0,0,0,0.06)] backdrop-blur md:hidden'>
       <div className='mb-2 flex justify-center'><CashbackLine store={store} /></div>
       {showBook ? (
-        <Link href={bookHref(store)} className='block rounded-full bg-brand py-3 text-center text-[15px] font-bold text-white'>
+        <AuthLink href={bookHref(store)} className='block rounded-full bg-brand py-3 text-center text-[15px] font-bold text-white'>
           Book a slot
-        </Link>
+        </AuthLink>
       ) : (
         <p className='text-center text-[12px] text-gray-500'>Pay your bill with Privé Credits in the PassPrivé app.</p>
       )}

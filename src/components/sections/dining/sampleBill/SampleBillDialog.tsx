@@ -12,6 +12,8 @@ import { MAX_BILL_DIGITS, type BillOffer } from '@/lib/payBill'
 import type { DiscountCaps } from '@/lib/services/membershipCaps'
 import { billCashbackPct, computeSampleBill, rs, sampleBase } from '@/lib/sampleBill'
 import { cn } from '@/lib/utils'
+import { AuthLink } from '@/components/shared/AuthLink'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 
 /**
  * Design unit for these popups. The Figma frames are 1920 wide and every
@@ -81,6 +83,8 @@ function Modal({ title, width, onClose, children }: {
         className={cn('relative my-auto max-w-full rounded-[calc(24*var(--u))] bg-white px-32 pt-28 pb-32 shadow-[0_calc(16*var(--u))_calc(56*var(--u))_rgba(0,0,0,0.16)] max-lg:px-20', width)}
         onClick={e => e.stopPropagation()}
       >
+        {/* app parity: SampleBill.jsx sits in AnimatedSheet — the "sheet" hunt slot */}
+        <HuntSpot slot='sheet' />
         <h2 className='pr-48 text-[calc(24*var(--u))] leading-31 font-bold text-[#1C1C1E]'>{title}</h2>
         <button
           type='button'
@@ -470,9 +474,9 @@ export function SampleBillDialog({ open, onClose, ...props }: SampleBillProps & 
               </div>
             </div>
             {cta && (
-              <Link href={cta.href} onClick={onClose} className={cn(PRIMARY_BTN, 'mt-24')}>
+              <AuthLink href={cta.href} onClick={onClose} className={cn(PRIMARY_BTN, 'mt-24')}>
                 {cta.label}
-              </Link>
+              </AuthLink>
             )}
           </div>
         </div>

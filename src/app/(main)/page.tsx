@@ -57,6 +57,25 @@ export default async function Home() {
   const stores = scopeStoresToRadius(allStores, coords);
   const malls = mallsTitle ? await getActiveMalls(coords) : [];
   const featured = restaurants.slice(0, 8);
+  // badge fields for the "New Kicks in Store" rail, which its RPC doesn't return
+  const newStoreIds = new Set(newStores.map((n) => n.store_id));
+  const newStoreCapabilities = Object.fromEntries(
+    allStores
+      .filter((s) => newStoreIds.has(s.id))
+      .map((s) => [
+        s.id,
+        {
+          merchant_type: s.merchant_type,
+          merchant_plan: s.merchant_plan,
+          pay_bill_enabled: s.pay_bill_enabled,
+          service_level: s.service_level,
+          on_boarded: s.on_boarded,
+          booking_enabled: s.booking_enabled,
+          cashback_enabled: s.cashback_enabled,
+          is_promoted: s.is_promoted,
+        },
+      ]),
+  );
 
   return (
     <ServiceAreaGate>
@@ -73,7 +92,7 @@ export default async function Home() {
         className='relative left-1/2 w-screen -translate-x-1/2 bg-[#FFF7F2]'
       />
       {restaurants.length > 0 && <NowTrendingSection restaurants={restaurants} />}
-      {newStores.length > 0 && <NewKickInStores stores={newStores} />}
+      {newStores.length > 0 && <NewKickInStores stores={newStores} capabilities={newStoreCapabilities} />}
       {/* app parity: PlanYourSalonVisit — 15 km, or the same city / area for salons with no coordinates */}
       <SalonVisitSection stores={allStores} />
       {stores.length > 0 && <StoresNearYouSection stores={stores.filter((s) => !isWellnessStore(s))} />}

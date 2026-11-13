@@ -28,7 +28,9 @@ function formatDate(value: string) {
 export function StampDetailView({ detail }: { detail: StampDetail }) {
   const router = useRouter()
   const [showAll, setShowAll] = useState(false)
-  const { goal, total, visits, remaining, unlocked, almostThere } = sheetProgress({ visitCount: detail.visitCount, tiers: detail.tiers })
+  const { goal, total, visits, remaining, claimed, unlocked, almostThere } = sheetProgress({ visitCount: detail.visitCount, tiers: detail.tiers, claimed: detail.claimed })
+  // app parity: StampDetailScreen stampActivity — only the stamps that count toward the goal
+  const activity = total > 0 ? detail.activity.filter(row => row.stampNumber <= total) : detail.activity
   const icon = detail.kind === 'restaurant' ? 'dining' : detail.isService ? 'wellness' : 'shopping'
   const title = { fontSize: small(24, 17) }
   const pad = { padding: `max(16px, ${t(28)})` }
@@ -74,18 +76,18 @@ export function StampDetailView({ detail }: { detail: StampDetail }) {
 
             <div className='min-w-0 lg:col-start-1 lg:row-start-2'>
               <div className='grid grid-cols-1 gap-4 md:grid-cols-2 min-[120rem]:gap-6'>
-                {detail.activity.length > 0 && (
+                {activity.length > 0 && (
                   <section className={card} style={pad}>
                     <h2 className='font-bold text-[#1A1A1A]' style={title}>Recent Activity</h2>
                     <ul className='mt-3 divide-y divide-[#EFEFEF]'>
-                      {(showAll ? detail.activity : detail.activity.slice(0, 3)).map(row => (
+                      {(showAll ? activity : activity.slice(0, 3)).map(row => (
                         <li key={row.id} className='flex items-center justify-between' style={{ padding: `${small(14, 10)} 0`, gap: 12 }}>
                           <span className='font-medium text-[#1A1A1A]' style={{ fontSize: small(15, 13) }}>Stamp #{row.stampNumber} earned</span>
                           <span className='shrink-0 text-[#6B7280]' style={{ fontSize: small(13, 11) }}>{formatDate(row.date)}</span>
                         </li>
                       ))}
                     </ul>
-                    {detail.activity.length > 3 && (
+                    {activity.length > 3 && (
                       <button type='button' onClick={() => setShowAll(v => !v)} className='mx-auto mt-2 flex items-center gap-1 font-semibold text-[#E9561F]' style={{ fontSize: small(14, 12) }}>
                         {showAll ? 'Show less' : 'See all activity'} <ArrowRight className='size-3.5' />
                       </button>
@@ -143,10 +145,16 @@ export function StampDetailView({ detail }: { detail: StampDetail }) {
                   <div className='h-2 overflow-hidden rounded-full bg-[#E5E7EB]' style={{ marginTop: small(24, 14) }}>
                     <div className='h-full rounded-full bg-[#E9561F]' style={{ width: `${total > 0 ? Math.min(100, (visits / total) * 100) : 0}%` }} />
                   </div>
-                  <p className='text-[#6B7280]' style={{ marginTop: small(8, 6), fontSize: small(13, 11) }}>{unlocked ? 'Ready to redeem!' : `Complete ${remaining} more stamp${remaining === 1 ? '' : 's'} to unlock`}</p>
+                  <p className='text-[#6B7280]' style={{ marginTop: small(8, 6), fontSize: small(13, 11) }}>
+                    {claimed
+                      ? 'Reward claimed. Thanks for visiting!'
+                      : unlocked
+                        ? 'Ready to redeem!'
+                        : `Complete ${remaining} more stamp${remaining === 1 ? '' : 's'} to unlock`}
+                  </p>
                   <div className={cn('flex items-center justify-center rounded-full font-semibold', unlocked ? 'bg-[#E9561F] text-white' : 'bg-[#E2E6EC] text-[#64748B]')} style={{ marginTop: small(16, 12), minHeight: small(50, 42), gap: small(8, 6), fontSize: small(15, 13) }}>
-                    {!unlocked && <Lock className='size-4' />}
-                    {unlocked ? 'Show this at the venue to redeem' : 'Complete Stamps to Unlock'}
+                    {!unlocked && !claimed && <Lock className='size-4' />}
+                    {claimed ? 'Reward already redeemed' : unlocked ? 'Show this at the venue to redeem' : 'Complete Stamps to Unlock'}
                   </div>
                 </section>
               )}

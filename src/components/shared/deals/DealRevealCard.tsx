@@ -29,6 +29,7 @@ export function DealRevealCard({
   quota,
   revealed,
   busy,
+  locked = false,
   onReveal,
   onTerms,
 }: {
@@ -36,6 +37,8 @@ export function DealRevealCard({
   quota: DealQuota | null
   revealed: boolean
   busy: boolean
+  /** another plan's deal (TierPills preview): the button upgrades instead (app parity: DealRevealCard locked) */
+  locked?: boolean
   onReveal: () => void
   onTerms: () => void
 }) {
@@ -82,7 +85,7 @@ export function DealRevealCard({
               disabled={busy}
               className="relative flex min-h-6 min-w-31.5 items-center justify-center rounded-full bg-white px-3 py-1 text-[12px] font-bold text-[#2247FF] transition-transform hover:scale-[1.03] disabled:opacity-80"
             >
-              {busy ? <Loader2 className="size-4 animate-spin" /> : 'Tap to reveal now'}
+              {busy ? <Loader2 className="size-4 animate-spin" /> : locked ? 'Upgrade' : 'Tap to reveal now'}
             </button>
           </div>
         )}

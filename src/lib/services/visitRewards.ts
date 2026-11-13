@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { isCancelledStatus, numberActivity, sheetProgress, storeCollectsStamps, type StampCardData, type StampSubscription, type StampTier } from '@/lib/stamps';
+import { sheetProgress, stampVisits, storeCollectsStamps, type StampCardData, type StampSubscription, type StampTier } from '@/lib/stamps';
 
 // ─── Types (mirror the app's restaurants.ts exactly) ─────────────────────────
 
@@ -216,12 +216,13 @@ export async function getCollectStamps(): Promise<CollectStampsData> {
     in_store_ids: [...salonCards, ...storeCards].map(c => c.id),
   });
   const progress = new Map(
-    ((progressRows ?? []) as { entity_id: string; visit_count: number | null; target: number | null }[]).map(p => [String(p.entity_id), p]),
+    ((progressRows ?? []) as { entity_id: string; visit_count: number | null; target: number | null; claimed: boolean | null }[]).map(p => [String(p.entity_id), p]),
   );
   const withProgress = (cards: StampCardData[]) =>
     cards.map(card => {
       const row = progress.get(card.id);
-      return { ...card, visits: Number(row?.visit_count) || 0, target: Number(row?.target) || undefined };
+      // app parity: CollectStampsScreen withProgress — visits, target and claimed
+      return { ...card, visits: Number(row?.visit_count) || 0, target: Number(row?.target) || undefined, claimed: !!row?.claimed };
     });
 
   return { restaurants: withProgress(restaurants), salons: withProgress(salonCards), stores: withProgress(storeCards) };
@@ -269,12 +270,12 @@ export async function getStampSheets(): Promise<StampSheetsData> {
   const explore: StampCardData[] = [];
   places.forEach((place, i) => {
     const raw = rewards[i].data;
-    const row = (Array.isArray(raw) ? raw[0] : raw) as { enabled?: boolean; visit_count?: number; tiers?: StampTier[] } | null;
+    const row = (Array.isArray(raw) ? raw[0] : raw) as { enabled?: boolean; visit_count?: number; tiers?: StampTier[]; claimed?: boolean } | null;
     const tiers = Array.isArray(row?.tiers) ? row.tiers : [];
-    const progress = sheetProgress({ visitCount: row?.visit_count, tiers });
+    const progress = sheetProgress({ visitCount: row?.visit_count, tiers, claimed: row?.claimed });
     const target = progress.total || 7;
     const visits = Math.min(Number(row?.visit_count) || 0, target);
-    const card = { id: `${place.kind}:${place.id}`, name: place.name, location: place.location, image: place.image, href: place.href, visits, target };
+    const card = { id: `${place.kind}:${place.id}`, name: place.name, location: place.location, image: place.image, href: place.href, visits, target, claimed: !!row?.claimed };
     if (row?.enabled && visits > 0) {
       sheets.push({ ...card, total: target, rewardGoal: progress.goal, unlocked: progress.unlocked });
     } else {
@@ -294,8 +295,26 @@ export type StampDetail = {
   enabled: boolean;
   visitCount: number;
   tiers: StampTier[];
+  /** the member already redeemed this reward — app parity: StampDetailScreen `claimed` */
+  claimed: boolean;
   activity: { id: string; date: string; stampNumber: number }[];
 };
+
+/**
+ * The member's paid bills at one place, oldest first — app parity:
+ * StampDetailScreen.jsx: stamps come from PAID `bill_payments`, one per day.
+ */
+async function paidBillVisits(supabase: Awaited<ReturnType<typeof createClient>>, userId: string | undefined, column: 'store_id' | 'restaurant_id', id: string) {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from('bill_payments')
+    .select('id, created_at')
+    .eq('user_id', userId)
+    .eq(column, id)
+    .eq('status', 'PAID')
+    .order('created_at', { ascending: true });
+  return error ? [] : stampVisits((data ?? []) as { id: string; created_at: string }[]);
+}
 
 /** One venue's stamp card — app parity: screens/StampDetailScreen.jsx. */
 export async function getStampDetail(kind: string, id: string): Promise<StampDetail | null> {
@@ -307,9 +326,7 @@ export async function getStampDetail(kind: string, id: string): Promise<StampDet
     if (!store) return null;
     const { data: raw } = await supabase.rpc('store_repeat_reward', { in_store_id: id });
     const row = Array.isArray(raw) ? raw[0] : raw;
-    const { data: orders } = user
-      ? await supabase.from('store_orders').select('id, slot_start_at, created_at').eq('customer_user_id', user.id).eq('store_id', id).eq('status', 'DELIVERED').order('slot_start_at', { ascending: true })
-      : { data: [] };
+    const activity = await paidBillVisits(supabase, user?.id, 'store_id', id);
     const isService = String(store.store_type ?? '').toUpperCase() === 'SERVICE';
     return {
       kind: 'store',
@@ -321,7 +338,8 @@ export async function getStampDetail(kind: string, id: string): Promise<StampDet
       enabled: !!row?.enabled,
       visitCount: Number(row?.visit_count) || 0,
       tiers: Array.isArray(row?.tiers) ? row.tiers : [],
-      activity: numberActivity((orders ?? []).map(o => ({ id: String(o.id), date: String(o.slot_start_at || o.created_at) }))),
+      claimed: !!row?.claimed,
+      activity,
     };
   }
 
@@ -330,9 +348,7 @@ export async function getStampDetail(kind: string, id: string): Promise<StampDet
   if (!restaurant) return null;
   const { data: raw } = await supabase.rpc('restaurant_repeat_reward', { in_restaurant_id: id });
   const row = Array.isArray(raw) ? raw[0] : raw;
-  const { data: bookings } = user
-    ? await supabase.from('restaurant_bookings').select('id, booking_date, status, created_at').eq('customer_user_id', user.id).eq('restaurant_id', id).order('booking_date', { ascending: true }).order('booking_time', { ascending: true })
-    : { data: [] };
+  const activity = await paidBillVisits(supabase, user?.id, 'restaurant_id', id);
   const cuisines = ((restaurant.restaurant_tags ?? []) as { tag_type: string; tag_value: string }[]).filter(t => t.tag_type === 'cuisine').map(t => t.tag_value);
   return {
     kind: 'restaurant',
@@ -344,11 +360,8 @@ export async function getStampDetail(kind: string, id: string): Promise<StampDet
     enabled: !!row?.enabled,
     visitCount: Number(row?.visit_count) || 0,
     tiers: Array.isArray(row?.tiers) ? row.tiers : [],
-    activity: numberActivity(
-      (bookings ?? [])
-        .filter(b => !isCancelledStatus(b.status))
-        .map(b => ({ id: String(b.id), date: String(b.booking_date || b.created_at) })),
-    ),
+    claimed: !!row?.claimed,
+    activity,
   };
 }
 

@@ -10,6 +10,7 @@ import { DealRevealSection } from '@/components/shared/deals/DealRevealSection'
 import { DetailReviews, type DetailReview } from '@/components/shared/detail/DetailReviews'
 import type { OfferBody } from '@/components/shared/detail/OffersForToday'
 import { ReceiptCashbackBanner } from '@/components/shared/receipts/ReceiptCashbackBanner'
+import { TierPills, type PreviewTier } from '@/components/shared/TierPills'
 import { getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
 import { MEMBERSHIP_BADGE } from '@/lib/cashbackBadge'
 import { useUserPlan } from '@/lib/context/PlanContext'
@@ -18,6 +19,7 @@ import type { ServiceCategory, ServiceOffer } from '@/lib/types/stores'
 import { cn, isVideoUrl } from '@/lib/utils'
 import { ServiceMenuSection } from './ServiceMenuSection'
 import { bankBody, exclusiveBody } from './ServiceOffersSection'
+import { AuthLink } from '@/components/shared/AuthLink'
 
 /*
  * Figma "Salon details – Desktop" (1920 frame). Every length is in design px
@@ -26,10 +28,10 @@ import { bankBody, exclusiveBody } from './ServiceOffersSection'
 
 const DETAIL = '/assets/wellness-detail'
 const A = '/assets/merchant-detail'
-const SHADOW = 'shadow-[0_calc(4*var(--u))_calc(24*var(--u))_rgba(0,0,0,0.05)]'
+export const SHADOW = 'shadow-[0_calc(4*var(--u))_calc(24*var(--u))_rgba(0,0,0,0.05)]'
 
 /** Section — Heading/H5/Bold 18/26 #2C2D32, 20 above the content; sections sit 40 apart. */
-function Section({ id, title, className, children }: { id: string; title: string; className?: string; children: React.ReactNode }) {
+export function Section({ id, title, className, children }: { id: string; title: string; className?: string; children: React.ReactNode }) {
   return (
     <section data-section={id} className={cn('mt-[calc(40*var(--u))] flex scroll-mt-[calc(170*var(--u))] flex-col gap-[calc(20*var(--u))]', className)}>
       <h2 className='text-[calc(18*var(--u))] leading-[calc(26*var(--u))] font-bold text-[#2c2d32]'>{title}</h2>
@@ -39,7 +41,7 @@ function Section({ id, title, className, children }: { id: string; title: string
 }
 
 /** Stamp sheet — 430×202, app parity: RepeatRewardSection.jsx. */
-function StampCard({ href, image, name, area, visits, total, almostThere }: { href: string; image: string | null; name: string; area: string | null; visits: number; total: number; almostThere: boolean }) {
+export function StampCard({ href, image, name, area, visits, total, almostThere }: { href: string; image: string | null; name: string; area: string | null; visits: number; total: number; almostThere: boolean }) {
   return (
     <Link href={href} className={cn('flex min-h-[calc(202*var(--u))] w-[calc(430*var(--u))] shrink-0 items-center gap-[calc(16*var(--u))] rounded-[calc(18*var(--u))] border border-[#f1f1f3] bg-white p-[calc(18*var(--u))] hover:bg-gray-50', SHADOW)}>
       <span className='relative h-[calc(136*var(--u))] w-[calc(110*var(--u))] shrink-0 overflow-hidden rounded-[calc(12*var(--u))] bg-gray-100'>
@@ -135,7 +137,7 @@ function PagerCard({ icon, label, color, items, bank = false }: { icon: React.Re
 }
 
 /** "Offers for today" — cards 16 apart, joined by 22px "+" connectors. */
-function AvailableOffers({ inStoreOffers, bankOffers, merchant }: { inStoreOffers: ServiceOffer[]; bankOffers: ServiceOffer[]; merchant: MerchantCapabilityFields }) {
+export function AvailableOffers({ inStoreOffers, bankOffers, merchant, exclusiveLabel = 'Salon exclusive' }: { inStoreOffers: ServiceOffer[]; bankOffers: ServiceOffer[]; merchant: MerchantCapabilityFields; exclusiveLabel?: string }) {
   const plan = useUserPlan()
   const pct = getCashbackPct(merchant, plan)
   const cards: React.ReactNode[] = []
@@ -145,7 +147,7 @@ function AvailableOffers({ inStoreOffers, bankOffers, merchant }: { inStoreOffer
         key='exclusive'
         items={inStoreOffers.map(o => ({ id: o.id, ...exclusiveBody(o) }))}
         icon={<Image src={`${A}/offer-diamond.png`} alt='' width={22} height={19} className='h-[calc(19*var(--u))] w-[calc(22*var(--u))] shrink-0' />}
-        label='Salon exclusive'
+        label={exclusiveLabel}
         color='#ff4800'
       />,
     )
@@ -197,7 +199,7 @@ function AvailableOffers({ inStoreOffers, bankOffers, merchant }: { inStoreOffer
  */
 function ServiceTile({ category, href }: { category: ServiceCategory; href: string }) {
   return (
-    <Link
+    <AuthLink
       href={href}
       className='relative h-[calc(186*var(--u))] w-[calc((100%-7*16*var(--u))/8)] shrink-0 snap-start overflow-hidden rounded-[calc(12*var(--u))] bg-linear-to-b from-[#ffe7de] to-[#fff7f2] transition-transform hover:-translate-y-0.5'
     >
@@ -208,7 +210,7 @@ function ServiceTile({ category, href }: { category: ServiceCategory; href: stri
           {category.title}
         </span>
       )}
-    </Link>
+    </AuthLink>
   )
 }
 
@@ -231,7 +233,7 @@ function VideoTile({ src }: { src: string }) {
 }
 
 /** Salon atmosphere — four tiles 20 apart; the last counts what's left. The hero already shows the cover. */
-function Vibes({ gallery, photos, cover }: { gallery: string[]; photos: string[]; cover: string | null }) {
+export function Vibes({ gallery, photos, cover }: { gallery: string[]; photos: string[]; cover: string | null }) {
   const { openAt } = useGallery()
   const rest = gallery.filter(g => g !== cover)
   const media = rest.length ? rest : gallery
@@ -262,7 +264,7 @@ function Vibes({ gallery, photos, cover }: { gallery: string[]; photos: string[]
 }
 
 /** Brand detail card — padding 24, gap 18, radius 18; title 16/21 ExtraBold, body 15/23. */
-function AboutCard({ icon, title, body }: { icon: string; title: string; body: string }) {
+export function AboutCard({ icon, title, body }: { icon: string; title: string; body: string }) {
   const [open, setOpen] = useState(false)
   return (
     <article className={cn('flex min-h-[calc(210*var(--u))] min-w-0 flex-col gap-[calc(18*var(--u))] rounded-[calc(18*var(--u))] bg-white p-[calc(24*var(--u))]', SHADOW)}>
@@ -283,7 +285,7 @@ function AboutCard({ icon, title, body }: { icon: string; title: string; body: s
 }
 
 /** Help and support — 90 tall, #FFF1CF, radius 12. */
-function HelpBar() {
+export function HelpBar() {
   return (
     <Link href='/support' className='flex h-[calc(90*var(--u))] items-center justify-between rounded-[calc(12*var(--u))] bg-[#fff1cf] px-[calc(24*var(--u))] hover:bg-[#ffeab8]'>
       <span className='flex min-w-0 flex-col gap-[calc(5*var(--u))]'>
@@ -335,6 +337,8 @@ export function WellnessDesktopSections({
   summary: { avg: number; count: number }
 }) {
   const hasAbout = !!highlights || !!worthIt
+  // app parity: ServiceStoreDetails previewTier — the plan the deals and cashback are shown for
+  const [previewTier, setPreviewTier] = useState<PreviewTier | null>(null)
   return (
     <div className='hidden font-(family-name:--font-dm-sans) md:block'>
       {/* Rewards and offers — 28 under the tabs, bottoms aligned, 28 apart */}
@@ -345,9 +349,10 @@ export function WellnessDesktopSections({
 
       {/* the section hides until a deal or the receipt card loads */}
       <Section id='deals-cashback' title='Deals & cashback' className='[&:not(:has([data-offer-card]))]:hidden'>
+        <TierPills value={previewTier} onChange={setPreviewTier} className='max-w-80' />
         <div className={CARD_GRID}>
-          <DealRevealSection storeId={storeId} merchantName={name} variant='figma' />
-          <ReceiptCashbackBanner merchant={{ ...merchant, id: storeId }} kind='store' variant='figma' />
+          <DealRevealSection storeId={storeId} merchantName={name} variant='figma' previewTier={previewTier} />
+          <ReceiptCashbackBanner merchant={{ ...merchant, id: storeId }} kind='store' variant='figma' previewTier={previewTier} />
         </div>
       </Section>
 

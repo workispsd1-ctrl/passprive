@@ -21,6 +21,8 @@ import {
 import { useLocation } from '@/lib/context/LocationContext'
 import { cn, formatDistanceKm } from '@/lib/utils'
 import type { DealsCategory, DealsMode, DealsModeItem } from '@/lib/services/dealsMode'
+import { AuthLink } from '@/components/shared/AuthLink'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 
 const CATEGORIES: { key: DealsCategory; label: string; Icon: typeof Utensils }[] = [
   { key: 'dining', label: 'Dining', Icon: Utensils },
@@ -244,12 +246,12 @@ function PlaceCard({ item, mode }: { item: DealsModeItem; mode: DealsMode }) {
                 <span className='truncate'>Pay with Privé Credits</span>
               </p>
               {item.bookHref && item.bookLabel && (
-                <Link
+                <AuthLink
                   href={item.bookHref}
                   className='relative z-20 shrink-0 rounded-full border border-[#FFCA6D] bg-[#FFEEC4] px-3 py-1.5 text-[12px] font-bold text-[#762900] transition-colors hover:bg-[#FFE4A3]'
                 >
                   {item.bookLabel}
-                </Link>
+                </AuthLink>
               )}
             </div>
           )}
@@ -364,7 +366,9 @@ export function DealsModeClient({
   const otherMode = mode === 'deals' ? 'cashback' : 'deals'
 
   return (
-    <div className='mx-auto max-w-7xl px-4 pt-4 pb-28 font-(family-name:--font-dm-sans) md:px-6 md:pt-6'>
+    <div className='relative mx-auto max-w-7xl px-4 pt-4 pb-28 font-(family-name:--font-dm-sans) md:px-6 md:pt-6'>
+      {/* app parity: DealsScreen.jsx HuntSpot */}
+      <HuntSpot slot='deals' />
       <Hero mode={mode} category={category} total={items.length} />
 
       {/* sticky so the filters stay at hand while scrolling the grid */}

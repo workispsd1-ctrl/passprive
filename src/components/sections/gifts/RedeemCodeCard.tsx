@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Ticket, CheckCheck } from 'lucide-react'
+import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 
 interface Props {
   onRedeemSuccess: (newBalance: number) => void
@@ -12,9 +13,15 @@ export function RedeemCodeCard({ onRedeemSuccess }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<{ amount: number; new_balance: number } | null>(null)
+  const { requireLogin } = useAuthPrompt()
 
-  async function handleRedeem() {
+  // signed out → log in first, then the code is redeemed
+  function handleRedeem() {
     if (!redeemCode.trim()) return
+    requireLogin(redeem)
+  }
+
+  async function redeem() {
     setLoading(true)
     setError(null)
     try {

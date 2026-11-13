@@ -7,6 +7,7 @@ import QRCode from 'qrcode'
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog'
 import { Dialog, DialogDescription, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog'
 import { appDownloadUrl } from '@/lib/appLinks'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 import { formatPct, type BlackPlan } from '@/lib/receipts'
 import { cn } from '@/lib/utils'
 
@@ -49,6 +50,8 @@ function Popup({ open, onClose, className, children }: {
           )}
         >
           {children}
+          {/* app parity: AnimatedSheet.jsx "sheet" hunt slot */}
+          <HuntSpot slot='sheet' />
         </DialogPrimitive.Popup>
       </DialogPortal>
     </Dialog>
@@ -248,13 +251,28 @@ function QrLogo() {
 const BRACKET = 'absolute size-[calc(27.03*var(--u))] border-[#FF4800]'
 const BRACKET_W = 'calc(2.7027*var(--u))'
 
+/** Why the visitor is being sent to the app — picks the pop-up's line. */
+export type AppPromptReason = 'deal' | 'cashback'
+
+const APP_PROMPT_LINE: Record<AppPromptReason, { qr: string; phone: string }> = {
+  deal: {
+    qr: 'Scan the QR code to get the app and redeem deals using Phone PIN and NFC.',
+    phone: 'Get the app to redeem deals using Phone PIN and NFC.',
+  },
+  cashback: {
+    qr: 'Scan the QR code to get the app and earn cashback as Privé Credits on every bill.',
+    phone: 'Get the app to earn cashback as Privé Credits on every bill.',
+  },
+}
+
 /**
  * "Download the PassPrivé App" — Figma "Tap Unsuccessful - Desktop Pop-up"
- * (480 × 543). Deals are redeemed at the counter with the phone's NFC or the
- * staff PIN, so a desktop visitor is sent to the app with a QR code.
+ * (480 × 543). Deals are redeemed and cashback earned in the app, so the web
+ * sends visitors there: a QR code on desktop, a store button on phones.
  */
-export function DownloadAppDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function DownloadAppDialog({ open, onClose, reason = 'deal' }: { open: boolean; onClose: () => void; reason?: AppPromptReason }) {
   const url = appDownloadUrl()
+  const line = APP_PROMPT_LINE[reason]
   return (
     <Popup open={open} onClose={onClose} className='w-480 items-center gap-24 p-32 shadow-[0_calc(4*var(--u))_calc(12*var(--u))_rgba(0,0,0,0.08)] max-lg:px-20'>
       <div className='flex h-32 w-full shrink-0 items-center justify-between'>
@@ -265,16 +283,25 @@ export function DownloadAppDialog({ open, onClose }: { open: boolean; onClose: (
       <div className='flex w-full flex-col items-center gap-8 text-center'>
         <DialogTitle className='text-[calc(24*var(--u))] leading-31 font-black text-[#2C2D32]'>Download the PassPrivé App</DialogTitle>
         <DialogDescription className='text-[calc(14*var(--u))] leading-18 font-semibold text-[#666666]'>
-          Scan the QR code to get the app and redeem deals using Phone PIN and NFC.
+          <span className='max-lg:hidden'>{line.qr}</span>
+          <span className='lg:hidden'>{line.phone}</span>
         </DialogDescription>
       </div>
+
+      {/* phones: a QR can't be scanned from its own screen — /get-app opens the right store */}
+      <a
+        href='/get-app'
+        className='flex h-48 w-full shrink-0 items-center justify-center rounded-full bg-[#FF4800] text-[16px] font-semibold text-white hover:bg-[#E64200] lg:hidden'
+      >
+        Get the app
+      </a>
 
       <a
         href={url}
         target='_blank'
         rel='noopener noreferrer'
         aria-label='Get the PassPrivé app'
-        className='relative size-200 shrink-0 rounded-[calc(28*var(--u))] border border-[#F6F6F6] bg-white'
+        className='relative size-200 shrink-0 rounded-[calc(28*var(--u))] border border-[#F6F6F6] bg-white max-lg:hidden'
       >
         <QrCode value={url} className='absolute top-[calc(50%+0.68*var(--u))] left-[calc(50%+0.68*var(--u))] h-[calc(158.11*var(--u))] w-[calc(155.41*var(--u))] -translate-1/2' />
         <span className={cn(BRACKET, 'top-[calc(13.51*var(--u))] left-[calc(16.22*var(--u))] rounded-tl-[calc(4*var(--u))] border-t-(length:--b) border-l-(length:--b)')} style={{ ['--b' as string]: BRACKET_W }} />

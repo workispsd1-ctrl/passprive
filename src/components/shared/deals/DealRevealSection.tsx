@@ -10,9 +10,11 @@ import {
   dealWindowShort,
   isQuotaExhausted,
   isUnlimitedQuota,
+  planTierSlug,
   quotaFraction,
   quotaText,
   resetLabel,
+  revealDisplay,
   sentence,
   unlocksLeftLabel,
   type DealQuota,
@@ -26,7 +28,7 @@ import { DealTicket } from './DealTicket'
 import { SnapPager } from '@/components/shared/detail/SnapPager'
 import { DealQuotaDialog, DealTermsDialog } from './DealSheets'
 import { DealRedeemDialog } from './DealRedeemDialog'
-import { DownloadAppDialog, isDesktopRedeem } from './RedeemFlowPopups'
+import { DownloadAppDialog } from './RedeemFlowPopups'
 import { OfferAction, OfferCard, OfferHead, OfferText } from '@/components/sections/dining/OfferCard'
 import { t } from '@/components/sections/dining/designUnit'
 
@@ -164,7 +166,8 @@ export function DealRevealSection({
 }) {
   const { promptLogin } = useAuthPrompt()
   const [state, setState] = useState<MerchantDealsState | null>(null)
-  const [revealed, setRevealed] = useState<Set<string>>(() => new Set())
+  // key → the percent `reveal_deal_percent` returned (null for a non-percentage deal)
+  const [revealed, setRevealed] = useState<Map<string, number | null>>(() => new Map())
   const [checking, setChecking] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [terms, setTerms] = useState<DealTerms | null>(null)
@@ -188,10 +191,17 @@ export function DealRevealSection({
   }, [load])
 
   const router = useRouter()
-  const userTier = String(state?.quota?.tier ?? 'free').trim().toLowerCase()
+  const userTier = planTierSlug(state?.quota?.tier) ?? 'free'
   const previewing = !!previewTier && previewTier !== userTier
   const items = (previewing ? state?.previews?.[previewTier!] : state?.items) ?? []
   const quota = state?.quota ?? null
+  // app parity: DealRevealSection viewTier — whose caps the tickets show
+  const viewTier = previewing ? previewTier : userTier
+  /** The ticket as shown: the revealed percent, else the viewed plan's cap (app: DealRevealCard benefit / upTo). */
+  const shown = (item: RevealItem): RevealItem => ({
+    ...item,
+    ...revealDisplay(item, viewTier, previewing ? null : revealed.get(item.key)),
+  })
 
   useEffect(() => { onHasItems?.(items.length > 0) }, [items.length, onHasItems])
 
@@ -236,21 +246,50 @@ export function DealRevealSection({
     setMessage(`Can’t redeem this deal. ${sentence(reason) || 'Please try again later.'}`)
   }, [state?.loggedIn, quota, promptLogin, openQuota, applyUsed])
 
+  /**
+   * app parity: DealRevealSection onReveal — once cleared, a percentage deal
+   * asks `reveal_deal_percent` for its percent; no percent means try again.
+   */
+  const reveal = useCallback((item: RevealItem) => {
+    precheck(item, 'reveal', async () => {
+      if (!item.percent) {
+        setRevealed(prev => new Map(prev).set(item.key, null))
+        return
+      }
+      checkingRef.current = true
+      setChecking(`reveal:${item.key}`)
+      const res = await fetch('/api/deals/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reveal', kind: item.kind, id: item.id }),
+      }).catch(() => null)
+      const data = (await res?.json().catch(() => null)) as { percent?: number | null } | null
+      checkingRef.current = false
+      setChecking(null)
+      const percent = Number(data?.percent)
+      if (!(percent > 0)) {
+        setMessage('Can’t reveal this deal. Please try again in a moment.')
+        return
+      }
+      setRevealed(prev => new Map(prev).set(item.key, percent))
+    })
+  }, [precheck])
+
   const onRedeemed = useCallback((item: RevealItem, result: RedeemResult) => {
     applyUsed(result)
     setRedeemItem(null)
     setRevealed(prev => {
-      const next = new Set(prev)
+      const next = new Map(prev)
       next.delete(item.key)
       return next
     })
   }, [applyUsed])
 
   const closeRedeem = useCallback(() => setRedeemItem(null), [])
-  // Figma "Flow Redeem Deal": NFC / PIN redeeming happens at the counter, so desktop gets the app QR
-  const startRedeem = useCallback((item: RevealItem) => {
-    if (isDesktopRedeem()) setAppPrompt(true)
-    else setRedeemItem(item)
+  // Redeeming happens in the app (NFC / PIN at the counter) — every device gets the download pop-up.
+  // The web redeem flow (setRedeemItem → DealRedeemDialog) is kept for when it's switched back on.
+  const startRedeem: (item: RevealItem) => void = useCallback(() => {
+    setAppPrompt(true)
   }, [])
   const onLimit = useCallback((reason: string) => { openQuota(reason); load() }, [openQuota, load])
 
@@ -274,7 +313,7 @@ export function DealRevealSection({
         onRedeemed={onRedeemed}
         onLimit={onLimit}
       />
-      <DownloadAppDialog open={appPrompt} onClose={() => setAppPrompt(false)} />
+      <DownloadAppDialog open={appPrompt} reason='deal' onClose={() => setAppPrompt(false)} />
     </>
   )
 
@@ -284,15 +323,16 @@ export function DealRevealSection({
       <div className={cn('font-(family-name:--font-dm-sans)', className)}>
         <SnapPager label='Deal'>
           {items.map(item => {
-            const open = revealed.has(item.key)
+            // app parity: a previewed plan's tickets stay locked, even ones you revealed
+            const open = !previewing && revealed.has(item.key)
             return (
               <div key={item.key} className='flex flex-col'>
                 <DealTicket
-                  item={item}
+                  item={shown(item)}
                   revealed={open}
                   locked={locked && !open}
                   busy={checking === `reveal:${item.key}`}
-                  onReveal={() => (previewing ? router.push('/membership') : locked ? openQuota() : precheck(item, 'reveal', () => setRevealed(prev => new Set(prev).add(item.key))))}
+                  onReveal={() => (previewing ? router.push('/membership') : locked ? openQuota() : reveal(item))}
                   onTerms={() => setTerms(item.terms)}
                 />
                 {open && (
@@ -354,7 +394,8 @@ export function DealRevealSection({
         )}
 
         {items.map(item => {
-          const open = revealed.has(item.key)
+          const open = !previewing && revealed.has(item.key)
+          const view = shown(item)
           const windowLine = dealWindowShort(item.terms)
           return (
             <OfferCard key={item.key}>
@@ -368,8 +409,14 @@ export function DealRevealSection({
                       {checking === `redeem:${item.key}` ? <Loader2 className="animate-spin" style={{ width: t(20), height: t(20) }} /> : <Ticket style={{ width: t(20), height: t(20) }} />}
                       Redeem
                     </OfferAction>
+                  ) : previewing ? (
+                    // app parity: a previewed plan's deal is locked behind an upgrade
+                    <OfferAction onClick={() => router.push('/membership')}>
+                      <Lock style={{ width: t(18), height: t(18) }} strokeWidth={2.4} />
+                      Upgrade
+                    </OfferAction>
                   ) : (
-                    <OfferAction disabled={!!checking} onClick={() => precheck(item, 'reveal', () => setRevealed(prev => new Set(prev).add(item.key)))}>
+                    <OfferAction disabled={!!checking} onClick={() => reveal(item)}>
                       {checking === `reveal:${item.key}` ? <Loader2 className="animate-spin" style={{ width: t(20), height: t(20) }} /> : <Lock style={{ width: t(18), height: t(18) }} strokeWidth={2.4} />}
                       Reveal
                     </OfferAction>
@@ -378,7 +425,7 @@ export function DealRevealSection({
               />
               {open ? (
                 <OfferText
-                  main={item.benefit}
+                  main={view.benefit}
                   sub={
                     <>
                       {windowLine && `${windowLine} · `}
@@ -390,9 +437,9 @@ export function DealRevealSection({
                 <OfferText
                   main={
                     // the benefit itself, unreadable until revealed
-                    <span aria-hidden="true" className="inline-block blur-[7px] select-none">{item.benefit}</span>
+                    <span aria-hidden="true" className="inline-block blur-[7px] select-none">{view.benefit}</span>
                   }
-                  sub="Reveal to see this deal"
+                  sub={previewing ? `Up to ${view.upTo || view.benefit} on this plan` : 'Reveal to see this deal'}
                 />
               )}
             </OfferCard>
@@ -433,15 +480,16 @@ export function DealRevealSection({
       <section aria-label="Deal Reveal" className="min-w-0 md:order-3 md:col-span-2">
        <DealRail count={items.length}>
         {items.map(item => {
-          const open = revealed.has(item.key)
+          const open = !previewing && revealed.has(item.key)
           return (
             <div key={item.key} className="flex w-79 shrink-0 snap-start flex-col items-center">
               <DealRevealCard
-                item={item}
+                item={shown(item)}
                 quota={quota}
                 revealed={open}
                 busy={checking === `reveal:${item.key}`}
-                onReveal={() => precheck(item, 'reveal', () => setRevealed(prev => new Set(prev).add(item.key)))}
+                locked={previewing}
+                onReveal={() => (previewing ? router.push('/membership') : reveal(item))}
                 onTerms={() => setTerms(item.terms)}
               />
               {open && (

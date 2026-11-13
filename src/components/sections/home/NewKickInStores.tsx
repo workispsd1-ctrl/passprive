@@ -1,9 +1,25 @@
+'use client'
+
 import { HScroll } from './HScroll'
 import { getCardChips } from '@/lib/cardChips'
 import { MerchantCard } from './MerchantCard'
 import type { NewKickInStore } from '@/lib/types/stores'
+import { getCardBadge, type MerchantCapabilityFields } from '@/lib/cashback'
+import { useUserPlan } from '@/lib/context/PlanContext'
 
-export function NewKickInStores({ stores }: { stores: NewKickInStore[] }) {
+export function NewKickInStores({
+  stores,
+  capabilities = {},
+}: {
+  stores: NewKickInStore[]
+  /**
+   * The get_new_kick_in_stores RPC doesn't return the merchant's capability
+   * fields, so the page looks them up from the active-stores catalog by id —
+   * app parity: every store card draws CashbackBadge.
+   */
+  capabilities?: Record<string, MerchantCapabilityFields>
+}) {
+  const plan = useUserPlan()
   if (!stores.length) return null
 
   return (
@@ -27,9 +43,7 @@ export function NewKickInStores({ stores }: { stores: NewKickInStore[] }) {
             meta={meta}
             tagline={store.description ?? undefined}
             offerLabel={store.offers?.[0]?.badge_text ?? undefined}
-            // The get_new_kick_in_stores RPC doesn't return merchant_type /
-            // pay_bill_enabled, so cashback eligibility can't be evaluated
-            // here — cardBadge omitted hides the badge.
+            cardBadge={capabilities[store.store_id] ? getCardBadge(capabilities[store.store_id], plan) : null}
             chips={getCardChips({ store_type: 'PRODUCT', store_offers: store.offers })}
           />
         )

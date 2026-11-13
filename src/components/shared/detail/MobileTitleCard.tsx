@@ -9,6 +9,7 @@ import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
 import type { HoursRow } from '@/lib/openingHours'
 import { OpeningHoursPill } from './OpeningHours'
 import { directionsUrl } from './MerchantActions'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 
 /** app parity: RestaurantDetails areaLabel — area + city, without repeating the city. */
 export function areaLabel(area: string | null | undefined, city: string | null | undefined) {
@@ -77,6 +78,8 @@ export function MobileTitleCard({
   return (
     <div className='font-(family-name:--font-dm-sans) md:hidden'>
       <div className='relative z-20 -mx-0.75 -mt-16.75 mb-1.5 rounded-[18px] bg-white/98 px-3.25 py-3.5 shadow-[0_0_8px_rgba(44,35,53,0.10)]'>
+        {/* app parity: MerchantInfoCard.jsx HuntSpot */}
+        <HuntSpot slot='merchant-card' />
         <div className='flex items-start justify-between'>
           {showLogo && (
             <div className='relative mr-3 flex size-13 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#111111]'>

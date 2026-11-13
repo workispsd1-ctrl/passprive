@@ -49,5 +49,9 @@ export async function GET() {
     restaurants: catalog.restaurants.sort(byCityThenRating),
     stores: catalog.stores.sort(byCityThenRating),
   }
+  // an empty catalog means the read failed (cachedCatalog's fallback) — never let the browser keep it
+  if (!body.restaurants.length && !body.stores.length) {
+    return NextResponse.json(body, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+  }
   return NextResponse.json(body, { headers: { 'Cache-Control': 'private, max-age=300' } })
 }

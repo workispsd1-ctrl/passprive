@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
   bestFirst,
+  dealItem,
+  dealTierCaps,
+  formatPercent,
   isQuotaExhausted,
   isRepeatRewardOffer,
   offerItem,
+  offerTierCaps,
   pickDealsForTier,
+  planTierSlug,
   quotaFraction,
   quotaText,
+  revealDisplay,
   unlocksLeftLabel,
   type DealQuota,
   type RestaurantDeal,
@@ -89,5 +95,54 @@ describe('bestFirst', () => {
   it('sorts by saving and keeps ties in order', () => {
     const items = [{ id: 'a', score: 10 }, { id: 'b', score: 50 }, { id: 'c', score: 10 }]
     expect(bestFirst(items).map(i => i.id)).toEqual(['b', 'a', 'c'])
+  })
+})
+
+// app parity: utils/dealReveals.js dealTierCaps / planTierSlug, DealRevealCard benefit + upTo
+describe('deal reveal tiers', () => {
+  const tierRow = (tier: string, pct: number | null, active = true) =>
+    ({ tier, benefit_percent: pct, benefit_amount: null, deal_price: null, buy_quantity: null, get_quantity: null, free_item_label: null, is_active: active })
+
+  it('caps a deal at each active tier\'s percent', () => {
+    const deal = { restaurant_deal_tiers: [tierRow('Free', 2), tierRow('plus', 5), tierRow('black', 10, false), tierRow('x', 0)] } as RestaurantDeal
+    expect(dealTierCaps(deal)).toEqual({ free: 2, plus: 5 })
+  })
+
+  it('caps an offer from metadata.tier_percents when set', () => {
+    expect(offerTierCaps({ discount_value: 20, metadata: { tier_percents: { free: 3, plus: 0, black: 150 } } })).toEqual({ free: 3 })
+  })
+
+  it('splits an offer\'s discount a quarter / half / all by plan', () => {
+    expect(offerTierCaps({ discount_value: 10, metadata: null })).toEqual({ free: 2.5, plus: 5, black: 10 })
+    expect(offerTierCaps({ discount_value: 0, metadata: null })).toEqual({})
+  })
+
+  it('maps the Plus plan key', () => {
+    expect(planTierSlug('premiere')).toBe('plus')
+    expect(planTierSlug(' Black ')).toBe('black')
+    expect(planTierSlug('')).toBeNull()
+  })
+
+  it('formats percents like the app', () => {
+    expect(formatPercent(7.5)).toBe('7.5%')
+    expect(formatPercent(3.333)).toBe('3.33%')
+  })
+
+  const item = offerItem({ id: 'o1', title: 'Sale', badge_text: null, offer_type: 'percentage', discount_value: 20, is_active: true }, 'store_offer')!
+
+  it('marks percentage offers for the server reveal', () => {
+    expect(item.percent).toBe(true)
+    expect(offerItem({ id: 'o2', title: 'Flat', badge_text: null, offer_type: 'flat', discount_value: 100, is_active: true }, 'store_offer')!.percent).toBe(false)
+  })
+
+  it('shows the plan cap until revealed, then the revealed percent', () => {
+    expect(revealDisplay(item, 'free', undefined)).toEqual({ benefit: '5% OFF', upTo: '5%' })
+    expect(revealDisplay(item, 'black', null)).toEqual({ benefit: '20% OFF', upTo: '20%' })
+    expect(revealDisplay(item, 'free', 3.5)).toEqual({ benefit: '3.5% OFF', upTo: '5%' })
+  })
+
+  it('falls back to the item\'s own benefit without a cap', () => {
+    const deal = dealItem({ id: 'd1', title: null, description: null, badge_text: null, deal_type: 'flat', currency_code: 'MUR', priority: 0, tierRow: { ...tierRow('free', null), benefit_amount: 200 } } as RestaurantDeal)!
+    expect(revealDisplay(deal, 'free', undefined)).toEqual({ benefit: 'MUR 200 OFF', upTo: '' })
   })
 })

@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import Image from 'next/image'
 import { HScroll } from '@/components/sections/home/HScroll'
@@ -30,7 +32,7 @@ export function DiscoverTopBrandsSection({ stores }: { stores: StoreRow[] }) {
           href={`/stores/${store.slug ?? store.id}`}
           // phones: ~2.3 tiles in view so "Explore Now" fits; from md the same
           // sizes as the home page's tile (StoresNearYouSection)
-          className="relative block aspect-420/548 w-[42%] shrink-0 overflow-hidden rounded-[20px] md:w-80 2xl:w-105"
+          className="relative block aspect-420/548 w-[42%] shrink-0 overflow-hidden rounded-[20px] [--badge-inset:50px] md:w-80 md:[--badge-inset:70px] 2xl:w-105 2xl:[--badge-inset:78px]"
           style={{ backgroundColor: FALLBACK_COLORS[i % FALLBACK_COLORS.length] }}
         >
           {store.cover_image && (
@@ -43,6 +45,10 @@ export function DiscoverTopBrandsSection({ stores }: { stores: StoreRow[] }) {
             />
           )}
           <div className="absolute inset-0 bg-black/15" />
+
+          {/* Card badges (cashback art, Promoted, Book Now — app: DiscoverTopBrands.jsx CashbackBadge)
+              are hidden on these cards. To restore: re-import CardBadgeArt / getCardBadge / useUserPlan and render
+              <CardBadgeArt badge={getCardBadge(store, plan)} radius={20} bottomInset="var(--badge-inset)" /> */}
 
           {store.logo_url && (
             <div className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-[0_2px_6px_rgba(0,0,0,0.1)] md:top-7 md:right-7 md:h-15 md:w-15 2xl:top-9 2xl:right-9 2xl:h-20 2xl:w-20">

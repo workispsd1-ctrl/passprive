@@ -86,6 +86,9 @@ export type Store = {
   booking_enabled?: boolean | null
   cashback_enabled?: boolean | null
   is_promoted?: boolean | null
+  is_advertised?: boolean | null
+  /** app parity: storesApi.js — `subscribed` / `pickup_premium_enabled` come from these */
+  store_subscriptions?: { status: string | null; pickup_premium_enabled?: boolean | null; repeat_rewards_enabled?: boolean | null; starts_at?: string | null; expires_at?: string | null }[] | null
 }
 
 export type MediaAsset = { file_url: string; sort_order: number }

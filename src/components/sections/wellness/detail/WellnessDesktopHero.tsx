@@ -4,9 +4,8 @@ import { useState } from 'react'
 import type { CardChipKey } from '@/lib/cardChips'
 import { CardChips } from '@/components/shared/CardChips'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronDown, ChevronLeft, Flame, Gem, Heart, Phone, Share, Signpost } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, Flame, Gem, Globe, Heart, Phone, Share, Signpost } from 'lucide-react'
 import { useGallery } from '@/components/sections/dining/PhotoGalleryClient'
 import { OpeningHoursPill } from '@/components/shared/detail/OpeningHours'
 import { areaLabel } from '@/components/shared/detail/MobileTitleCard'
@@ -16,9 +15,11 @@ import { canPayBill, getCashbackPct, isCashbackEnabled } from '@/lib/cashback'
 import { useLocation } from '@/lib/context/LocationContext'
 import type { HoursRow } from '@/lib/openingHours'
 import type { DiscountCaps } from '@/lib/services/membershipCaps'
-import type { ServiceStore } from '@/lib/types/stores'
+import type { ServiceStore, Store } from '@/lib/types/stores'
 import { isPickupPremium, isSubscribed } from '@/lib/storeBadges'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
+import { AuthLink } from '@/components/shared/AuthLink'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 
 /*
  * Figma "Salon details – Desktop" (1920 frame). Every length is in design px
@@ -26,6 +27,9 @@ import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
  */
 
 const A = '/assets/merchant-detail'
+
+/** A salon or a shopping store — both screens share this hero. */
+type HeroStore = Store & Partial<Pick<ServiceStore, 'store_subscriptions' | 'is_advertised'>>
 const ROUND = 'flex size-[calc(40*var(--u))] shrink-0 items-center justify-center rounded-full bg-[#f4f4f4] text-[#717171] hover:bg-[#ebebeb]'
 
 function Tag({ icon: Icon, label }: { icon: typeof Flame; label: string }) {
@@ -38,7 +42,7 @@ function Tag({ icon: Icon, label }: { icon: typeof Flame; label: string }) {
 }
 
 /** Earn line + "Book a slot" / "Pay bill" — app parity: ServiceStoreDetails.jsx bottom actions. */
-function Actions({ store, bookHref }: { store: ServiceStore; bookHref: string | null }) {
+function Actions({ store, bookHref }: { store: HeroStore; bookHref: string | null }) {
   const showPay = canPayBill(store)
   // "up to" — what a Black member earns here
   const upTo = showPay ? getCashbackPct(store, 'black') : 0
@@ -58,15 +62,15 @@ function Actions({ store, bookHref }: { store: ServiceStore; bookHref: string | 
       )}
       <div className='flex gap-[calc(16*var(--u))]'>
         {bookHref && (
-          <Link href={bookHref} className={cn(button, 'border border-[#ff4800] bg-white text-[#ff4800] hover:bg-[#fff1eb]')}>
+          <AuthLink href={bookHref} className={cn(button, 'border border-[#ff4800] bg-white text-[#ff4800] hover:bg-[#fff1eb]')}>
             Book a slot
-          </Link>
+          </AuthLink>
         )}
         {showPay && (
           // app parity: ServiceStoreDetails "Pay bill" → Paybill with paymentSource 'store'
-          <Link href={`/pay-bill?store_id=${store.id}`} className={cn(button, 'bg-[#ff4800] text-white hover:bg-brand-dark')}>
+          <AuthLink href={`/pay-bill?store_id=${store.id}`} className={cn(button, 'bg-[#ff4800] text-white hover:bg-brand-dark')}>
             Pay bill
-          </Link>
+          </AuthLink>
         )}
       </div>
     </>
@@ -74,12 +78,12 @@ function Actions({ store, bookHref }: { store: ServiceStore; bookHref: string | 
 }
 
 /** "‹ Back" above the hero — Figma: 24/31 SemiBold #FF4800 beside a 40px chevron. */
-export function WellnessBackLink() {
+export function WellnessBackLink({ backHref = '/wellness' }: { backHref?: string }) {
   const router = useRouter()
   return (
     <button
       type='button'
-      onClick={() => (history.length > 1 ? router.back() : router.push('/wellness'))}
+      onClick={() => (history.length > 1 ? router.back() : router.push(backHref))}
       className='hidden h-[calc(40*var(--u))] items-center self-start text-[calc(24*var(--u))] leading-[calc(31*var(--u))] font-semibold text-[#ff4800] hover:opacity-80 md:mt-[calc(60*var(--u))] md:ml-[calc(-10*var(--u))] md:flex'
     >
       <ChevronLeft className='size-[calc(40*var(--u))]' strokeWidth={1.8} />
@@ -97,14 +101,23 @@ export function WellnessDesktopHero({
   offerPct,
   caps,
   chips = [],
+  backHref = '/wellness',
+  trending = store.is_advertised === true,
+  website = null,
 }: {
-  store: ServiceStore
+  store: HeroStore
   address: string
   hours: HoursRow[]
   bookHref: string | null
   offerPct: number
   caps: DiscountCaps
   chips?: CardChipKey[]
+  /** where Back goes when there's no history */
+  backHref?: string
+  /** the shopping screen flags promoted stores, the salon screen advertised ones */
+  trending?: boolean
+  /** shopping stores link their site (app parity: StoreDetails website action) */
+  website?: string | null
 }) {
   const { openAt } = useGallery()
   const { location } = useLocation()
@@ -121,7 +134,6 @@ export function WellnessDesktopHero({
   const subtitle = [store.category, store.subcategory].filter(Boolean).join(' • ')
   const place = [distance, areaLabel(store.location_name, store.city)].filter(Boolean).join(' • ')
   const logo = store.logo_url ?? store.cover_image
-  const trending = store.is_advertised === true
   const exclusiveZone = isPickupPremium(store)
   // the same "Exclusive" tag this salon's card shows
   const exclusive = isSubscribed(store)
@@ -136,7 +148,7 @@ export function WellnessDesktopHero({
         <div className='pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-[calc(24*var(--u))]'>
           <button
             type='button'
-            onClick={() => (history.length > 1 ? router.back() : router.push('/wellness'))}
+            onClick={() => (history.length > 1 ? router.back() : router.push(backHref))}
             aria-label='Back'
             className='pointer-events-auto flex size-[calc(44*var(--u))] items-center justify-center rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]'
           >
@@ -167,7 +179,9 @@ export function WellnessDesktopHero({
 
       {/* Salon information and reward — 568 wide, 20 apart */}
       <div className='flex min-w-0 flex-col gap-[calc(20*var(--u))]'>
-        <div className='flex flex-1 flex-col gap-[calc(12*var(--u))] rounded-[calc(18*var(--u))] bg-white px-[calc(28*var(--u))] pt-[calc(28*var(--u))] pb-[calc(14*var(--u))] shadow-[0_calc(4*var(--u))_calc(24*var(--u))_rgba(0,0,0,0.05)]'>
+        <div className='relative flex flex-1 flex-col gap-[calc(12*var(--u))] rounded-[calc(18*var(--u))] bg-white px-[calc(28*var(--u))] pt-[calc(28*var(--u))] pb-[calc(14*var(--u))] shadow-[0_calc(4*var(--u))_calc(24*var(--u))_rgba(0,0,0,0.05)]'>
+          {/* app parity: ServiceStoreDetails MerchantInfoCard HuntSpot */}
+          <HuntSpot slot='merchant-card' />
           <div className='flex items-center gap-[calc(18*var(--u))]'>
             {logo && (
               <span className='relative h-[calc(88*var(--u))] w-[calc(82*var(--u))] shrink-0 overflow-hidden rounded-[calc(16*var(--u))] bg-gray-100'>
@@ -203,6 +217,11 @@ export function WellnessDesktopHero({
             {phone && (
               <a href={`tel:${phone}`} aria-label={`Call ${name}`} className={ROUND}>
                 <Phone className='size-[calc(18*var(--u))]' strokeWidth={1.3} />
+              </a>
+            )}
+            {website && (
+              <a href={website} target='_blank' rel='noreferrer' aria-label='Visit website' className={ROUND}>
+                <Globe className='size-[calc(18*var(--u))]' strokeWidth={1.3} />
               </a>
             )}
           </div>

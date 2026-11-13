@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { REVEAL_KINDS, type RedeemResult, type RevealKind } from '@/lib/deals'
 
 type Body = {
-  action?: 'precheck' | 'pin_status' | 'pin' | 'nfc'
+  action?: 'precheck' | 'reveal' | 'pin_status' | 'pin' | 'nfc'
   kind?: string
   id?: string
   pin?: string
@@ -41,6 +41,14 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.rpc('redeem_precheck', { p_kind: kind, p_id: body.id })
     // No verdict → let the reveal through; redeeming re-checks (app parity).
     return NextResponse.json(error ? null : row<RedeemResult>(data))
+  }
+
+  if (body.action === 'reveal') {
+    // app parity: dealReveals.js revealDealPercent — the server picks the
+    // percent within the viewer's plan cap; null means "try again".
+    const { data, error } = await supabase.rpc('reveal_deal_percent', { p_kind: kind, p_id: body.id })
+    const percent = error ? 0 : Number(row<{ percent?: number | string }>(data)?.percent)
+    return NextResponse.json({ percent: percent > 0 ? percent : null })
   }
 
   let res

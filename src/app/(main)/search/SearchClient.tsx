@@ -1,8 +1,6 @@
 'use client'
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Search } from 'lucide-react'
 import { canPayBill } from '@/lib/cashback'
@@ -10,7 +8,8 @@ import { useLocation } from '@/lib/context/LocationContext'
 import { compactSearchText, rankResults } from '@/lib/search'
 import { cn } from '@/lib/utils'
 import type { SearchDataset } from '@/app/api/search/dataset/route'
-import { RecentSearches, SearchDiscovery } from './SearchDiscovery'
+import { SEARCH_PAGE } from '@/components/search/unit'
+import { RecentSearches, ResultCard, SearchDiscovery } from './SearchDiscovery'
 import { restaurantItem, searchFields, storeItem, type SearchItem } from './searchItems'
 
 /*
@@ -41,23 +40,16 @@ function loadRecents(): string[] {
   }
 }
 
-/** 74-tall bordered row: square photo, name, "area, city". */
-function ResultRow({ item, onOpen }: { item: SearchItem; onOpen: (item: SearchItem) => void }) {
-  return (
-    <Link
-      href={item.href}
-      onClick={() => onOpen(item)}
-      className='mx-4 mb-2.5 flex h-18.5 items-center overflow-hidden rounded-2xl border border-[#E5E5EA] bg-white transition-colors hover:bg-gray-50'
-    >
-      <span className='relative size-18.5 shrink-0 bg-[#EBEBEB]'>
-        {item.image && <Image src={item.image} alt='' fill sizes='74px' className='object-cover' />}
-      </span>
-      <span className='min-w-0 flex-1 px-3'>
-        <span className='mb-0.5 block truncate text-[15px] font-semibold text-black'>{item.name}</span>
-        <span className='block truncate text-[13px] text-[#605D64]'>{item.area || '—'}</span>
-      </span>
-    </Link>
-  )
+/** Figma tab slots start at 0 / 136 / 276 / 412 / 548 */
+const TAB_SLOT = ['w-136', 'w-140', 'w-136', 'w-136', 'w-136']
+
+/** placeholder hint per tab (Figma: Sneakers on Home, Desserts on Dining) */
+const HINT: Record<TabKey, string> = {
+  home: 'Sneakers',
+  shopping: 'Sneakers',
+  wellness: 'Spa',
+  dining: 'Desserts',
+  tourists: 'Sneakers',
 }
 
 export function SearchClient({ initialQuery }: { initialQuery: string }) {
@@ -73,14 +65,23 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const [paging, setPaging] = useState({ key: '', n: PAGE })
   const sentinel = useRef<HTMLDivElement>(null)
 
+  // a failed load shows a retry, never a false "No results found"
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+
   useEffect(() => {
     let live = true
-    fetch('/api/search/dataset')
-      .then(r => (r.ok ? r.json() : { restaurants: [], stores: [] }))
-      .then((d: SearchDataset) => live && setData(d))
-      .catch(() => live && setData({ restaurants: [], stores: [] }))
+    // a retry skips the browser cache, in case it holds a bad response
+    fetch('/api/search/dataset', attempt ? { cache: 'reload' } : undefined)
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: SearchDataset) => {
+        if (!live) return
+        if (!d.restaurants?.length && !d.stores?.length) throw new Error('empty dataset')
+        setData(d)
+      })
+      .catch(() => live && setFailed(true))
     return () => { live = false }
-  }, [])
+  }, [attempt])
 
   function remember(term: string) {
     const v = term.trim()
@@ -142,34 +143,39 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   }
 
   return (
-    <main className='mx-auto min-h-screen max-w-3xl bg-white pb-6 font-(family-name:--font-dm-sans)'>
-      <div className='sticky top-0 z-20 bg-white'>
-        <div className='flex items-center gap-3 px-4 pt-2 pb-3'>
-          <button type='button' onClick={() => (history.length > 1 ? router.back() : router.push('/'))} aria-label='Back' className='flex size-5 shrink-0 items-center justify-center text-black'>
-            <ArrowLeft className='size-5' />
-          </button>
-          <form
-            onSubmit={e => {
-              e.preventDefault()
-              remember(query)
-              router.replace(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : '/search')
-            }}
-            className='flex h-12 flex-1 items-center gap-2.5 rounded-full border border-[#E5E5EA] bg-white px-4 focus-within:border-[#FF4800]/50'
-          >
-            <Search className='size-4.5 shrink-0 text-[#8E8E93]' />
-            <input
-              autoFocus
-              type='search'
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder='Search for “Sneakers” around you'
-              aria-label='Search'
-              className='h-full min-w-0 flex-1 bg-transparent text-[15px] text-[#1A1A1A] outline-none placeholder:text-[#8E8E93]'
-            />
-          </form>
-        </div>
-        <div className='mb-2 flex border-b border-[#EFEFEF] px-4' role='tablist'>
-          {TABS.map(t => {
+    <main className={SEARCH_PAGE}>
+      <button
+        type='button'
+        onClick={() => (history.length > 1 ? router.back() : router.push('/'))}
+        aria-label='Back'
+        className='flex size-24 shrink-0 items-center justify-center text-[#48464C]'
+      >
+        <ArrowLeft className='size-24' strokeWidth={1.5} />
+      </button>
+
+      <div className='flex flex-col gap-28 max-lg:gap-16'>
+        <form
+          onSubmit={e => {
+            e.preventDefault()
+            remember(query)
+            router.replace(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : '/search')
+          }}
+          className='flex h-56 items-center gap-16 rounded-full border border-[#CAC5CD] bg-white pr-24 pl-20 focus-within:border-[#8E8A92] max-lg:h-48 max-lg:gap-12 max-lg:pl-16'
+        >
+          <Search className='size-24 shrink-0 text-[#454040] max-lg:size-20' strokeWidth={1.25} />
+          <input
+            autoFocus
+            type='search'
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={`Search for “${HINT[tab]}” around you`}
+            aria-label='Search'
+            className='h-full min-w-0 flex-1 bg-transparent text-[calc(16*var(--u))] leading-[calc(24*var(--u))] text-[#48464C] outline-none placeholder:text-[#48464C]'
+          />
+        </form>
+
+        <div className='scrollbar-hide relative flex h-52 border-b border-[#FF4901] max-lg:-mx-16 max-lg:overflow-x-auto max-lg:px-16' role='tablist'>
+          {TABS.map((t, i) => {
             const active = t.key === tab
             return (
               <button
@@ -179,36 +185,53 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 aria-selected={active}
                 disabled={'disabled' in t && t.disabled}
                 onClick={() => setTab(t.key)}
-                className='flex flex-1 flex-col items-center disabled:cursor-not-allowed disabled:opacity-60'
+                className={cn('flex h-full shrink-0 items-start disabled:cursor-not-allowed max-lg:w-auto max-lg:pr-8', TAB_SLOT[i])}
               >
-                <span className={cn('pb-2 text-[13px] leading-4.5', active ? 'font-bold text-[#FF4800]' : 'font-medium text-[#605D64]')}>{t.label}</span>
-                <span className={cn('h-0.5 self-stretch rounded-full', active ? 'bg-[#FF4800]' : 'bg-transparent')} />
+                <span
+                  className={cn(
+                    'relative h-full px-16 pt-8 text-[calc(16*var(--u))] leading-[calc(24*var(--u))] whitespace-nowrap text-[#48464C]',
+                    active ? 'font-bold' : 'font-medium',
+                  )}
+                >
+                  {t.label}
+                  {active && <span className='absolute inset-x-0 -bottom-px h-4 bg-[#FF4901]' />}
+                </span>
               </button>
             )
           })}
         </div>
       </div>
 
-      {!data ? (
-        <div className='flex justify-center py-24'>
-          <Loader2 className='size-9 animate-spin text-[#FF4800]' aria-label='Loading' />
+      {!data && failed ? (
+        <div className='flex flex-col items-center gap-16 py-96 text-center'>
+          <p className='text-[calc(16*var(--u))] leading-[calc(24*var(--u))] text-[#605D64]'>Couldn’t load search right now.</p>
+          <button
+            type='button'
+            onClick={() => { setFailed(false); setAttempt(a => a + 1) }}
+            className='h-48 rounded-full border border-[#FF4901] px-24 text-[calc(16*var(--u))] font-semibold text-[#FF4901] hover:bg-[#FFF3EE]'
+          >
+            Try again
+          </button>
+        </div>
+      ) : !data ? (
+        <div className='flex justify-center py-96'>
+          <Loader2 className='size-36 animate-spin text-[#FF4901]' aria-label='Loading' />
         </div>
       ) : (
         <>
           {!q && <RecentSearches items={recents} onSelect={setQuery} />}
 
           {q && (
-            <>
-              {tab !== 'home' && (
-                <h2 className='mx-4 mt-3.5 mb-2 text-[16px] font-semibold text-black'>{tab === 'dining' ? 'Dining' : 'Stores'}</h2>
-              )}
+            <section aria-label='Search results'>
               {rows.length === 0 ? (
-                <p className='mx-4 mt-5.5 text-[14px] text-[#605D64]'>No results found.</p>
+                <p className='text-[calc(16*var(--u))] leading-[calc(24*var(--u))] text-[#605D64]'>No results found.</p>
               ) : (
-                rows.slice(0, shown).map(item => <ResultRow key={item.key} item={item} onOpen={open} />)
+                <div className='grid grid-cols-2 gap-x-24 gap-y-48 py-12 max-lg:grid-cols-1 max-lg:gap-y-16'>
+                  {rows.slice(0, shown).map(item => <ResultCard key={item.key} item={item} onOpen={open} />)}
+                </div>
               )}
               {shown < rows.length && <div ref={sentinel} className='h-1' />}
-            </>
+            </section>
           )}
 
           <SearchDiscovery nearby={q ? [] : nearby} popular={popular} recommended={recommended} onOpen={open} />

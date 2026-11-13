@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { BadgePercent, Globe, Navigation, Phone } from 'lucide-react'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
@@ -8,6 +7,7 @@ import { cn } from '@/lib/utils'
 import type { HoursRow } from '@/lib/openingHours'
 import { useOpenStatus } from './OpeningHours'
 import { directionsUrl } from './MerchantActions'
+import { AuthLink } from '@/components/shared/AuthLink'
 
 export type CtaAction = { label: string; href: string; primary?: boolean }
 
@@ -27,7 +27,8 @@ function CashbackLine({ merchant, className }: { merchant: MerchantCapabilityFie
 
 function CtaButtons({ actions, size }: { actions: CtaAction[]; size: string }) {
   return actions.map(a => (
-    <Link
+    // Book a table / Pay bill need an account — log in first when signed out
+    <AuthLink
       key={a.href}
       href={a.href}
       className={cn(
@@ -39,7 +40,7 @@ function CtaButtons({ actions, size }: { actions: CtaAction[]; size: string }) {
       )}
     >
       {a.label}
-    </Link>
+    </AuthLink>
   ))
 }
 

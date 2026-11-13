@@ -19,7 +19,7 @@ const heading = 'text-[19px] font-bold text-[#0D141C] md:text-[20px] xl:text-[22
 const grid = 'mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:max-w-[83%] md:grid-cols-3 lg:gap-4 min-[120rem]:gap-6'
 
 function SheetCard({ sheet }: { sheet: StampSheet }) {
-  const status = sheetStatus(sheet.visits, sheet.total)
+  const status = sheetStatus(sheet.visits, sheet.total, sheet.claimed)
   return (
     <Link href={sheet.href} className='flex rounded-2xl border border-[#F0F0F0] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:bg-gray-50' style={{ gap: small(18, 12), padding: small(16, 10) }}>
       <span className='relative shrink-0 overflow-hidden rounded-xl bg-gray-100' style={{ width: small(140, 84), height: small(140, 84) }}>

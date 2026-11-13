@@ -6,6 +6,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
+import { HuntSpot } from "@/components/hunt/HuntSpot"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -59,6 +60,8 @@ function DialogContent({
         {...props}
       >
         {children}
+        {/* app parity: AnimatedSheet.jsx — every sheet / dialog carries the "sheet" hunt slot */}
+        <HuntSpot slot="sheet" />
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"

@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { getCardChips } from '@/lib/cardChips'
 import { CardChips } from '@/components/shared/CardChips'
@@ -11,11 +13,12 @@ export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
 
   return (
     <HScroll title="Shop this weekend">
-      {items.map((store) => (
+      {items.map((store) => {
+        return (
         <Link
           key={store.id}
           href={`/stores/${store.slug ?? store.id}`}
-          className="relative block aspect-420/548 w-80 shrink-0 overflow-hidden rounded-[20px] bg-gray-900 2xl:w-105"
+          className="relative block aspect-420/548 w-80 shrink-0 overflow-hidden rounded-[20px] bg-gray-900 [--badge-inset:70px] 2xl:w-105 2xl:[--badge-inset:78px]"
         >
           {store.cover_image ? (
             <Image
@@ -42,18 +45,24 @@ export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
             </span>
           )}
 
-          <p className="absolute left-4 top-4 text-[15px] font-bold text-white drop-shadow">
+          {/* Card badges (cashback art, Promoted, Book Now — app: ShopThisWeekend.jsx CashbackBadge)
+              are hidden on these cards. To restore: re-import CardBadgeArt / getCardBadge / useUserPlan / cn,
+              render <CardBadgeArt badge={getCardBadge(store, plan)} radius={20} bottomInset="var(--badge-inset)" />
+              and push the name/chips down (top-20 2xl:top-24 / top-27 2xl:top-31) when it has cashback art. */}
+
+          <p className="absolute top-4 left-4 text-[15px] font-bold text-white drop-shadow">
             {store.name}
           </p>
           {/* app parity: ShopThisWeekend.jsx CardChips, under the name */}
-          <CardChips chips={getCardChips(store)} className="absolute left-4 top-11" />
+          <CardChips chips={getCardChips(store)} className="absolute top-11 left-4" />
 
           {/* DM Sans 500 / 19.6 / 28 — #2247FF on white, radius 19.6 */}
           <span className="absolute bottom-5 left-1/2 flex h-8 w-33 -translate-x-1/2 items-center justify-center rounded-full bg-white font-(family-name:--font-dm-sans) text-[15px] font-medium leading-7 text-[#2247FF] 2xl:h-10 2xl:w-43 2xl:text-[19.6px]">
             Explore Now
           </span>
         </Link>
-      ))}
+        )
+      })}
     </HScroll>
   )
 }

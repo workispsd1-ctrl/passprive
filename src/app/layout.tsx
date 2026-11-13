@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, DM_Sans, Playfair_Display, Inter, Libre_Baskerville } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Sans, Playfair_Display, Inter, Libre_Baskerville, Be_Vietnam_Pro } from "next/font/google";
 import { PaymentRecovery } from "@/components/PaymentRecovery";
 import { TreasureHunt } from "@/components/hunt/TreasureHunt";
 import "./globals.css";
@@ -34,6 +34,13 @@ const libreBaskerville = Libre_Baskerville({
   weight: ["400", "700"],
   style: ["normal", "italic"],
   variable: "--font-libre-baskerville",
+  display: "swap",
+});
+
+const beVietnamPro = Be_Vietnam_Pro({
+  subsets: ["latin"],
+  weight: ["600"],
+  variable: "--font-be-vietnam-pro",
   display: "swap",
 });
 
@@ -101,7 +108,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable} ${playfair.variable} ${inter.variable} ${libreBaskerville.variable} h-full antialiased`}>
+    <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable} ${playfair.variable} ${inter.variable} ${libreBaskerville.variable} ${beVietnamPro.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col overflow-x-clip font-sans">
         <PaymentRecovery />
         <TreasureHunt />

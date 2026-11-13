@@ -5,6 +5,7 @@ import { PlatformFlagsProvider } from '@/lib/context/PlatformFlagsContext'
 import { getPlatformFlags } from '@/lib/services/platformFlags'
 import { LocationProvider } from '@/lib/context/LocationContext'
 import { getHeaderLocation } from '@/lib/location'
+import { AuthPromptProvider } from '@/lib/context/AuthPromptContext'
 
 /** Account pages (bookings, wallet, membership, …): the site header + an app-style title row. */
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
   return (
     <PlatformFlagsProvider flags={flags}>
     <LocationProvider initial={headerLocation}>
+    <AuthPromptProvider>
     <PageTitleProvider>
       <Header minimal />
       <PageTitleBar />
@@ -19,6 +21,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         {children}
       </div>
     </PageTitleProvider>
+    </AuthPromptProvider>
     </LocationProvider>
     </PlatformFlagsProvider>
   )

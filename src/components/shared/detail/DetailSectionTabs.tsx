@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { AuthLink } from '@/components/shared/AuthLink'
 
 /**
  * The visible section for a tab: `#id`, or a `[data-section]` block — a page
@@ -147,13 +147,13 @@ export function DetailSectionTabs({
           >
             <p className='truncate text-[15px] font-bold text-[#141414]'>{title}</p>
             {cta && (
-              <Link
+              <AuthLink
                 href={cta.href}
                 tabIndex={stuck ? 0 : -1}
                 className='hidden shrink-0 rounded-full bg-brand px-4 py-1.5 text-[13px] font-bold text-white transition-colors hover:bg-brand-dark md:block'
               >
                 {cta.label}
-              </Link>
+              </AuthLink>
             )}
           </div>
         )}

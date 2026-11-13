@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronRight, Clock, X } from 'lucide-react'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
+import { useAppPrompt } from '@/lib/context/AppPromptContext'
 import { hasBillCashback, isCashbackEnabled, type MerchantCapabilityFields } from '@/lib/cashback'
 import { earnOn } from '@/lib/platformFlags'
 import {
@@ -105,6 +106,7 @@ export function ReceiptCashbackBanner({
 }) {
   const router = useRouter()
   const { promptLogin } = useAuthPrompt()
+  const openAppPrompt = useAppPrompt()
   const eligible = earnOn() && !hasBillCashback(merchant)
   // fetchedAt: "rejected in the last day" is judged against when the claim was loaded
   const [state, setState] = useState<(ReceiptMerchantState & { fetchedAt: number }) | null>(null)
@@ -194,6 +196,8 @@ export function ReceiptCashbackBanner({
 
   const onTap = () => {
     if (previewing) return router.push('/membership')
+    // cashback is earned in the app — send the visitor there (the web upload flow below stays for when it's switched back on)
+    if (openAppPrompt) return openAppPrompt('cashback')
     if (!loggedIn) return promptLogin()
     if (upsell) setSheetOpen(true)
     else openUpload()

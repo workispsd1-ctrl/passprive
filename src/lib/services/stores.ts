@@ -195,7 +195,7 @@ export const getStoreMoodCategories = cachedCatalog('store-moods', async (): Pro
 
 export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail | null> {
   const supabase = await createClient()
-  const SELECT = 'id,name,slug,store_type,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted,is_advertised,booking_service_type,store_subscriptions(status,repeat_rewards_enabled,starts_at,expires_at)'
+  const SELECT = 'id,name,slug,store_type,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted,is_advertised,booking_service_type,store_subscriptions(status,pickup_premium_enabled,repeat_rewards_enabled,starts_at,expires_at)'
 
   let { data: store } = await supabase
     .from('stores')
@@ -248,6 +248,41 @@ function isActiveNow(start: string | null | undefined, end: string | null | unde
   return (Number.isNaN(s) || s <= now) && (Number.isNaN(e) || e >= now)
 }
 
+type UnifiedOfferRow = { id: string; source_type: string | null; title: string | null; short_title: string | null; subtitle: string | null; description: string | null; benefit_value: number | null; benefit_percent: number | null; logo_url: string | null; starts_at: string | null; ends_at: string | null; is_active: boolean | null; status: string | null; sponsor_name: string | null }
+
+const UNIFIED_OFFER_COLS = 'id, source_type, title, short_title, subtitle, description, benefit_value, benefit_percent, logo_url, starts_at, ends_at, is_active, status, sponsor_name'
+
+/** Live bank / card offers from the unified `offers` table — app parity: Home/BankOffers.js `loadBankOffers`. */
+function toBankOffers(rows: UnifiedOfferRow[]): ServiceOffer[] {
+  return rows
+    .filter(o => o.is_active === true || (o.status ?? '').trim().toUpperCase() === 'ACTIVE')
+    .filter(o => isActiveNow(o.starts_at, o.ends_at))
+    .filter(o => {
+      const t = (o.source_type ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_')
+      return t === 'BANK' || t.includes('BANK_') || t.includes('_BANK')
+    })
+    .map(o => {
+      const pct = Number(o.benefit_percent)
+      const flat = Number(o.benefit_value)
+      return {
+        id: String(o.id),
+        title: o.title || o.short_title || 'Bank offer',
+        description: o.description || o.subtitle || null,
+        discount_type: pct > 0 ? 'PERCENT' : 'FLAT',
+        discount_value: pct > 0 ? pct : Number.isFinite(flat) ? flat : null,
+        sponsor_name: o.sponsor_name,
+        logo_url: o.logo_url,
+      }
+    })
+}
+
+/** Platform-wide bank offers — the shopping store page shows the same ones as the salon page. */
+export async function getBankOffers(): Promise<ServiceOffer[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from('offers').select(UNIFIED_OFFER_COLS).order('priority', { ascending: true })
+  return toBankOffers((data ?? []) as UnifiedOfferRow[])
+}
+
 /**
  * Wellness / service store detail — app parity: screens/ServiceStoreDetails.jsx.
  * Same sources the app reads: the store row (+ `top_items`), gallery, opening
@@ -286,7 +321,7 @@ export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<Servi
       supabase.from('service_categories').select('key, slug, title, subtitle, light_theme_image_url, dark_theme_image_url').eq('is_active', true),
       supabase.from('store_service_items').select('id, service_id, title, description, price, duration_minutes, service_for, sort_order, is_active').eq('store_id', store.id).order('sort_order', { ascending: true }),
       supabase.from('store_offers').select('id, title, description, offer_type, discount_value, start_at, end_at, is_active').eq('store_id', store.id).eq('is_active', true).order('created_at', { ascending: false }),
-      supabase.from('offers').select('id, source_type, title, short_title, subtitle, description, benefit_value, benefit_percent, logo_url, starts_at, ends_at, is_active, status, sponsor_name').order('priority', { ascending: true }),
+      supabase.from('offers').select(UNIFIED_OFFER_COLS).order('priority', { ascending: true }),
       supabase.from('store_reviews').select(STORE_REVIEW_COLS).eq('store_id', store.id).eq('is_approved', true).order('created_at', { ascending: false }).limit(200),
     ])
 
@@ -341,27 +376,7 @@ export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<Servi
     }))
 
   // app parity: the app reads platform-wide bank offers here (not store-scoped).
-  type UnifiedOfferRow = { id: string; source_type: string | null; title: string | null; short_title: string | null; subtitle: string | null; description: string | null; benefit_value: number | null; benefit_percent: number | null; logo_url: string | null; starts_at: string | null; ends_at: string | null; is_active: boolean | null; status: string | null; sponsor_name: string | null }
-  const bankOffers: ServiceOffer[] = rows<UnifiedOfferRow>(offersRes)
-    .filter(o => o.is_active === true || (o.status ?? '').trim().toUpperCase() === 'ACTIVE')
-    .filter(o => isActiveNow(o.starts_at, o.ends_at))
-    .filter(o => {
-      const t = (o.source_type ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_')
-      return t === 'BANK' || t.includes('BANK_') || t.includes('_BANK')
-    })
-    .map(o => {
-      const pct = Number(o.benefit_percent)
-      const flat = Number(o.benefit_value)
-      return {
-        id: String(o.id),
-        title: o.title || o.short_title || 'Bank offer',
-        description: o.description || o.subtitle || null,
-        discount_type: pct > 0 ? 'PERCENT' : 'FLAT',
-        discount_value: pct > 0 ? pct : Number.isFinite(flat) ? flat : null,
-        sponsor_name: o.sponsor_name,
-        logo_url: o.logo_url,
-      }
-    })
+  const bankOffers = toBankOffers(rows<UnifiedOfferRow>(offersRes))
 
   const s = store as unknown as ServiceStore & { top_items: unknown }
   const topItems = Array.isArray(s.top_items)

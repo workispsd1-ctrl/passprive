@@ -128,6 +128,8 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
         </div>
       </div>
 
+      {/* Badge tiles (Guaranteed Cash Back / Booking Available / Instant Book /
+          Collect Stamps / Exclusive Restaurants) — hidden for now; uncomment to restore.
       <div className="mx-auto mt-5 flex max-w-7xl gap-6.75 overflow-x-auto px-4 pb-2 md:px-8 [&::-webkit-scrollbar]:hidden scrollbar-none min-[120rem]:gap-11">
         {BADGES.map((badge) => {
           const dim = !!filters.badge && filters.badge !== badge.key
@@ -150,6 +152,7 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
           )
         })}
       </div>
+      */}
 
       {/* keyed on the URL so the draft re-seeds from the applied filters each time it opens */}
       {filterOpen && (

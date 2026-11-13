@@ -10,6 +10,7 @@ import { BrandsGrid } from './BrandsGrid'
 import { BuyGiftCardSidebar } from './BuyGiftCardSidebar'
 import { RedeemCodeCard } from './RedeemCodeCard'
 import { GiftHistoryCard } from './GiftHistoryCard'
+import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 
 interface Props {
   events: GiftEvent[]
@@ -21,6 +22,9 @@ interface Props {
 export function GiftsClient({ events, brands, discounts, summary }: Props) {
   const [showPurchase, setShowPurchase] = useState(false)
   const [balance, setBalance] = useState(summary?.balance ?? 0)
+  const { requireLogin } = useAuthPrompt()
+  // signed out → log in first, then the purchase sheet opens
+  const openPurchase = () => requireLogin(() => setShowPurchase(true))
 
   return (
     <>
@@ -28,7 +32,7 @@ export function GiftsClient({ events, brands, discounts, summary }: Props) {
         balance={balance}
         eventsCount={events.length}
         brandsCount={brands.length}
-        onBuyClick={() => setShowPurchase(true)}
+        onBuyClick={openPurchase}
         onRedeemClick={() => document.getElementById('redeem-section')?.scrollIntoView({ behavior: 'smooth' })}
       />
 
@@ -39,15 +43,15 @@ export function GiftsClient({ events, brands, discounts, summary }: Props) {
           <div className='flex flex-col lg:flex-row gap-8'>
 
             <div className='flex-1 min-w-0 space-y-10'>
-              <OccasionsBrowser events={events} onSelect={() => setShowPurchase(true)} />
-              <BrandsGrid brands={brands} onSelect={() => setShowPurchase(true)} />
+              <OccasionsBrowser events={events} onSelect={openPurchase} />
+              <BrandsGrid brands={brands} onSelect={openPurchase} />
             </div>
 
             <div className='w-full lg:w-[320px] shrink-0'>
               <div className='lg:sticky lg:top-6 space-y-4'>
-                <BuyGiftCardSidebar onBuyClick={() => setShowPurchase(true)} />
+                <BuyGiftCardSidebar onBuyClick={openPurchase} />
                 <RedeemCodeCard onRedeemSuccess={setBalance} />
-                <GiftHistoryCard summary={summary} onBuyClick={() => setShowPurchase(true)} />
+                <GiftHistoryCard summary={summary} onBuyClick={openPurchase} />
               </div>
             </div>
 

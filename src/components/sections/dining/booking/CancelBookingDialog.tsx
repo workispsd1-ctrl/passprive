@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 
 // app parity: PaymentSuccessScreen.jsx CANCELLATION_REASONS
 const REASONS = ['Plan change', 'Found a better offer elsewhere', 'Booked by mistake', 'Others']
@@ -42,7 +43,9 @@ export function CancelBookingDialog({ bookingId, onClose }: { bookingId: string;
 
   return (
     <div className='fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center' onClick={() => !busy && onClose()}>
-      <div role='dialog' aria-modal='true' aria-labelledby='cancel-title' className='w-full max-w-sm rounded-2xl bg-white p-6 text-left' onClick={e => e.stopPropagation()}>
+      <div role='dialog' aria-modal='true' aria-labelledby='cancel-title' className='relative w-full max-w-sm rounded-2xl bg-white p-6 text-left' onClick={e => e.stopPropagation()}>
+        {/* app parity: AnimatedSheet "sheet" hunt slot */}
+        <HuntSpot slot='sheet' />
         <p id='cancel-title' className='text-[17px] font-bold text-gray-900'>Cancel your booking</p>
         <p className='mt-1 text-[13px] text-gray-500'>Tell us why you’re cancelling.</p>
         <div className='mt-4 flex flex-col gap-2'>

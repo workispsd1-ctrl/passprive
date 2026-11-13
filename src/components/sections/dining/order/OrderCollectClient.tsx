@@ -18,6 +18,7 @@ import {
   type OrderSort,
 } from '@/lib/orderCollect'
 import { cn } from '@/lib/utils'
+import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
 
 const SORT_OPTIONS: { key: OrderSort; label: string }[] = [
   { key: 'recommended', label: 'Recommended' },
@@ -57,6 +58,7 @@ export function OrderCollectClient({
   browseOnly: boolean
 }) {
   const router = useRouter()
+  const { requireLogin } = useAuthPrompt()
   const plan = useUserPlan()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
@@ -82,8 +84,11 @@ export function OrderCollectClient({
   )
 
   function proceed() {
-    try { sessionStorage.setItem(ORDER_CART_KEY, JSON.stringify({ restaurantId: restaurant.id, lines })) } catch { /* private mode — it goes as a plain bill */ }
-    router.push(`/pay-bill?restaurant_id=${restaurant.id}&amount=${total}&order=1`)
+    // paying the order needs an account — signed out, log in first and carry on after
+    requireLogin(() => {
+      try { sessionStorage.setItem(ORDER_CART_KEY, JSON.stringify({ restaurantId: restaurant.id, lines })) } catch { /* private mode — it goes as a plain bill */ }
+      router.push(`/pay-bill?restaurant_id=${restaurant.id}&amount=${total}&order=1`)
+    })
   }
 
   return (

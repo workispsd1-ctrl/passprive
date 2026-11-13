@@ -59,6 +59,31 @@ describe('canBook', () => {
   })
 })
 
+describe('getCardBadge — Book Now / Promoted (app parity: CashbackBadge.jsx)', () => {
+  const bookingOnly: MerchantCapabilityFields = { merchant_type: 'preferred', merchant_plan: 'paid', booking_enabled: true, pay_bill_enabled: false, on_boarded: true }
+
+  it('bookable merchants get the Book Now cut-out and no cashback art', () => {
+    expect(getCardBadge(bookingOnly, 'black')).toEqual({ arts: [], promoted: false, bookable: true })
+  })
+
+  it('pay bill + booking shows both cashback arts and Book Now', () => {
+    const b = getCardBadge({ ...preferred, booking_enabled: true }, 'black')
+    expect(b?.arts).toHaveLength(2)
+    expect(b?.bookable).toBe(true)
+  })
+
+  it('promoted keeps its cashback arts and adds the tab', () => {
+    const b = getCardBadge({ ...preferred, is_promoted: true }, 'free')
+    expect(b?.arts).toHaveLength(2)
+    expect(b?.promoted).toBe(true)
+    expect(getCardBadge({ is_promoted: true, cashback_enabled: false }, 'free')).toEqual({ arts: [], promoted: true, bookable: false })
+  })
+
+  it('free merchants never get Book Now', () => {
+    expect(getCardBadge({ merchant_plan: 'free', booking_enabled: true }, 'black')?.bookable).toBe(false)
+  })
+})
+
 describe('platform earn / burn switches', () => {
   afterEach(() => setPlatformFlags(DEFAULT_PLATFORM_FLAGS))
 

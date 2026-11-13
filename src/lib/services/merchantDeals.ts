@@ -98,6 +98,8 @@ export async function getRevealPlans(): Promise<RevealPlan[]> {
     .order('sort_order', { ascending: false })
   return ((data ?? []) as (RevealPlan & { sort_order: number })[])
     .filter(plan => plan.tier !== 'cim')
+    // monthly + yearly rows share a tier — one row per tier, as the app does
+    .filter((plan, i, rows) => rows.findIndex(r => r.tier === plan.tier) === i)
     .map(({ tier, plan_name, deals_per_month, deals_per_restaurant_per_month }) => ({
       tier,
       plan_name,

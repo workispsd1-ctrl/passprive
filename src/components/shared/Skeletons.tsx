@@ -1,5 +1,6 @@
 import { DESIGN_UNIT, SALON_TYPE, SALON_UNIT, TYPE_SCALE, t, u } from '@/components/sections/dining/designUnit'
 import { PROFILE_UNIT } from '@/components/sections/profile/units'
+import { SEARCH_PAGE } from '@/components/search/unit'
 import { cn } from '@/lib/utils'
 
 /**
@@ -217,39 +218,35 @@ export function CardGridPageSkeleton({ count = 8, subtitle = false }: { count?: 
 /** Search (SearchClient, app parity: GlobalSearchScreen) — back + search pill, the five tabs, recent chips and the discovery rails. */
 export function SearchPageSkeleton() {
   return (
-    <main className='mx-auto min-h-screen max-w-3xl bg-white pb-6' aria-busy='true'>
-      <div className='flex items-center gap-3 px-4 pt-2 pb-3'>
-        <Bone className='size-5 shrink-0 rounded-md' />
-        <Bone className='h-12 flex-1 rounded-full' />
-      </div>
-      <div className='mb-2 flex border-b border-[#EFEFEF] px-4 pb-2.5'>
-        {[0, 1, 2, 3, 4].map(i => (
-          <div key={i} className='flex flex-1 justify-center'>
-            <Line className='h-3.5 w-14' />
-          </div>
-        ))}
-      </div>
-      <Bone className='mx-4 mt-6.5 h-5 w-40 rounded-full' />
-      <div className='mt-3 flex flex-col gap-2 px-4'>
-        {[['w-24', 'w-32', 'w-20'], ['w-28', 'w-20', 'w-24']].map((row, r) => (
-          <div key={r} className='flex gap-2'>
-            {row.map((w, i) => <Bone key={i} className={cn('h-7.25 rounded-full', w)} />)}
-          </div>
-        ))}
-      </div>
-      <Bone className='mx-4 mt-6.5 h-5 w-52 rounded-full' />
-      <div className='mt-3 flex flex-col gap-4.5 px-4'>
-        {[0, 1, 2].map(i => (
-          <div key={i} className='flex h-23.75 gap-2.25 rounded-2xl bg-white pt-1.5 pr-3 pl-1.75 shadow-[0_1px_6px_rgba(0,0,0,0.05)]'>
-            <Bone className='h-20.5 w-20.75 shrink-0 rounded-xl' />
-            <div className='flex-1 space-y-2.5 pt-1'>
-              <Line className='h-4 w-1/2' />
-              <Line className='w-2/3' />
-              <Line className='w-1/3' />
+    <main className={SEARCH_PAGE} aria-busy='true'>
+      <Bone className='size-24 rounded-md' />
+      <div className='flex flex-col gap-28 max-lg:gap-16'>
+        <Bone className='h-56 rounded-full max-lg:h-48' />
+        <div className='flex h-52 border-b border-[#EBEBEB]'>
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} className='w-136 shrink-0 px-16 pt-10 max-lg:w-auto max-lg:flex-1'>
+              <Line className='h-16 w-60' />
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+      {[0, 1].map(s => (
+        <div key={s} className='flex flex-col gap-12'>
+          <Bone className='h-32 w-240 rounded-full max-lg:h-24 max-lg:w-180' />
+          <div className='grid grid-cols-3 gap-24 py-12 max-lg:grid-cols-1 max-lg:gap-16'>
+            {[0, 1, 2].map(i => (
+              <div key={i} className={cn('flex h-160 gap-20 rounded-[calc(18*var(--u))] bg-white p-8 shadow-[0_calc(3*var(--u))_calc(16*var(--u))_rgba(0,0,0,0.07)]', i > 0 && 'max-lg:hidden')}>
+                <Bone className='h-144 w-136 shrink-0 rounded-[calc(12*var(--u))]' />
+                <div className='flex flex-1 flex-col gap-14 pt-8'>
+                  <Line className='h-18 w-2/3' />
+                  <Line className='h-14 w-1/2' />
+                  <Line className='h-24 w-112 rounded-full' />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </main>
   )
 }

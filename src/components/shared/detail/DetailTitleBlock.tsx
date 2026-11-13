@@ -8,6 +8,7 @@ import { useLocation } from '@/lib/context/LocationContext'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
 import type { HoursRow } from '@/lib/openingHours'
 import { OpeningHoursPill } from './OpeningHours'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 
 /**
  * Name block at the top of every merchant detail page — app parity: the
@@ -58,7 +59,9 @@ export function DetailTitleBlock({
   const metaLine = [...meta, distance && `${distance} away`].filter(Boolean).join('  •  ')
 
   return (
-    <header className={cn('font-(family-name:--font-dm-sans)', className)}>
+    <header className={cn('relative font-(family-name:--font-dm-sans)', className)}>
+      {/* app parity: MerchantInfoCard.jsx HuntSpot */}
+      <HuntSpot slot='merchant-card' />
       <div className='flex items-start gap-4'>
         {showLogo && (
           <div className='relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.06)]'>

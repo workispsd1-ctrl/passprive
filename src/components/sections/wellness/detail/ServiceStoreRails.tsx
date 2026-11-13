@@ -14,6 +14,7 @@ import { useSaveMerchant } from '@/components/shared/detail/MerchantActions'
 import type { StoreRow } from '@/lib/types/stores'
 import { storeCardTags } from '@/lib/storeBadges'
 import { getCardChips } from '@/lib/cardChips'
+import { storeHref } from '@/lib/storeType'
 import { CardChips } from '@/components/shared/CardChips'
 
 const MAX_CARDS = 12
@@ -39,7 +40,7 @@ function Rail({ title, stores }: { title: string; stores: WithDist[] }) {
       {stores.map(s => (
           <MerchantCard
             key={s.id}
-            href={`/wellness/${s.slug ?? s.id}`}
+            href={storeHref(s)}
             saveId={s.id}
             saveType='STORE'
             image={s.cover_image}
@@ -84,7 +85,7 @@ function WideCard({ store }: { store: WithDist }) {
   const tags = storeCardTags(store)
   return (
     <div className='group relative w-full shrink-0 snap-start rounded-[calc(18*var(--u))] bg-white p-[calc(10*var(--u))] shadow-[0_calc(4*var(--u))_calc(24*var(--u))_rgba(0,0,0,0.05)]'>
-      <Link href={`/wellness/${store.slug ?? store.id}`} aria-label={store.name} className='absolute inset-0 z-10' />
+      <Link href={storeHref(store)} aria-label={store.name} className='absolute inset-0 z-10' />
       <div className={cn('relative h-[calc(250*var(--u))] overflow-hidden bg-gray-200', label ? 'rounded-t-[calc(12*var(--u))]' : 'rounded-[calc(12*var(--u))]')}>
         {store.cover_image && <Image src={store.cover_image} alt={store.name} fill sizes='40vw' className='object-cover' />}
         <div className='absolute inset-x-0 top-0 flex items-center gap-[calc(8*var(--u))] p-[calc(16*var(--u))]'>
@@ -161,6 +162,8 @@ function WideRail({ title, stores }: { title: string; stores: WithDist[] }) {
 
 type RailProps = {
   stores: StoreRow[]
+  /** the two rails' headings — salons by default */
+  titles?: { explore: string; nearby: string }
   currentId: string
   category: string | null
   subcategory: string | null
@@ -206,8 +209,8 @@ export function ServiceStoreRails(props: RailProps & { className?: string }) {
   const { explore, nearby } = useStoreRails(props)
   return (
     <div className={cn('mt-4', props.className)}>
-      <Rail title='Explore more services' stores={explore} />
-      <Rail title='Nearby services' stores={nearby} />
+      <Rail title={props.titles?.explore ?? 'Explore more services'} stores={explore} />
+      <Rail title={props.titles?.nearby ?? 'Nearby services'} stores={nearby} />
     </div>
   )
 }
@@ -218,8 +221,8 @@ export function ServiceStoreColumns(props: RailProps) {
   if (!explore.length && !nearby.length) return null
   return (
     <div className='mt-[calc(40*var(--u))] hidden gap-[calc(32*var(--u))] pb-[calc(71*var(--u))] font-(family-name:--font-dm-sans) md:flex'>
-      <WideRail title='Explore more salons' stores={explore} />
-      <WideRail title='Nearby stores' stores={nearby} />
+      <WideRail title={props.titles?.explore ?? 'Explore more salons'} stores={explore} />
+      <WideRail title={props.titles?.nearby ?? 'Nearby stores'} stores={nearby} />
     </div>
   )
 }

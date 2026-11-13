@@ -11,6 +11,7 @@ import { MEMBERSHIP_BADGE } from '@/lib/cashbackBadge'
 import type { CashbackPlan } from '@/lib/cashback'
 import { fetchCashbackBalance } from '@/lib/services/cashbackBalance'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { resolveMerchantTrace, resolveSessionId } from '@/lib/utils/payment'
 import {
   MAX_BILL_DIGITS,
@@ -157,6 +158,8 @@ export function PayBillClient({
   // summary: the coupon picked (undefined = no choice yet, null = none)
   const [couponChoice, setCouponChoice] = useState<string | null | undefined>(initialOffer)
   const [upgradeApplied, setUpgradeApplied] = useState(false)
+  // order checkout: the upgrade is its own sheet, never part of the order total (app: OrderBillSummaryScreen BlackUpgradeSheet)
+  const [upgradeSheet, setUpgradeSheet] = useState(false)
   const [frame, setFrame] = useState<{ sessionId: string; merchantTrace: string; src: string; srcDoc: string } | null>(null)
   const [quote, setQuote] = useState<{ amount: number; data: BillQuote } | null>(null)
   const [balance, setBalance] = useState(0)
@@ -300,13 +303,18 @@ export function PayBillClient({
     return () => { live = false; clearTimeout(timer) }
   }, [frame, router])
 
+  // app parity: startMembershipPayment — buy the plan first, then come back to this bill
+  function startUpgrade() {
+    if (!upsell) return
+    const qs = new URLSearchParams({ [idParam]: r.id, amount: String(amount), offer: selected?.id ?? 'none' })
+    if (isOrder) qs.set('order', '1')
+    try { sessionStorage.setItem(PAY_BILL_RESUME_KEY, `/pay-bill?${qs}`) } catch { /* private mode — they land on the membership page */ }
+    router.push(`/membership/checkout?plan=${encodeURIComponent(upsell.planId)}`)
+  }
+
   function proceedFromSummary() {
-    // app parity: startMembershipPayment — buy the plan first, then come back to this bill
     if (upgradeApplied && upsell) {
-      const qs = new URLSearchParams({ [idParam]: r.id, amount: String(amount), offer: selected?.id ?? 'none' })
-      if (orderLines) qs.set('order', '1')
-      try { sessionStorage.setItem(PAY_BILL_RESUME_KEY, `/pay-bill?${qs}`) } catch { /* private mode — they land on the membership page */ }
-      router.push(`/membership/checkout?plan=${encodeURIComponent(upsell.planId)}`)
+      startUpgrade()
       return
     }
     go('method')
@@ -542,9 +550,10 @@ export function PayBillClient({
                   <div className='flex min-w-0 flex-col' style={{ gap: t(14) }}>
                     {upsell && upsell.amount > 0 && (
                       <Capsule
-                        role='switch'
+                        role={isOrder ? undefined : 'switch'}
                         selected={upgradeApplied}
-                        onClick={() => setUpgradeApplied(v => !v)}
+                        // orders: a separate upgrade sheet (app: OrderBillSummaryScreen) — bills: added to the total
+                        onClick={() => (isOrder ? setUpgradeSheet(true) : setUpgradeApplied(v => !v))}
                         icon={<Image src={MEMBERSHIP_BADGE[upsell.plan]} alt='' width={92} height={40} className='w-auto' style={{ height: t(44) }} />}
                         title={`Add ${PLAN_LABEL[upsell.plan]} at MUR ${fmtMur(upsell.amount)}`}
                         sub={
@@ -638,6 +647,27 @@ export function PayBillClient({
           </section>
         </div>
       </div>
+
+      {/* app parity: OrderBillSummaryScreen BlackUpgradeSheet — confirm starts the membership payment, then returns to this order */}
+      {isOrder && upsell && (
+        <Dialog open={upgradeSheet} onOpenChange={setUpgradeSheet}>
+          <DialogContent className='gap-0 rounded-3xl bg-white p-6 text-center font-(family-name:--font-dm-sans) sm:max-w-md'>
+            <Image src={MEMBERSHIP_BADGE[upsell.plan]} alt='' width={92} height={40} className='mx-auto h-10 w-auto' />
+            <DialogTitle className='mt-4 text-[20px] font-bold text-[#2C2D32]'>Upgrade to {PLAN_LABEL[upsell.plan]}</DialogTitle>
+            <DialogDescription className='mt-2 text-[14px] leading-5 text-[#666666]'>
+              {[upsell.multiplier && `Get ${upsell.multiplier} OFF`, upsell.pct > 0 && `${upsell.pct}% cashback`].filter(Boolean).join(' and ') || `Unlock ${PLAN_LABEL[upsell.plan]} benefits`}
+              {' '}on this order. You&rsquo;ll buy the membership first, then come back to pay for your order.
+            </DialogDescription>
+            <button
+              type='button'
+              onClick={() => { setUpgradeSheet(false); startUpgrade() }}
+              className='mt-5 flex h-12 items-center justify-center rounded-full bg-[#FF4800] text-[16px] font-semibold text-white hover:bg-[#E64200]'
+            >
+              Add {PLAN_LABEL[upsell.plan]} • MUR {fmtMur(upsell.amount)}
+            </button>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {paying && !frame && <ProcessingScreen />}
       {frame && (

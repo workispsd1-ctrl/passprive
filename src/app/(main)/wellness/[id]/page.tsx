@@ -134,7 +134,7 @@ export default async function WellnessStorePage({ params }: { params: Promise<{ 
             chips={chips}
           />
           <DetailSectionTabs tabs={tabs} title={store.name} cta={canBookService ? { label: 'Book a slot', href: bookHref } : null} className='max-md:mt-6' orderClassName='max-md:order-2' variant='wellness' />
-          <MerchantRewardsSection merchant={store} kind='store' name={store.name} className='max-md:order-1 md:hidden' />
+          <MerchantRewardsSection merchant={store} kind='store' name={store.name} offersTitle='Offers for today' className='max-md:order-1 md:hidden' />
           <UpsellBannerPager
             merchantType={store.merchant_type}
             merchantId={store.id}

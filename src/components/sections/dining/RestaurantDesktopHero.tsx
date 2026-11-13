@@ -19,6 +19,8 @@ import { directionsUrl, shareLink, useSaveMerchant } from '@/components/shared/d
 import { cn } from '@/lib/utils'
 import { useGallery } from './PhotoGalleryClient'
 import { t, tMin, u } from './designUnit'
+import { AuthLink } from '@/components/shared/AuthLink'
+import { HuntSpot } from '@/components/hunt/HuntSpot'
 
 const A = '/assets/merchant-detail'
 const INTER = 'font-(family-name:--font-inter)'
@@ -154,6 +156,8 @@ export function RestaurantTitleCard({
       className='relative hidden bg-white/80 font-(family-name:--font-dm-sans) drop-shadow-[0_4px_43.5px_rgba(0,0,0,0.1)] md:block'
       style={{ marginTop: tMin(24, 14), minHeight: t(192), padding: `${tMin(14, 11)} ${tMin(24, 14)}`, borderRadius: t(18) }}
     >
+      {/* app parity: MerchantInfoCard.jsx HuntSpot */}
+      <HuntSpot slot='merchant-card' />
       <div className='flex items-start justify-between' style={{ gap: tMin(16, 10) }}>
         <div className='min-w-0'>
           <h1 className='font-bold wrap-break-word text-[#2c2d32]' style={{ fontSize: tMin(30, 20), lineHeight: 1.4, letterSpacing: t(-0.5) }}>{name}</h1>
@@ -249,14 +253,14 @@ export function RestaurantCtaCard({ merchant, bookHref, payHref, className }: { 
       {(bookHref || payHref) && (
         <div className='relative flex flex-wrap' style={{ marginTop: upTo > 0 ? tMin(13, 10) : 0, gap: tMin(7, 6) }}>
           {bookHref && (
-            <Link href={bookHref} className='flex min-w-fit flex-1 items-center justify-center border-solid border-[#ff4800] bg-[rgba(217,217,217,0.1)] px-3 font-semibold whitespace-nowrap text-[#ff4800] transition-colors hover:bg-[#fff1eb]' style={{ ...button, borderWidth: 0.94 }}>
+            <AuthLink href={bookHref} className='flex min-w-fit flex-1 items-center justify-center border-solid border-[#ff4800] bg-[rgba(217,217,217,0.1)] px-3 font-semibold whitespace-nowrap text-[#ff4800] transition-colors hover:bg-[#fff1eb]' style={{ ...button, borderWidth: 0.94 }}>
               Book table
-            </Link>
+            </AuthLink>
           )}
           {payHref && (
-            <Link href={payHref} className={`flex min-w-fit flex-1 items-center justify-center bg-[#ff4800] px-3 font-semibold whitespace-nowrap text-[#fffbff] transition-colors hover:bg-brand-dark ${INTER}`} style={button}>
+            <AuthLink href={payHref} className={`flex min-w-fit flex-1 items-center justify-center bg-[#ff4800] px-3 font-semibold whitespace-nowrap text-[#fffbff] transition-colors hover:bg-brand-dark ${INTER}`} style={button}>
               Pay bill
-            </Link>
+            </AuthLink>
           )}
         </div>
       )}

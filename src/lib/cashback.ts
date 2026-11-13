@@ -119,8 +119,10 @@ export function showsCashbackBadge(e: MerchantCapabilityFields): boolean {
 export type CardBadge = {
   /** earn badge first, then "use cashback on payment" for merchants that take bill payments */
   arts: string[];
-  /** PassPrivé Promoted — a corner tag beside the cashback badge, or the promoted chip alone */
+  /** PassPrivé Promoted — the curved tab bottom-left of the card image */
   promoted: boolean;
+  /** app parity: CashbackBadge.jsx BookingBadge — "Book Now" cut-out bottom-right, whenever the merchant takes bookings */
+  bookable: boolean;
 };
 
 /**
@@ -130,15 +132,16 @@ export type CardBadge = {
  */
 export function getCardBadge(e: MerchantCapabilityFields, plan: CashbackPlan): CardBadge | null {
   const promoted = isPromoted(e);
+  const bookable = canBook(e);
   const arts: string[] = [];
   if (isCashbackEnabled(e)) {
     const type = String(e.merchant_type ?? '').trim().toLowerCase();
     const earn = earnOn() ? PLAN_BADGES[plan][type === 'verified' ? 'verified' : 'preferred'] : null;
     const use = burnOn() ? USE_CASHBACK_BADGE : null;
     if (canPayBill(e)) arts.push(...[earn, use].filter((art): art is string => !!art));
-    else if (!canBook(e) && earn) arts.push(earn);
+    else if (!bookable && earn) arts.push(earn);
   }
-  return arts.length || promoted ? { arts, promoted } : null;
+  return arts.length || promoted || bookable ? { arts, promoted, bookable } : null;
 }
 
 /** App parity: merchantCapabilities.js `canBook` (booking needs service level ≥ booking). */
