@@ -1,6 +1,7 @@
 import { DESIGN_UNIT, SALON_TYPE, SALON_UNIT, TYPE_SCALE, t, u } from '@/components/sections/dining/designUnit'
 import { PROFILE_UNIT } from '@/components/sections/profile/units'
 import { SEARCH_PAGE } from '@/components/search/unit'
+import { MALL_PAGE } from '@/components/sections/malls/unit'
 import { cn } from '@/lib/utils'
 
 /**
@@ -381,17 +382,21 @@ export function StampDetailSkeleton() {
 /** Mall (MallDetailClient) — full-bleed cover, name, address, actions, then rails of places. */
 export function MallDetailSkeleton() {
   return (
-    <main className='min-h-screen bg-white pb-16' aria-busy='true'>
-      <Bone className='relative left-1/2 h-64 w-screen -translate-x-1/2 rounded-none md:h-96' />
-      <div className='mx-auto max-w-7xl px-4 pt-6 md:px-8'>
-        <Bone className='h-8 w-64 rounded-full md:h-9' />
-        <Line className='mt-3 h-3.5 w-72 max-w-full' />
-        <Line className='mt-3 h-3.5 w-40' />
-        <div className='mt-4 flex gap-3'>
-          {['w-32', 'w-24'].map((w, i) => <Bone key={i} className={cn('h-10 rounded-full', w)} />)}
+    <main className={MALL_PAGE} aria-busy='true'>
+      <div className='px-172 pt-56 max-lg:px-16 max-lg:pt-[12px]'>
+        <Bone className='h-40 w-85 rounded-full max-lg:h-[28px] max-lg:w-[72px]' />
+        <Bone className='mt-56 h-392 rounded-[calc(20*var(--u))] max-lg:mt-[12px] max-lg:h-[200px] max-lg:rounded-[16px]' />
+        <Bone className='mt-28 h-40 w-320 rounded-full max-lg:mt-[16px] max-lg:h-[28px] max-lg:w-[200px]' />
+        <Line className='mt-10 h-18 w-200 max-lg:h-[14px] max-lg:w-[160px]' />
+        <Bone className='mt-13 h-34 w-245 rounded-full max-lg:h-[34px] max-lg:w-[200px]' />
+        <div className='mt-32 flex gap-24 border-b border-[#E6E6E6] pb-16 max-lg:mt-[24px] max-lg:gap-[12px]'>
+          {['w-64', 'w-180', 'w-200', 'w-190'].map((w, i) => <Bone key={i} className={cn('h-48 rounded-full max-lg:h-[32px] max-lg:w-[80px]', w)} />)}
+        </div>
+        <Bone className='mt-48 h-32 w-220 rounded-full max-lg:mt-[24px] max-lg:h-[24px] max-lg:w-[160px]' />
+        <div className='mt-24 flex gap-24 overflow-hidden max-lg:mt-[12px] max-lg:gap-[12px]'>
+          {[0, 1, 2, 3].map(i => <Bone key={i} className='h-480 w-376 shrink-0 rounded-[calc(19.34*var(--u))] max-lg:h-[300px] max-lg:w-[280px] max-lg:rounded-[18px]' />)}
         </div>
       </div>
-      <RailSkeleton titleWidth='w-40'>{i => <MerchantCardSkeleton key={i} />}</RailSkeleton>
     </main>
   )
 }

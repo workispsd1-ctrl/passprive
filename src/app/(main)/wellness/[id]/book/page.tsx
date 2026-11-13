@@ -1,9 +1,6 @@
 import { getBookingFee } from '@/lib/services/bookings'
 import type { Metadata } from 'next'
-import Image from 'next/image'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
 import { getServiceStoreBySlugOrId, getStoreBookingSettings } from '@/lib/services/stores'
 import { createClient } from '@/lib/supabase/server'
 import { canBook } from '@/lib/cashback'
@@ -40,43 +37,33 @@ export default async function WellnessBookPage({
   const address = store.address_line1 ?? [store.location_name, store.city].filter(Boolean).join(', ')
 
   return (
-    <main className='min-h-screen bg-gray-50'>
-      <div className='border-b border-gray-200 bg-white'>
-        <div className='mx-auto flex max-w-5xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8'>
-          <Link href={href} aria-label='Back' className='shrink-0 text-gray-400 transition-colors hover:text-gray-700'>
-            <ArrowLeft className='h-5 w-5' />
-          </Link>
-          <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-200'>
-            {(store.logo_url ?? store.cover_image) && (
-              <Image src={(store.logo_url ?? store.cover_image) as string} alt={store.name} fill className='object-cover' sizes='56px' priority />
-            )}
-          </div>
-          <div className='min-w-0'>
-            <h1 className='truncate text-base leading-tight font-extrabold text-gray-900'>{store.name}</h1>
-            {address && <p className='mt-0.5 truncate text-xs text-gray-500'>{address}</p>}
-          </div>
-        </div>
-      </div>
-
-      <div className='mx-auto max-w-5xl px-4 py-8 pb-16 sm:px-6 lg:px-8'>
-        <ClientOnly>
-          <ServiceBookingFlow
-            store={{
-              id: store.id,
-              name: store.name,
-              href,
-              address: address || null,
-              ...settings,
-              bookingFee,
-            }}
-            categories={categories}
-            hours={hours}
-            offers={inStoreOffers}
-            initialCategoryId={category ?? null}
-            isLoggedIn={!!user}
-          />
-        </ClientOnly>
-      </div>
-    </main>
+    // the flow draws its own banner and frame — the website layout, like Order & Collect
+    <ClientOnly>
+      <ServiceBookingFlow
+        store={{
+          id: store.id,
+          name: store.name,
+          href,
+          address: address || null,
+          cover: store.cover_image ?? null,
+          logo: store.logo_url ?? null,
+          caps: {
+            merchant_type: store.merchant_type,
+            merchant_plan: store.merchant_plan,
+            pay_bill_enabled: store.pay_bill_enabled,
+            service_level: store.service_level,
+            on_boarded: store.on_boarded,
+            cashback_enabled: store.cashback_enabled,
+          },
+          ...settings,
+          bookingFee,
+        }}
+        categories={categories}
+        hours={hours}
+        offers={inStoreOffers}
+        initialCategoryId={category ?? null}
+        isLoggedIn={!!user}
+      />
+    </ClientOnly>
   )
 }

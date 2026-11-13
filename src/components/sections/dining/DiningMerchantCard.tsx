@@ -29,6 +29,11 @@ interface Props {
   ratingCount?: number
   meta?: string
   tagline?: string
+  /**
+   * app parity: NowTrending.jsx TrendingCard — `card` (white card, badges, chips)
+   * or `bare` (FreshSpots: no card, badge or chips; a wider, shorter photo)
+   */
+  variant?: 'card' | 'bare'
 }
 
 /** Frame + offer-strip colour — fixed across every card, no per-card variation. */
@@ -71,7 +76,9 @@ export function DiningMerchantCard({
   meta,
   tagline,
   chips = [],
+  variant = 'card',
 }: Props) {
+  const bare = variant === 'bare'
   const { isSaved, toggle, setSaved } = useSaved()
   const saved = isSaved(id)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -88,7 +95,14 @@ export function DiningMerchantCard({
   }
 
   return (
-    <div className="group relative w-75 max-md:w-[60vw] shrink-0 overflow-hidden rounded-[18px] border border-white bg-white font-(family-name:--font-dm-sans) shadow-[0px_4.8px_20.4px_0px_rgba(0,0,0,0.1)] transition-shadow hover:shadow-[0px_8px_26px_0px_rgba(0,0,0,0.16)] 2xl:w-95">
+    <div
+      className={cn(
+        'group relative shrink-0 overflow-hidden font-(family-name:--font-dm-sans)',
+        bare
+          ? 'w-64 max-md:w-[64vw] 2xl:w-80'
+          : 'w-75 rounded-[18px] border border-white bg-white shadow-[0px_4.8px_20.4px_0px_rgba(0,0,0,0.1)] transition-shadow hover:shadow-[0px_8px_26px_0px_rgba(0,0,0,0.16)] max-md:w-[60vw] 2xl:w-95',
+      )}
+    >
       <Link
         href={href}
         aria-label={name}
@@ -96,23 +110,23 @@ export function DiningMerchantCard({
       />
 
       <div
-        className="relative mx-2 mt-1.75 overflow-hidden rounded-[15px]"
+        className={cn('relative overflow-hidden rounded-[15px]', !bare && 'mx-2 mt-1.75')}
         style={{ backgroundColor: FRAME_COLOR }}
       >
-        <div className="relative aspect-87/100 overflow-hidden rounded-[15px]">
+        <div className={cn('relative overflow-hidden rounded-[15px]', bare ? 'aspect-216/150' : 'aspect-87/100')}>
           {image ? (
             <Image
               src={image}
               alt={name}
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
               sizes="361px"
             />
           ) : (
             <div className="absolute inset-0 bg-linear-to-br from-gray-200 to-gray-300" />
           )}
 
-          <CardBadgeArt badge={cardBadge} />
+          {!bare && <CardBadgeArt badge={cardBadge} />}
 
           <button
             type="button"
@@ -137,7 +151,7 @@ export function DiningMerchantCard({
         )}
       </div>
 
-      <div className="px-5.25 pt-2.5 pb-3">
+      <div className={bare ? 'px-0.5 pt-2.5' : 'px-5.25 pt-2.5 pb-3'}>
         <div className="flex items-start justify-between gap-2">
           <p className="truncate text-sm font-bold leading-6 text-[#383838] 2xl:text-base min-[120rem]:text-[20px] min-[120rem]:leading-7">
             {name}
@@ -162,7 +176,7 @@ export function DiningMerchantCard({
           </p>
         )}
 
-        {(stampSheet || trending) && (
+        {!bare && (stampSheet || trending) && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {stampSheet && (
               <span className="inline-flex items-center gap-1 rounded-full bg-brand-dark/8 px-2.5 py-1 text-[11px] font-medium text-brand-dark min-[120rem]:text-[14px]">
@@ -176,7 +190,7 @@ export function DiningMerchantCard({
             )}
           </div>
         )}
-        <CardChips chips={chips} className="mt-2" />
+        {!bare && <CardChips chips={chips} className="mt-2" />}
       </div>
 
       <SaveListSheet

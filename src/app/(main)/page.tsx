@@ -1,3 +1,4 @@
+import { HomeRestaurantRail } from '@/components/sections/home/HomeRestaurantRail';
 import { getPlatformFlags } from '@/lib/services/platformFlags';
 import { NewKickInStores } from '@/components/sections/home/NewKickInStores';
 import { HuntSpot } from '@/components/hunt/HuntSpot'
@@ -95,7 +96,8 @@ export default async function Home() {
       case 'foodie-frontrow':
         return featured.length > 0 ? <NewlyFeaturedSection restaurants={featured} stores={stores} /> : null;
       case 'fresh-spots':
-        return <NowTrendingSection restaurants={freshSpots} title={title || 'New Dining Spots'} presorted />;
+        // app parity: FreshSpots — bare restaurant cards
+        return <HomeRestaurantRail restaurants={freshSpots} title={title || 'New Dining Spots'} variant='bare' />;
       case 'more-with-passprive':
         // the "Collect Stamps" banner — only while repeat rewards are on
         return flags.stampsVisible ? <StampsGiftPromo /> : null;
@@ -115,7 +117,8 @@ export default async function Home() {
       case 'new-kick-in-stores':
         return newStores.length > 0 ? <NewKickInStores stores={newStores} capabilities={newStoreCapabilities} /> : null;
       case 'family-feast':
-        return <NowTrendingSection restaurants={familyFeast} title={title || 'Family Feast'} presorted />;
+        // app parity: FamilyFeast — white restaurant cards with chips
+        return <HomeRestaurantRail restaurants={familyFeast} title={title || 'Family Feast'} variant='card' />;
       case 'plan-your-salon-visit':
         // app parity: PlanYourSalonVisit — 15 km, or the same city / area for salons with no coordinates
         return <SalonVisitSection stores={allStores} />;

@@ -51,7 +51,7 @@ function Hero() {
 // ─── Shared bits ─────────────────────────────────────────────────────────
 
 /** Horizontal rail with a title; arrows on desktop, swipe on phones. Desktop cards are clipped at the 1576 content column (Figma); phones scroll to the screen edge. */
-function Rail({ title, head, children, gap = 'gap-24 max-lg:gap-12' }: { title?: string; head?: ReactNode; children: ReactNode; gap?: string }) {
+export function Rail({ title, head, children, gap = 'gap-24 max-lg:gap-12' }: { title?: string; head?: ReactNode; children: ReactNode; gap?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const [edges, setEdges] = useState({ left: false, right: false })
   useEffect(() => {

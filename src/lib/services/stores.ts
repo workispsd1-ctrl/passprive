@@ -187,7 +187,8 @@ export const getStoreMoodCategories = cachedCatalog('store-moods', async (): Pro
     .select('id, key, slug, title, image_url, light_theme_image_url, dark_theme_image_url, sort_order')
     .eq('is_active', true)
     .order('sort_order')
-  const allCats = (unwrap(res) ?? []) as StoreMoodCategory[]
+  // Salon & Wellness has its own section (/wellness) — not a store category here
+  const allCats = ((unwrap(res) ?? []) as StoreMoodCategory[]).filter(c => c.key !== 'SALON_WELLNESS')
   return [
     ...allCats.filter(c => c.key === 'ALL_STORES'),
     ...allCats.filter(c => c.key !== 'ALL_STORES'),
