@@ -14,6 +14,7 @@ const SHOWN_ON: Record<string, string> = {
   '/tourist': 'dining',
   '/instant-book': 'dining',
   '/deals': 'dining',
+  '/great-deals': 'dining',
 }
 
 function DealsIcon() {
@@ -31,8 +32,9 @@ const ACTIVE = 'border-white bg-[linear-gradient(167.85deg,#FFD900_17.9%,#FFAA00
 
 /**
  * Floating "Deals Mode / Use Cashback" switch with a home button — app
- * parity: components/Home/HomeFloatingNav.jsx. Opens /deals in that mode for
- * the category being browsed; on /deals it switches the mode in place.
+ * parity: components/Home/HomeFloatingNav.jsx. "Deals Mode" opens Great Deals
+ * (/great-deals, the app's DealsScreen); "Use Cashback" opens /deals in
+ * cashback mode for the category being browsed.
  */
 export function FloatingModeNav() {
   const pathname = usePathname()
@@ -41,7 +43,8 @@ export function FloatingModeNav() {
   if (!fallbackCategory) return null
 
   const onDeals = pathname === '/deals'
-  const mode = onDeals ? (params.get('mode') === 'cashback' ? 'cashback' : 'deals') : null
+  // app parity: HomeFloatingNav "promos" opens DealsScreen (Great Deals); "Use Cashback" opens the cashback list
+  const mode = pathname === '/great-deals' ? 'deals' : onDeals && params.get('mode') === 'cashback' ? 'cashback' : null
   const category = (onDeals && params.get('category')) || fallbackCategory
   const href = (m: string) => `/deals?mode=${m}&category=${category}`
 
@@ -59,7 +62,7 @@ export function FloatingModeNav() {
       </Link>
       <div className='flex h-15.75 items-center gap-1 rounded-full border border-white bg-white px-0.75 shadow-[0_4px_7px_rgba(0,0,0,0.35)]'>
         <Link
-          href={href('deals')}
+          href='/great-deals'
           aria-current={mode === 'deals' ? 'page' : undefined}
           className={cn(
             'relative flex h-13.75 items-center rounded-full border border-transparent pr-2.5 pl-11.5 text-[14px] font-bold whitespace-nowrap text-[#1E0B04] transition-colors',

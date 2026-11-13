@@ -190,7 +190,7 @@ export function ReceiptStatusClient({ initial, celebrate }: { initial: Result; c
 
       {approved && (
         <>
-          <Link href="/deals" className="mt-8 flex h-12 w-full items-center justify-center rounded-full bg-brand text-[16px] font-semibold text-white hover:bg-brand-dark">
+          <Link href="/great-deals" className="mt-8 flex h-12 w-full items-center justify-center rounded-full bg-brand text-[16px] font-semibold text-white hover:bg-brand-dark">
             My Deals &amp; Offers
           </Link>
           <Link href="/" className="mt-5 text-[14px] font-semibold text-[#6B7280] underline">Go Home</Link>

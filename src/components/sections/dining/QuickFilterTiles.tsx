@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { SlidersHorizontal, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { SORT_OPTIONS, parseFilters, countActive } from '@/lib/restaurantFilters'
+import { DIALOG_SORT_OPTIONS, SORT_OPTIONS, parseFilters, countActive } from '@/lib/restaurantFilters'
 import { FilterDialog } from './FilterDialog'
 
 /**
@@ -62,7 +62,10 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
     router.push(qs ? `/dining?${qs}` : '/dining', { scroll: false })
   }
 
-  const currentSort = SORT_OPTIONS.find((s) => s.key === filters.sort)
+  // the dialog's "Popularity" sort isn't in the dropdown, so look it up there too
+  const currentSort =
+    SORT_OPTIONS.find((s) => s.key === filters.sort) ??
+    DIALOG_SORT_OPTIONS.find((s) => s.key && s.key === filters.sort)
 
   return (
     <section className="py-6">
@@ -162,6 +165,7 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
           onClose={() => setFilterOpen(false)}
           cuisineOptions={cuisineOptions}
           initial={{
+            sort: filters.sort,
             cuisines: filters.cuisines,
             minRating: filters.minRating,
             cost: filters.cost,
@@ -170,10 +174,22 @@ export function QuickFilterTiles({ cuisineOptions }: { cuisineOptions: string[] 
             openLate: filters.openLate,
             hasOffer: filters.hasOffer,
             vibes: filters.vibes,
+            distance: filters.distance,
+            categories: filters.categories,
+            diets: filters.diets,
+            offers: filters.offers,
+            availability: filters.availability,
           }}
           onApply={(d) => {
             setFilterOpen(false)
+            const csv = (v?: string[]) => (v?.length ? v.join(',') : null)
             update({
+              sort: d.sort ?? null,
+              km: d.distance ?? null,
+              cat: csv(d.categories),
+              diet: csv(d.diets),
+              offers: csv(d.offers),
+              avail: csv(d.availability),
               cuisines: d.cuisines?.length ? d.cuisines.join(',') : null,
               rating: d.minRating ? String(d.minRating) : null,
               cost: d.cost ?? null,

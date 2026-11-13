@@ -21,7 +21,7 @@ import {
 } from '@/lib/services/dining'
 import { getUserCoords } from '@/lib/location'
 import { getOffersForYou } from '@/lib/services/offersForYou'
-import { FEED_PAGE_SIZE, countActive, parseFilters } from '@/lib/restaurantFilters'
+import { FEED_PAGE_SIZE, countActive, distanceKm, parseFilters } from '@/lib/restaurantFilters'
 import { getEditorialCollections } from '@/lib/services/stores'
 
 export const metadata: Metadata = {
@@ -59,7 +59,10 @@ export default async function Dining({
     const moodTitle = moodSlug
       ? moodCategories.find((m) => m.slug === moodSlug)?.title
       : undefined
-    const rows = await getRestaurantFeed({ ...parsed, moodTitle }, 0, FEED_PAGE_SIZE, coords, { nearbyOnly: true })
+    const rows = await getRestaurantFeed({ ...parsed, moodTitle }, 0, FEED_PAGE_SIZE, coords, {
+      nearbyOnly: true,
+      radiusKm: distanceKm(parsed.distance),
+    })
     const queryString = new URLSearchParams(
       Object.entries(params).flatMap(([k, v]) =>
         typeof v === 'string' ? [[k, v] as [string, string]] : [],

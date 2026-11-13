@@ -30,10 +30,16 @@ export function BankOffersSection({
   cards,
   title = 'Bank offers',
   className,
+  cardClassName,
+  renderRail,
 }: {
   cards: OfferForYouCard[]
   title?: string
   className?: string
+  /** replaces the default card size */
+  cardClassName?: string
+  /** lay the cards out in the caller's own titled rail instead of HScroll */
+  renderRail?: (cards: React.ReactNode) => React.ReactNode
 }) {
   const router = useRouter()
   const [active, setActive] = useState<OfferForYouCard | null>(null)
@@ -53,15 +59,12 @@ export function BankOffersSection({
 
   if (!cards.length) return null
 
-  return (
-    <>
-      <HScroll title={title} className={className}>
-        {cards.map((card) => (
+  const items = cards.map((card) => (
           <button
             key={String(card.id)}
             type="button"
             onClick={() => open(card)}
-            className="relative aspect-256/196 w-64 shrink-0 overflow-hidden rounded-2xl bg-gray-100 xl:w-72 2xl:w-80 min-[120rem]:w-96 min-[120rem]:rounded-3xl"
+            className={cardClassName ?? 'relative aspect-256/196 w-64 shrink-0 overflow-hidden rounded-2xl bg-gray-100 xl:w-72 2xl:w-80 min-[120rem]:w-96 min-[120rem]:rounded-3xl'}
           >
             <Image
               src={card.image_url}
@@ -71,8 +74,11 @@ export function BankOffersSection({
               sizes="256px"
             />
           </button>
-        ))}
-      </HScroll>
+  ))
+
+  return (
+    <>
+      {renderRail ? renderRail(items) : <HScroll title={title} className={className}>{items}</HScroll>}
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent className="sm:max-w-sm overflow-hidden p-0">
