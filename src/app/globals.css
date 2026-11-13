@@ -140,6 +140,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* safety net: a word longer than its box (a URL, a name with no spaces) breaks instead of spilling out */
+    overflow-wrap: break-word;
   }
   html {
     @apply font-sans;

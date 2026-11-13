@@ -3,7 +3,7 @@ import { getActiveStores } from '@/lib/services/stores'
 import { storeHref } from '@/lib/storeType'
 import { getActiveRestaurants } from '@/lib/services/dining'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.passprive.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.passprive.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [stores, restaurants] = await Promise.all([

@@ -66,8 +66,8 @@ export function StorePromotionalCardsSection({
               />
             ) : (
               <div className="absolute inset-x-0 top-0 p-6 text-white">
-                <p className="text-xl font-bold">{c.title}</p>
-                {c.subtitle && <p className="mt-1 text-sm">{c.subtitle}</p>}
+                <p className="line-clamp-2 text-xl font-bold">{c.title}</p>
+                {c.subtitle && <p className="mt-1 line-clamp-2 text-sm">{c.subtitle}</p>}
               </div>
             )}
             <div className="relative">

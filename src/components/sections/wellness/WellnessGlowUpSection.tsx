@@ -66,8 +66,8 @@ export function WellnessGlowUpSection({
               />
             ) : (
               <div className='absolute inset-x-0 top-0 p-6 text-gray-900'>
-                <p className='text-2xl font-bold'>{c.title}</p>
-                {c.subtitle && <p className='mt-1 text-sm'>{c.subtitle}</p>}
+                <p className='line-clamp-2 text-2xl font-bold'>{c.title}</p>
+                {c.subtitle && <p className='mt-1 line-clamp-2 text-sm'>{c.subtitle}</p>}
               </div>
             )}
 

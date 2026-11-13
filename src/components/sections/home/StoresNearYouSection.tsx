@@ -50,7 +50,7 @@ export function StoresNearYouSection({ stores }: { stores: StoreRow[] }) {
               render <CardBadgeArt badge={getCardBadge(store, plan)} radius={20} bottomInset="var(--badge-inset)" />
               and push the name/chips down (top-20 2xl:top-24 / top-27 2xl:top-31) when it has cashback art. */}
 
-          <p className="absolute top-4 left-4 text-[15px] font-bold text-white drop-shadow">
+          <p className="absolute top-4 right-4 left-4 truncate text-[15px] font-bold text-white drop-shadow">
             {store.name}
           </p>
           {/* app parity: ShopThisWeekend.jsx CardChips, under the name */}

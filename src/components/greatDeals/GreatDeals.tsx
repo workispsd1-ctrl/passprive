@@ -25,7 +25,7 @@ import { GD_PAGE } from './unit'
  */
 
 const PERCENT = '/assets/deals/percent.webp'
-const GROUP_ICON: Record<DealGroup, string> = {
+export const GROUP_ICON: Record<DealGroup, string> = {
   dining: '/assets/search/dining.webp',
   shopping: '/assets/search/shopping.webp',
   wellness: '/assets/search/wellness.webp',
@@ -33,7 +33,7 @@ const GROUP_ICON: Record<DealGroup, string> = {
 /** app parity: OffersBrowser / DealsScreen `qualifies` — within 15 km when a location is known */
 const RADIUS_KM = 15
 
-const TITLE = 'text-[calc(24*var(--u))] leading-[calc(32*var(--u))] font-bold text-[#383838] max-lg:text-[20px] max-lg:leading-[28px]'
+export const TITLE = 'text-[calc(24*var(--u))] leading-[calc(32*var(--u))] font-bold text-[#383838] max-lg:text-[20px] max-lg:leading-[28px]'
 const SECTION = 'flex flex-col gap-16 max-lg:gap-12'
 
 // ─── Hero ────────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ function SaveHeart({ card, className, iconClassName }: { card: DealCard; classNa
 
 // ─── Restaurant / store offer card (776×393 rail, 509×410 grid) ──────────
 
-function OfferCard({ card, variant }: { card: DealCard; variant: 'wide' | 'grid' }) {
+export function OfferCard({ card, variant }: { card: DealCard; variant: 'wide' | 'grid' }) {
   const plan = useUserPlan()
   const pct = getCashbackPct(card.caps, plan)
   const dist = formatDistanceKm(card.distanceKm)
@@ -390,9 +390,9 @@ const SORTS = [
 
 const EMPTY_DRAFT: FilterDraft = {}
 
-const CHIP =
+export const CHIP =
   'flex h-35 shrink-0 items-center gap-8 rounded-full border-[length:calc(1.3*var(--u))] px-10 text-[calc(15.6*var(--u))] leading-[calc(24*var(--u))] font-semibold [filter:drop-shadow(calc(3*var(--u))_calc(3*var(--u))_calc(6*var(--u))_rgba(0,0,0,0.05))] max-lg:h-[32px] max-lg:gap-[6px] max-lg:px-[12px] max-lg:text-[13px]'
-const chipState = (on: boolean) => (on ? 'border-[#FF4800] bg-[#FFF1EB] text-[#FF4800]' : 'border-[#B0B0B0] bg-white/77 text-[#454040] hover:bg-[#FAFAFA]')
+export const chipState = (on: boolean) => (on ? 'border-[#FF4800] bg-[#FFF1EB] text-[#FF4800]' : 'border-[#B0B0B0] bg-white/77 text-[#454040] hover:bg-[#FAFAFA]')
 
 /** The dialog's Sort maps onto the list's own sort. */
 const DIALOG_SORT: Record<string, string> = { distance: 'distance', popularity: 'rating', cost_asc: 'cost_asc', cost_desc: 'cost_desc' }

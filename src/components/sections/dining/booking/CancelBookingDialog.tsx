@@ -43,7 +43,7 @@ export function CancelBookingDialog({ bookingId, onClose }: { bookingId: string;
 
   return (
     <div className='fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center' onClick={() => !busy && onClose()}>
-      <div role='dialog' aria-modal='true' aria-labelledby='cancel-title' className='relative w-full max-w-sm rounded-2xl bg-white p-6 text-left' onClick={e => e.stopPropagation()}>
+      <div role='dialog' aria-modal='true' aria-labelledby='cancel-title' className='relative max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-6 text-left' onClick={e => e.stopPropagation()}>
         {/* app parity: AnimatedSheet "sheet" hunt slot */}
         <HuntSpot slot='sheet' />
         <p id='cancel-title' className='text-[17px] font-bold text-gray-900'>Cancel your booking</p>

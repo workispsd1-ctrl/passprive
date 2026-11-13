@@ -44,7 +44,7 @@ const beVietnamPro = Be_Vietnam_Pro({
   display: "swap",
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.passprive.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.passprive.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

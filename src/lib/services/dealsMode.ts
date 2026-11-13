@@ -6,26 +6,16 @@ import { canBook, canPayBill, isCashbackEnabled, type MerchantCapabilityFields }
 import { isDealLive, isOfferLive, isRepeatRewardOffer, offerBenefitLabel, offerStripText, type MerchantOffer } from '@/lib/deals'
 import { haversineKm } from '@/lib/utils'
 import type { FeaturedRestaurant } from '@/lib/types/dining'
+import { getStampGate } from '@/lib/services/platformFlags'
+import { capsOf, percentOf, type DealCard } from '@/lib/services/greatDeals'
 
 export type DealsMode = 'deals' | 'cashback'
 export type DealsCategory = 'dining' | 'shopping' | 'wellness'
 
-export type DealsModeItem = {
-  key: string
-  kind: 'restaurant' | 'store'
-  group: DealsCategory
-  href: string
-  /** where "Book Now" goes, when the merchant takes bookings */
-  bookHref: string | null
-  bookLabel: 'Book Now' | 'Request Booking' | null
-  title: string
-  media: string | null
-  subtitle: string
-  rating: number
-  distanceKm: number | null
-  costForTwo: number | null
-  /** strip texts, best saving first */
-  offers: string[]
+/** A Great Deals card plus what the Deals Mode / Use Cashback filters need. */
+export type DealsModeItem = DealCard & {
+  /** "Booking available" — the merchant takes bookings */
+  bookable: boolean
   acceptsCashback: boolean
 }
 
@@ -146,10 +136,11 @@ function acceptsCashback(e: MerchantCapabilityFields) {
  */
 export async function getDealsModeItems(mode: DealsMode, coords: Coords | null): Promise<DealsModeItem[]> {
   const supabase = await createClient()
-  const [index, feedRes, stores] = await Promise.all([
+  const [index, feedRes, stores, stampGate] = await Promise.all([
     loadDealsIndex().catch(() => new Map<string, string[]>()),
     supabase.rpc('restaurant_feed', toRpcArgs({}, 500, 0, coords)),
     getActiveStores(),
+    getStampGate(),
   ])
   const restaurants = (feedRes.data ?? []) as FeaturedRestaurant[]
 
@@ -157,26 +148,32 @@ export async function getDealsModeItems(mode: DealsMode, coords: Coords | null):
   for (const r of restaurants) {
     const offers = index.get(`restaurant:${r.id}`) ?? []
     if (mode === 'cashback' ? !acceptsCashback(r) : !offers.length) continue
-    const slug = r.slug ?? r.id
-    const bookable = canBook(r)
     const distance =
       coords && r.latitude != null && r.longitude != null
         ? haversineKm(coords.lat, coords.lng, Number(r.latitude), Number(r.longitude))
         : (r.distance_km ?? null)
     items.push({
       key: `r-${r.id}`,
+      id: r.id,
       kind: 'restaurant',
       group: 'dining',
-      href: `/dining/${slug}`,
-      bookHref: bookable ? `/dining/${slug}/book` : null,
-      bookLabel: bookable ? (r.booking_service_type === 'instant' ? 'Book Now' : 'Request Booking') : null,
-      title: r.name,
-      media: r.cover_image,
-      subtitle: [r.is_pure_veg ? 'Pure veg' : r.cuisines.slice(0, 2).join(', '), r.city].filter(Boolean).join(' • '),
+      name: r.name,
+      href: `/dining/${r.slug ?? r.id}`,
+      payHref: `/pay-bill?restaurant_id=${r.id}&restaurant_name=${encodeURIComponent(r.name)}`,
+      image: r.cover_image,
+      offers,
+      maxPercent: Math.max(0, ...offers.map(percentOf)),
       rating: Number(r.rating) || 0,
       distanceKm: distance,
+      area: r.area ?? r.city,
+      tagline: r.is_pure_veg ? 'Pure veg' : r.cuisines.length ? r.cuisines.join(', ') : null,
       costForTwo: r.cost_for_two,
-      offers,
+      stampSheet: stampGate(r.id) && (r.repeat_rewards_enabled || r.mood.some(m => m.toLowerCase().includes('stamp'))),
+      trending: r.is_advertised,
+      isVeg: r.is_pure_veg,
+      cuisines: r.cuisines,
+      caps: capsOf(r),
+      bookable: canBook(r),
       acceptsCashback: acceptsCashback(r),
     })
   }
@@ -186,21 +183,28 @@ export async function getDealsModeItems(mode: DealsMode, coords: Coords | null):
     if (mode === 'cashback' ? !acceptsCashback(s) : !offers.length) continue
     const wellness = isWellnessStore(s)
     const slug = s.slug ?? s.id
-    const bookable = wellness && canBook(s)
     items.push({
       key: `s-${s.id}`,
+      id: s.id,
       kind: 'store',
       group: wellness ? 'wellness' : 'shopping',
+      name: s.name,
       href: `/${wellness ? 'wellness' : 'stores'}/${slug}`,
-      bookHref: bookable ? `/wellness/${slug}` : null,
-      bookLabel: bookable ? 'Request Booking' : null,
-      title: s.name,
-      media: s.cover_image ?? s.logo_url,
-      subtitle: [s.category, s.city].filter(Boolean).join(' • '),
+      payHref: `/pay-bill?store_id=${s.id}`,
+      image: s.cover_image ?? s.logo_url,
+      offers,
+      maxPercent: Math.max(0, ...offers.map(percentOf)),
       rating: 0,
       distanceKm: coords && s.lat != null && s.lng != null ? haversineKm(coords.lat, coords.lng, Number(s.lat), Number(s.lng)) : null,
+      area: s.location_name ?? s.city,
+      tagline: [s.category, s.subcategory].filter(Boolean).join(', ') || null,
       costForTwo: null,
-      offers,
+      stampSheet: (s.store_subscriptions?.some(x => x.repeat_rewards_enabled) ?? false) && stampGate(s.id),
+      trending: !!s.is_advertised,
+      isVeg: false,
+      cuisines: [],
+      caps: capsOf(s),
+      bookable: wellness && canBook(s),
       acceptsCashback: acceptsCashback(s),
     })
   }

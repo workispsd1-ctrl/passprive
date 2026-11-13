@@ -75,7 +75,7 @@ const FALLBACK_RADIUS_KM = 30
 
 type StoreOffer = MerchantOffer & { metadata?: Record<string, unknown> | null }
 
-const percentOf = (text: string) => {
+export const percentOf = (text: string) => {
   const m = text.match(/(\d+(?:\.\d+)?)\s*%/)
   return m ? Number(m[1]) : 0
 }
@@ -91,7 +91,7 @@ function stripLabel(o: StoreOffer): string {
   return offerStripText(o)
 }
 
-const capsOf = (e: MerchantCapabilityFields): MerchantCapabilityFields => ({
+export const capsOf = (e: MerchantCapabilityFields): MerchantCapabilityFields => ({
   merchant_type: e.merchant_type,
   merchant_plan: e.merchant_plan,
   pay_bill_enabled: e.pay_bill_enabled,

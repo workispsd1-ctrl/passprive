@@ -1,3 +1,4 @@
+import { GD_PAGE } from '@/components/greatDeals/unit'
 import { DESIGN_UNIT, SALON_TYPE, SALON_UNIT, TYPE_SCALE, t, u } from '@/components/sections/dining/designUnit'
 import { PROFILE_UNIT } from '@/components/sections/profile/units'
 import { SEARCH_PAGE } from '@/components/search/unit'
@@ -810,45 +811,38 @@ export function MerchantFlowSkeleton({ variant, breakout = false }: { variant: '
   )
 }
 
-/** Deals mode (DealsModeClient) — hero, category and filter chips, result count and deal cards. */
+/** Deals mode / Use Cashback (DealsModeClient) — Great Deals layout: banner, icon tabs, filter chips, heading, offer cards. */
 export function DealsPageSkeleton() {
   return (
-    <main className='pb-16' aria-busy='true'>
-      <div className='mx-auto max-w-7xl px-4 pt-4 pb-28 md:px-6 md:pt-6'>
-        <section className='rounded-3xl bg-gray-100 px-5 py-5 md:px-10 md:py-9'>
-          <Bone className='h-11 w-58 rounded-full bg-gray-200' />
-          <Line className='mt-6 w-20' />
-          <Bone className='mt-3 h-8 w-3/4 max-w-lg rounded-full md:h-10' />
-          <Line className='mt-5 w-full max-w-xl' />
-          <Line className='mt-3 w-2/3 max-w-sm' />
-          <div className='mt-6 hidden max-w-2xl grid-cols-3 gap-3 sm:grid'>
-            {[0, 1, 2].map(i => <Bone key={i} className='h-14 rounded-2xl' />)}
-          </div>
-          <Line className='mt-5 w-56' />
-        </section>
-
-        <div className='-mx-4 mt-6 flex items-center gap-2 overflow-hidden border-b border-gray-100 px-4 py-3 md:-mx-6 md:px-6'>
-          {['w-30', 'w-36', 'w-36'].map((w, i) => <Bone key={i} className={cn('h-10 shrink-0 rounded-full', w)} />)}
-          <span className='mx-2 h-7 w-px shrink-0 bg-gray-200' />
-          {['w-30', 'w-38', 'w-40'].map((w, i) => <Bone key={i} className={cn('h-9 shrink-0 rounded-full', w)} />)}
-        </div>
-
-        <div className='mt-5 flex items-center justify-between gap-2'>
-          <Bone className='h-5 w-36 rounded-full' />
-          <Line className='hidden w-64 sm:block' />
-        </div>
-
-        <div className='mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3'>
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className='flex overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_2px_14px_rgba(0,0,0,0.05)] sm:flex-col'>
-              <Bone className='w-30 shrink-0 rounded-none sm:aspect-16/10 sm:w-auto' />
-              <div className='min-w-0 flex-1 space-y-2.5 p-3.5 sm:p-4'>
-                <Line className='h-4 w-1/2' />
-                <Line className='w-4/5' />
-                <Bone className='mt-1 h-9 rounded-xl' />
+    <main className='relative' aria-busy='true'>
+      <div className={GD_PAGE}>
+        <Bone className='h-420 rounded-none rounded-b-[calc(24*var(--u))] max-lg:h-[200px] max-lg:rounded-b-[20px]' />
+        <div className='flex flex-col px-172 pt-56 max-lg:px-16 max-lg:pt-[32px]'>
+          <div className='flex gap-[calc(55*var(--u))] border-b border-gray-200 pb-6 max-lg:justify-around max-lg:gap-0'>
+            {[0, 1, 2].map(i => (
+              <div key={i} className='flex w-78 flex-col items-center gap-6 max-lg:w-[72px] max-lg:gap-[6px]'>
+                <Bone className='size-50 rounded-full max-lg:size-[40px]' />
+                <Line className='w-56 max-lg:w-[48px]' />
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className='mt-20 flex gap-12 overflow-hidden max-lg:mt-[14px] max-lg:gap-[8px]'>
+            {['w-120', 'w-180', 'w-96', 'w-120'].map((w, i) => (
+              <Bone key={i} className={cn('h-35 shrink-0 rounded-full max-lg:h-[32px] max-lg:w-[96px]', w)} />
+            ))}
+          </div>
+          <Bone className='mt-32 h-28 w-140 rounded-full max-lg:mt-[20px] max-lg:h-[22px] max-lg:w-[110px]' />
+          <Line className='mt-8 w-200 max-lg:w-[150px]' />
+          <div className='mt-24 grid grid-cols-3 gap-24 max-lg:mt-[14px] max-lg:grid-cols-1 max-lg:gap-[16px] max-lg:sm:grid-cols-2'>
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className='rounded-[calc(18.46*var(--u))] bg-white px-10 pt-13 pb-14 shadow-[0_calc(4*var(--u))_calc(13*var(--u))_rgba(0,0,0,0.12)] max-lg:rounded-[18px] max-lg:p-[8px]'>
+                <Bone className='h-262 rounded-[calc(14.6*var(--u))] max-lg:h-[189px] max-lg:rounded-[14px]' />
+                <Line className='mt-12 h-5 w-1/2' />
+                <Line className='mt-8 w-3/4' />
+                <Line className='mt-6 w-2/3' />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </main>

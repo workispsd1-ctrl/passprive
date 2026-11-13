@@ -27,7 +27,7 @@ export default async function DealsPage({
   const items = await getDealsModeItems(mode, coords)
 
   return (
-    <main className="pb-16">
+    <main className="relative">
       <DealsModeClient
         // remount when the mode or header location changes — the list holds its own filters
         key={`${mode}:${coords?.lat ?? ''},${coords?.lng ?? ''}`}
