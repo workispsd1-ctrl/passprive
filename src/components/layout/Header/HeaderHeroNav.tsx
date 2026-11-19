@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { HeaderNav } from './HeaderNav'
 import { HomeHero } from '@/components/sections/home/HomeHero'
+import { CashbackIntroStrip } from '@/components/sections/home/CashbackIntroStrip'
 import { WellnessHero } from '@/components/sections/wellness/WellnessHero'
 import type { WebsiteBanner } from '@/lib/types/websiteBanners'
 
@@ -36,6 +37,8 @@ export function HeaderHeroNav({ banners, wellnessBanners, pad, underHeader = fal
     return (
       <div className="relative">
         <HomeHero banners={banners} underHeader={underHeader} />
+        {/* app parity: HomeContent — the strip slides out from under the banner, above the categories */}
+        <CashbackIntroStrip />
         <div className={`relative z-20 pt-4 md:-mb-9.5 ${pad}`}>
           <HeaderNav />
         </div>

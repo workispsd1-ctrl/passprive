@@ -190,6 +190,16 @@
   18% { opacity: 0.75; transform: scale(1.15) rotate(60deg); }
   36%, 100% { opacity: 0; transform: scale(0) rotate(120deg); }
 }
+/* CashbackIntroStrip: the coin drops in with a flip, then the text rises in */
+@keyframes pp-cb-coin {
+  0% { opacity: 0; transform: translateY(-140%) rotateY(0deg) scale(0.6); }
+  60% { opacity: 1; transform: translateY(8%) rotateY(300deg) scale(1.08); }
+  100% { opacity: 1; transform: translateY(0) rotateY(360deg) scale(1); }
+}
+@keyframes pp-cb-rise {
+  0% { opacity: 0; transform: translateY(60%); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 /* AnimatedSaveHeart: up to 1.4× in 150ms, then springs back */
 @keyframes pp-heart-pop {
   0% { transform: scale(1); }

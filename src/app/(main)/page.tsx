@@ -25,7 +25,6 @@ import { getActiveMalls } from '@/lib/services/malls';
 import { MallsNearYou } from '@/components/sections/malls/MallsNearYou';
 import { getHomeSectionOrder } from '@/lib/services/homeSections';
 import { PromotionalCollectionsSection } from '@/components/sections/dining/PromotionalCollectionsSection';
-import { CashbackIntroStrip } from '@/components/sections/home/CashbackIntroStrip';
 import { Fragment, type ReactNode } from 'react';
 import type { Metadata } from 'next';
 
@@ -135,7 +134,6 @@ export default async function Home() {
   return (
     <ServiceAreaGate>
     <main className='relative min-h-screen bg-white pb-10'>
-      <CashbackIntroStrip />
       <HuntSpot slot='home-top' />
       <UpcomingBookings bookings={upcoming} />
       {order.map((row, i) => {
