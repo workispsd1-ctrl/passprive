@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Gem, } from 'lucide-react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCardBadge, getCashbackPct } from '@/lib/cashback'
+import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
 import { HScroll } from '@/components/sections/home/HScroll'
 import { MerchantCard } from '@/components/sections/home/MerchantCard'
@@ -68,15 +69,13 @@ function WideTag({ icon: Icon, label }: { icon?: React.ComponentType<{ className
 /** Figma draws the top "Stamp sheet" pill without an icon and "Exclusive" with the gem. */
 const TAG_ICON: Record<string, React.ComponentType<{ className?: string }> | undefined> = { exclusive: Gem, stamp: undefined, trending: undefined }
 
-const GLASS = 'flex items-center rounded-full bg-white/86 text-[calc(12*var(--u))] leading-[calc(18*var(--u))] font-medium text-[#454040] whitespace-nowrap'
-
 /** Recommended salon — Figma: 10px-padded card, 250-tall photo, offer strip, then the details. */
 function WideCard({ store }: { store: WithDist }) {
   const plan = useUserPlan()
   const saver = useSaveMerchant(store.id, 'STORE')
   const label = offerLabel(store)
   const extra = (store.store_offers?.length ?? 0) - 1
-  const pct = getCardBadge(store, plan)?.arts.length ? getCashbackPct(store, plan) : 0
+  const badge = getCardBadge(store, plan)
   const meta = [store.dist != null ? formatDistanceKm(store.dist) : null, store.location_name ?? store.city].filter(Boolean).join(' • ')
   const tagline = [store.category, store.subcategory].filter(Boolean).join(', ')
   // app parity: the detail page's rails draw StoresCard, whose tags are getTags()
@@ -86,13 +85,9 @@ function WideCard({ store }: { store: WithDist }) {
       <Link href={storeHref(store)} aria-label={store.name} className='absolute inset-0 z-10' />
       <div className={cn('relative h-[calc(250*var(--u))] max-md:h-48 overflow-hidden bg-gray-200', label ? 'rounded-t-[calc(12*var(--u))]' : 'rounded-[calc(12*var(--u))]')}>
         {store.cover_image && <Image src={store.cover_image} alt={store.name} fill sizes='40vw' className='object-cover' />}
+        {/* app parity: StoresCard → CashbackBadge; scaled from an app-sized card, corner follows the photo */}
+        <CardBadgeArt badge={badge} radius='inherit' scaleWidth='min(100cqw, 360px)' />
         <div className='absolute inset-x-0 top-0 flex items-center gap-[calc(8*var(--u))] p-[calc(16*var(--u))]'>
-          {pct > 0 && (
-            <span className={cn(GLASS, 'gap-[calc(5*var(--u))] px-[calc(10*var(--u))] py-[calc(5*var(--u))]')}>
-              <Image src='/assets/deals/deal-coin.png' alt='' width={21} height={21} className='size-[calc(21*var(--u))]' />
-              {pct}% Cashback
-            </span>
-          )}
           <button
             type='button'
             aria-label={saver.saved ? 'Edit saved lists' : 'Save'}

@@ -37,11 +37,11 @@ const u = (n: number, k: string) => `calc(${n} * ${k})`
 // Pair: k = min(fixed scale, room left of the heart) — app: PAIR_REF_CARD_W·1.08/358 vs (W − 60)/300
 const PAIR_K = 'min(0.953px, calc((100cqw - 60px) / 300))'
 // Promoted tab: k = W / 358
-const PROMO_K = 'calc(100cqw / 358)'
+const promoK = (w: string) => `calc(${w} / 358)`
 // Booking badge: k = W / 342 · 1.3
-const BOOK_K = 'calc(100cqw * 1.3 / 342)'
+const bookK = (w: string) => `calc(${w} * 1.3 / 342)`
 
-function UseCashbackPair({ arts, radius }: { arts: string[]; radius: number }) {
+function UseCashbackPair({ arts, radius }: { arts: string[]; radius: number | string }) {
   const k = PAIR_K
   return (
     <div className="absolute top-0 left-0 overflow-hidden" style={{ width: u(300, k), height: u(62, k), borderTopLeftRadius: radius }}>
@@ -76,8 +76,8 @@ function UseCashbackPair({ arts, radius }: { arts: string[]; radius: number }) {
   )
 }
 
-function PromotedTag({ inset }: { inset: string }) {
-  const k = PROMO_K
+function PromotedTag({ inset, w }: { inset: string; w: string }) {
+  const k = promoK(w)
   const text: CSSProperties = { position: 'absolute', whiteSpace: 'nowrap' }
   return (
     <div className="absolute" style={{ left: u(-26, k), bottom: `calc(${inset} - 18 * ${k})`, width: u(150, k), height: u(90, k) }}>
@@ -100,8 +100,8 @@ function PromotedTag({ inset }: { inset: string }) {
   )
 }
 
-function BookingBadge({ inset }: { inset: string }) {
-  const k = BOOK_K
+function BookingBadge({ inset, w }: { inset: string; w: string }) {
+  const k = bookK(w)
   return (
     <div className="absolute" style={{ right: u(-31, k), bottom: `calc(${inset} - 14 * ${k})`, width: u(181, k), height: u(75, k) }}>
       <svg viewBox="0 0 181 75" className="absolute inset-0 h-full w-full rotate-180" aria-hidden="true">
@@ -129,18 +129,22 @@ export function CardBadgeArt({
   badge,
   radius = 15,
   bottomInset = '0px',
+  scaleWidth = '100cqw',
 }: {
   badge: CardBadge | null | undefined
-  /** top-left corner radius of the image box (px) */
-  radius?: number
+  /** top-left corner radius of the image box — px, or 'inherit' to follow the image box's own (responsive) radius */
+  radius?: number | 'inherit'
   /** app parity: `promotedBottom` — lifts the bottom badges above a strip / pill */
   bottomInset?: string
+  /** the card width the art scales from (default: the image's width); cap it on cards far wider than the app's */
+  scaleWidth?: string
 }) {
   if (!badge) return null
   const { arts, promoted, bookable } = badge
+  const w = scaleWidth
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-5 @container">
+    <div className="pointer-events-none absolute inset-0 z-5 rounded-[inherit] @container">
       {arts.length > 1 ? (
         <UseCashbackPair arts={arts} radius={radius} />
       ) : arts.length === 1 ? (
@@ -150,7 +154,7 @@ export function CardBadgeArt({
               wide, 41:115) centred in its left 72%, 2px from the top. */}
           <div
             className="absolute top-0 left-0 overflow-hidden"
-            style={{ width: 'calc(100cqw * 190 / 299)', height: 'calc(100cqw * 177.34 / 299 * 224 / 736)', borderTopLeftRadius: radius }}
+            style={{ width: `calc(${w} * 190 / 299)`, height: `calc(${w} * 177.34 / 299 * 224 / 736)`, borderTopLeftRadius: radius }}
           >
             <Image src="/assets/cashback/cashback-badge-backdrop.webp" alt="" fill className="object-fill" sizes="240px" />
           </div>
@@ -160,13 +164,13 @@ export function CardBadgeArt({
             width={492}
             height={172}
             className="absolute object-contain"
-            style={{ top: 2, left: 'calc(100cqw * (190 * 0.72 - 120) / 2 / 299)', width: 'calc(100cqw * 120 / 299)', height: 'calc(100cqw * 120 / 299 * 41 / 115)' }}
+            style={{ top: 2, left: `calc(${w} * (190 * 0.72 - 120) / 2 / 299)`, width: `calc(${w} * 120 / 299)`, height: `calc(${w} * 120 / 299 * 41 / 115)` }}
           />
         </>
       ) : null}
 
-      {promoted && <PromotedTag inset={bottomInset} />}
-      {bookable && <BookingBadge inset={bottomInset} />}
+      {promoted && <PromotedTag inset={bottomInset} w={w} />}
+      {bookable && <BookingBadge inset={bottomInset} w={w} />}
     </div>
   )
 }

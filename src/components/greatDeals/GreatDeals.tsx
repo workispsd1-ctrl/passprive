@@ -9,7 +9,9 @@ import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Lock, SlidersHorizo
 import { BankOffersSection } from '@/components/sections/dining/BankOffersSection'
 import { FilterDialog, type FilterDraft } from '@/components/sections/dining/FilterDialog'
 import { SaveListSheet } from '@/components/SaveListSheet'
-import { canPayBill, getCashbackPct } from '@/lib/cashback'
+import { canPayBill, getCardBadge, getCashbackPct } from '@/lib/cashback'
+import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
+import { OfferStrip } from '@/components/shared/motion/OfferStrip'
 import { useSaved } from '@/lib/context/SavedContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { COST_BUCKETS, distanceKm } from '@/lib/restaurantFilters'
@@ -152,7 +154,7 @@ function SaveHeart({ card, className, iconClassName }: { card: DealCard; classNa
 
 export function OfferCard({ card, variant }: { card: DealCard; variant: 'wide' | 'grid' }) {
   const plan = useUserPlan()
-  const pct = getCashbackPct(card.caps, plan)
+  const badge = getCardBadge(card.caps, plan)
   const dist = formatDistanceKm(card.distanceKm)
   const wide = variant === 'wide'
   const meta = [dist, card.area].filter(Boolean).join(' • ')
@@ -181,19 +183,17 @@ export function OfferCard({ card, variant }: { card: DealCard; variant: 'wide' |
           )}
         >
           {card.image && <Image src={card.image} alt='' fill sizes='(min-width: 1024px) 40vw, 300px' className='object-cover' />}
-          {pct > 0 && (
-            <span className='absolute top-13 left-8 flex h-33 items-center gap-6 rounded-full bg-white/77 pr-12 pl-4 [filter:drop-shadow(calc(2.3*var(--u))_calc(2.3*var(--u))_calc(4.6*var(--u))_rgba(0,0,0,0.15))] max-lg:top-[8px] max-lg:left-[8px] max-lg:h-[26px] max-lg:gap-[4px] max-lg:pr-[8px] max-lg:pl-[3px]'>
-              <span aria-hidden className='size-[calc(27.6*var(--u))] rounded-full bg-[radial-gradient(circle_at_35%_30%,#FFB27A,#E8521A_60%,#B83A0C)] shadow-[inset_0_0_0_calc(2*var(--u))_rgba(255,214,170,0.7)] max-lg:size-[20px]' />
-              <span className='text-[calc(13.8*var(--u))] leading-[calc(21*var(--u))] font-medium text-[#1D1B20] max-lg:text-[11px] max-lg:leading-[16px]'>{pct}% Cashback</span>
-            </span>
-          )}
+          {/* app parity: TrendingCard → CashbackBadge (badge art, Promoted tab, Book Now) */}
+          {/* the rail cards are ~2× the app's width: scale the art from an app-sized card, and follow the photo's responsive corner */}
+          <CardBadgeArt badge={badge} radius='inherit' scaleWidth='min(100cqw, 360px)' />
           <SaveHeart card={card} className='top-8 right-8 max-lg:top-[8px] max-lg:right-[8px]' iconClassName='size-32 max-lg:size-[24px]' />
         </div>
         {offer ? (
           <div className='flex h-26 items-center justify-between gap-12 px-14 text-white max-lg:h-[24px] max-lg:px-[10px]'>
-            <span className='truncate text-[calc(16*var(--u))] leading-[calc(21*var(--u))] max-lg:text-[12px] max-lg:leading-[16px]'>
+            {/* app parity: OfferStripLabel — the sweep, sway and stars */}
+            <OfferStrip className='min-w-0 truncate text-[calc(16*var(--u))] leading-[calc(21*var(--u))] max-lg:text-[12px] max-lg:leading-[16px]'>
               <OfferText text={offer} />
-            </span>
+            </OfferStrip>
             {more > 0 && (
               <span className='shrink-0 text-[calc(16*var(--u))] leading-[calc(21*var(--u))] font-bold max-lg:text-[12px]'>+ {more} offer{more > 1 ? 's' : ''}</span>
             )}

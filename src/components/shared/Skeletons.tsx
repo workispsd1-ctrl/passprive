@@ -5,6 +5,8 @@ import { SEARCH_PAGE } from '@/components/search/unit'
 import { MALL_PAGE } from '@/components/sections/malls/unit'
 import { cn } from '@/lib/utils'
 import { OC_PAGE, OC_UNIT } from '@/components/sections/dining/order/unit'
+import { MEMBER_UNIT } from '@/components/membership/plans'
+import { LOC_PAGE } from '@/components/location/unit'
 
 /**
  * Loading skeletons that mirror the real components' frames — same widths,
@@ -28,8 +30,8 @@ export function Bone({ className, style }: { className?: string; style?: React.C
 }
 
 /** Text-line placeholder. */
-function Line({ className }: { className?: string }) {
-  return <Bone className={cn('h-3 rounded-full', className)} />
+function Line({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <Bone className={cn('h-3 rounded-full', className)} style={style} />
 }
 
 /** home/HScroll — section title + horizontal rail with the same paddings. */
@@ -435,6 +437,235 @@ export function OrderCollectSkeleton() {
             <Bone className='mt-auto ml-auto h-36 w-76 rounded-full max-lg:h-32 max-lg:w-68' />
           </div>
         ))}
+      </div>
+    </main>
+  )
+}
+
+/** One menu item (OrderProductClient) — header, photo beside the details, section tabs, offers, similar items, photos + reviews. */
+export function OrderProductSkeleton() {
+  return (
+    <main className={cn(OC_PAGE, OC_UNIT, 'px-172 pt-40 pb-80 max-lg:px-16 max-lg:pt-12 max-lg:pb-140')} aria-busy='true'>
+      {/* back + "Product Information", share */}
+      <div className='flex h-64 items-start justify-between max-lg:h-auto max-lg:pb-8'>
+        <span className='flex items-center gap-12'>
+          <Bone className='size-32 rounded-full max-lg:size-28' />
+          <Bone className='h-40 w-320 rounded-full max-lg:h-30 max-lg:w-200' />
+        </span>
+        <Bone className='size-32 rounded-full max-lg:size-28' />
+      </div>
+
+      {/* gallery 680 + details, 64 apart */}
+      <section className='mt-48 grid grid-cols-[calc(680*var(--u))_minmax(0,1fr)] gap-64 max-lg:mt-12 max-lg:grid-cols-1 max-lg:gap-20'>
+        <Bone className='h-560 w-full rounded-[calc(24*var(--u))] max-lg:aspect-680/660 max-lg:h-auto max-lg:rounded-[20px]' />
+        <div className='flex min-w-0 flex-col'>
+          <div className='flex items-center justify-between gap-16'>
+            <Bone className='h-[calc(30.8*var(--u))] w-130 rounded-full max-lg:h-28 max-lg:w-100' />
+            <Bone className='h-[calc(30.8*var(--u))] w-130 rounded-full max-lg:h-28 max-lg:w-100' />
+          </div>
+          <Line className='mt-[calc(33.2*var(--u))] h-36 w-3/4 max-lg:mt-14 max-lg:h-26' />
+          <div className='mt-36 grid grid-cols-2 gap-x-32 max-lg:mt-14'>
+            <Line className='h-18 w-2/3 max-lg:h-14' />
+            <Line className='h-18 w-1/2 max-lg:h-14' />
+          </div>
+          <Line className='mt-16 h-16 w-full max-lg:h-13' />
+          <Line className='mt-10 h-16 w-2/3 max-lg:h-13' />
+          {/* "Earn Nx more cashback" banner */}
+          <Bone className='mt-32 h-150 w-[calc(751.8*var(--u))] max-w-full rounded-[calc(20*var(--u))] max-lg:mt-16 max-lg:h-110 max-lg:w-full max-lg:rounded-[16px]' />
+          {/* price tag + Add to cart */}
+          <div className='mt-48 flex w-[calc(747.6*var(--u))] max-w-full items-end justify-between gap-[calc(58.8*var(--u))] max-lg:mt-20 max-lg:w-full max-lg:flex-col max-lg:items-stretch max-lg:gap-16'>
+            <span className='flex items-center gap-[calc(10.5*var(--u))] max-lg:gap-12'>
+              <Bone className='h-61 w-168 rounded-none max-lg:h-48 max-lg:w-120' />
+              <Line className='h-24 w-200 max-lg:h-14 max-lg:w-140' />
+            </span>
+            <Bone className='h-[calc(100.8*var(--u))] w-[calc(277.2*var(--u))] shrink-0 rounded-full max-lg:h-56 max-lg:w-full' />
+          </div>
+        </div>
+      </section>
+
+      {/* section tabs */}
+      <div className='mt-64 flex gap-32 border-b border-[#EBEBED] pb-16 max-lg:mt-28 max-lg:gap-16 max-lg:overflow-hidden max-lg:pb-10'>
+        {[90, 160, 90, 100, 90].map((w, i) => <Line key={i} className='h-20 shrink-0 max-lg:h-16' style={{ width: `calc(${w}*var(--u))` }} />)}
+      </div>
+
+      {/* offers row */}
+      <div className='mt-32 max-lg:mt-16'>
+        <Line className='h-28 w-240 max-lg:h-20 max-lg:w-160' />
+        <div className='mt-24 flex gap-24 overflow-hidden max-lg:mt-12 max-lg:gap-12'>
+          {[0, 1, 2].map(i => <Bone key={i} className='h-140 w-420 shrink-0 rounded-[calc(20*var(--u))] max-lg:h-110 max-lg:w-[280px] max-lg:rounded-[16px]' />)}
+        </div>
+      </div>
+
+      {/* similar products — three 145.6-tall rows */}
+      <div className='mt-48 max-lg:mt-28'>
+        <Line className='h-28 w-240 max-lg:h-20 max-lg:w-160' />
+        <div className='mt-32 grid grid-cols-3 gap-[calc(34.8*var(--u))] max-lg:mt-14 max-lg:grid-cols-1 max-lg:gap-12'>
+          {[0, 1, 2].map(i => (
+            <div key={i} className='flex h-[calc(145.6*var(--u))] items-center gap-[calc(16.8*var(--u))] rounded-[calc(22.4*var(--u))] border-[calc(1.4*var(--u))] border-[#EBEBEB] px-[calc(16.8*var(--u))] max-lg:h-auto max-lg:gap-12 max-lg:rounded-[18px] max-lg:border max-lg:p-12'>
+              <Bone className='size-112 shrink-0 rounded-[calc(16.8*var(--u))] max-lg:size-88 max-lg:rounded-[14px]' />
+              <div className='flex flex-1 flex-col gap-10'>
+                <Line className='h-20 w-3/4 max-lg:h-16' />
+                <Line className='h-16 w-1/3 max-lg:h-14' />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* photos (680) beside reviews */}
+      <div className='mt-56 grid grid-cols-[calc(680*var(--u))_minmax(0,1fr)] gap-64 max-lg:mt-28 max-lg:grid-cols-1 max-lg:gap-28'>
+        <div>
+          <Line className='h-28 w-160 max-lg:h-20' />
+          <div className='mt-24 grid grid-cols-3 gap-12 max-lg:mt-12 max-lg:gap-8'>
+            {Array.from({ length: 6 }, (_, i) => <Bone key={i} className='aspect-square rounded-[calc(16*var(--u))] max-lg:rounded-[12px]' />)}
+          </div>
+        </div>
+        <div>
+          <Line className='h-28 w-160 max-lg:h-20' />
+          <div className='mt-24 flex flex-col gap-16 max-lg:mt-12 max-lg:gap-12'>
+            {[0, 1].map(i => <Bone key={i} className='h-160 rounded-[calc(18*var(--u))] max-lg:h-120 max-lg:rounded-[16px]' />)}
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+/** Great Deals (GreatDeals) — the 420-tall hero, then the rails: wide dining offer cards, pay-bill cards, coupons. */
+export function GreatDealsSkeleton() {
+  const title = 'h-32 w-320 rounded-[calc(8*var(--u))] max-lg:h-24 max-lg:w-220'
+  return (
+    <main className={GD_PAGE} aria-busy='true'>
+      <Bone className='h-420 rounded-none rounded-b-[calc(24*var(--u))] max-lg:h-[200px] max-lg:rounded-b-[20px]' />
+      <div className='flex flex-col gap-48 overflow-hidden px-172 pt-48 max-lg:gap-32 max-lg:px-16 max-lg:pt-24'>
+        <section className='flex flex-col gap-16 max-lg:gap-12'>
+          <Bone className={title} />
+          <div className='flex gap-24 max-lg:gap-12'>
+            {[0, 1, 2].map(i => (
+              <div key={i} className='w-776 shrink-0 rounded-[calc(17.69*var(--u))] border border-[#EEE] px-8 pt-12 pb-14 max-lg:w-[300px] max-lg:rounded-[18px] max-lg:p-[8px]'>
+                <Bone className='h-256 rounded-[calc(14*var(--u))] max-lg:h-[194px] max-lg:rounded-[14px]' />
+                <Line className='mt-12 h-22 w-1/2 max-lg:h-16' />
+                <Line className='mt-10 h-16 w-1/3 max-lg:h-13' />
+                <Line className='mt-8 h-16 w-2/3 max-lg:h-13' />
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className='flex flex-col gap-16 max-lg:gap-12'>
+          <Bone className={title} />
+          <div className='flex gap-24 max-lg:gap-12'>
+            {[0, 1, 2, 3].map(i => <Bone key={i} className='h-340 w-[calc((100%-48*var(--u))/3)] shrink-0 rounded-[calc(25.2*var(--u))] max-lg:h-[240px] max-lg:w-[280px] max-lg:rounded-[20px]' />)}
+          </div>
+        </section>
+        <section className='flex flex-col gap-16 max-lg:gap-12'>
+          <Bone className={title} />
+          <div className='flex gap-24 max-lg:gap-12'>
+            {[0, 1, 2, 3].map(i => <Bone key={i} className='h-200 w-509 shrink-0 rounded-[calc(24*var(--u))] max-lg:h-[150px] max-lg:w-[260px] max-lg:rounded-[18px]' />)}
+          </div>
+        </section>
+      </div>
+    </main>
+  )
+}
+
+/** Select your location (LocationFlow) — back + title, search 1000 with the two 272 pills, then saved / recent / nearby in three columns. */
+export function LocationPageSkeleton() {
+  return (
+    <main className={LOC_PAGE} aria-busy='true'>
+      <div className='flex flex-col gap-40 px-172 pt-48 pb-72 max-lg:gap-20 max-lg:px-16 max-lg:pt-16 max-lg:pb-112'>
+        <div className='flex items-center gap-12'>
+          <Bone className='size-40 rounded-full max-lg:size-32' />
+          <Bone className='h-36 w-320 rounded-[calc(8*var(--u))] max-lg:h-26 max-lg:w-200' />
+        </div>
+        <div>
+          <div className='flex gap-16 max-lg:flex-wrap max-lg:gap-12'>
+            <Bone className='h-56 w-1000 rounded-full max-lg:h-48 max-lg:w-full' />
+            <Bone className='h-56 w-272 rounded-full max-lg:h-44 max-lg:w-auto max-lg:flex-1' />
+            <Bone className='h-56 w-272 rounded-full max-lg:h-44 max-lg:w-auto max-lg:flex-1' />
+          </div>
+          <div className='mt-56 grid grid-cols-3 items-start gap-24 max-lg:mt-24 max-lg:grid-cols-1 max-lg:gap-28'>
+            {[0, 1, 2].map(c => (
+              <div key={c} className='flex flex-col gap-16'>
+                <Line className='h-28 w-200 max-lg:h-20 max-lg:w-160' />
+                {[0, 1, 2].map(i => (
+                  <div key={i} className='flex gap-16 px-24 py-20 max-lg:px-12 max-lg:py-14'>
+                    <Bone className='size-52 shrink-0 rounded-[calc(12*var(--u))] max-lg:size-40' />
+                    <div className='flex flex-1 flex-col gap-8'>
+                      <Line className='h-20 w-3/5 max-lg:h-15' />
+                      <Line className='h-16 w-full max-lg:h-12' />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+/** Profile details (page + ProfileDetailsClient) — back link, title, avatar, then the labelled fields in a 640 column. */
+export function ProfileDetailsSkeleton() {
+  return (
+    <main aria-busy='true' className={cn('min-h-screen bg-white px-16 pt-16 pb-120 lg:px-172 lg:pt-76', PROFILE_UNIT)}>
+      <Bone className='h-40 w-100 rounded-[calc(10*var(--u))]' />
+      <Bone className='mt-16 h-40 w-260 rounded-[calc(8*var(--u))] max-lg:h-30 max-lg:w-200' />
+      <div className='mx-auto mt-24 max-w-640 lg:mt-32'>
+        <Bone className='mx-auto size-96 rounded-full max-lg:size-80' />
+        {['w-60', 'w-120', 'w-60', 'w-70', 'w-80', 'w-110'].map((w, i) => (
+          <div key={i}>
+            <Line className={cn('mt-24 mb-8 h-18 max-lg:h-15', w)} />
+            <Bone className='h-56 rounded-[calc(12*var(--u))] max-lg:h-48 max-lg:rounded-xl' />
+          </div>
+        ))}
+      </div>
+    </main>
+  )
+}
+
+/** Share feedback (FeedbackClient) — the centred question, five stars, the message box and the submit button. */
+export function FeedbackPageSkeleton() {
+  return (
+    <main className='min-h-screen' aria-busy='true'>
+      <div className='mx-auto flex max-w-md flex-col px-6 py-8'>
+        <Bone className='mx-auto h-8 w-72 rounded-full' />
+        <div className='mt-5 flex justify-center gap-2'>
+          {[0, 1, 2, 3, 4].map(i => <Bone key={i} className='size-9 rounded-full' />)}
+        </div>
+        <Bone className='mt-6 h-32 rounded-2xl' />
+        <Line className='mt-2 h-3 w-4/5' />
+        <Bone className='mt-6 h-12 rounded-full' />
+      </div>
+    </main>
+  )
+}
+
+/** Refer a friend (ReferFriendClient) — the purple reward card with its progress bar, the plate and lid, the button, then how it works. */
+export function ReferPageSkeleton() {
+  return (
+    <main className='min-h-screen bg-white' aria-busy='true'>
+      <div className='mx-auto max-w-xl px-5 pt-5 pb-16'>
+        <div className='rounded-3xl bg-[#4A169E]/15 px-5 py-5'>
+          <Bone className='h-6 w-3/4 rounded-full bg-white/60' />
+          <Line className='mt-3 w-1/2 bg-white/60' />
+          <Bone className='mt-3 h-2 rounded-full bg-white/60' />
+        </div>
+        <div className='mt-6 flex flex-col items-center'>
+          <Bone className='h-6 w-48 rounded-full' />
+          <Line className='mt-2 w-64' />
+          <Bone className='mt-4 h-52 w-full max-w-75 rounded-[40%_40%_12px_12px]' />
+          <Bone className='mt-4 h-13 w-52 rounded-full' />
+        </div>
+        <Bone className='mt-10 h-6 w-36 rounded-full' />
+        <div className='mt-4 space-y-4'>
+          {[0, 1, 2].map(i => (
+            <div key={i} className='flex items-center gap-3'>
+              <Bone className='size-9 shrink-0 rounded-full' />
+              <Line className='h-3.5 w-3/4' />
+            </div>
+          ))}
+        </div>
       </div>
     </main>
   )
@@ -1121,15 +1352,66 @@ export function ReviewsPageSkeleton() {
   )
 }
 
-/** Membership (MembershipClient) — subtitle and the plan cards. */
+/** Membership (MembershipClient) — title + billing switch, the three 162-tall plan cards, the 4×3 benefit tiles and the upgrade button. */
 export function MembershipPageSkeleton() {
   return (
-    <main className='min-h-screen' aria-busy='true'>
-      <div className='mx-auto max-w-5xl px-4 pt-1 pb-16 md:px-6'>
-        <Line className='mb-6 ml-12.5 h-3.5 w-52' />
-        <div className='grid gap-4.5 md:grid-cols-2'>
-          {[0, 1, 2].map(i => <Bone key={i} className='h-110 rounded-3xl' />)}
+    <main className={cn('min-h-screen bg-white', MEMBER_UNIT)} aria-busy='true'>
+      <div className='px-172 pt-64 pb-48 max-lg:px-16 max-lg:pt-20 max-lg:pb-160'>
+        <div className='flex items-start justify-between gap-24'>
+          <div>
+            <Bone className='h-52 w-480 rounded-[calc(12*var(--u))] max-lg:h-30 max-lg:w-240' />
+            <Line className='mt-16 h-22 w-300 max-lg:mt-6 max-lg:h-14 max-lg:w-180' />
+          </div>
+          <Bone className='h-50 w-72 rounded-full max-lg:h-36 max-lg:w-64' />
         </div>
+        <div className='mt-34 grid grid-cols-3 gap-24 max-lg:mt-20 max-lg:grid-cols-1 max-lg:gap-12'>
+          {[0, 1, 2].map(i => <Bone key={i} className='h-162 rounded-[calc(32*var(--u))] max-lg:h-110 max-lg:rounded-2xl' />)}
+        </div>
+        <div className='mt-62 grid grid-cols-4 grid-rows-[calc(200*var(--u))_calc(200*var(--u))_calc(190*var(--u))] gap-24 max-lg:mt-20 max-lg:grid-cols-2 max-lg:grid-rows-none max-lg:gap-12'>
+          {Array.from({ length: 8 }, (_, i) => (
+            <Bone key={i} className={cn('rounded-[calc(24*var(--u))] max-lg:h-150 max-lg:rounded-2xl', i === 0 && 'col-span-2 row-span-2 max-lg:h-200', i === 1 && 'row-span-2 max-lg:h-200')} />
+          ))}
+        </div>
+        <Bone className='mt-48 ml-auto h-72 w-400 rounded-full max-lg:mt-20 max-lg:h-56 max-lg:w-full' />
+      </div>
+    </main>
+  )
+}
+
+/** Privé benefits (BenefitsClient) — back + title, the Black / Plus / Free switch, then each section's 2-column benefit cards. */
+export function BenefitsPageSkeleton() {
+  return (
+    <main className={cn('min-h-screen bg-white', MEMBER_UNIT)} aria-busy='true'>
+      <div className='px-172 pt-60 pb-25 max-lg:px-16 max-lg:pt-20 max-lg:pb-160'>
+        <div className='flex items-start gap-22 max-lg:gap-12'>
+          <Bone className='mt-6 h-49 w-50 shrink-0 rounded-full max-lg:mt-0 max-lg:size-36' />
+          <div>
+            <Bone className='h-52 w-360 rounded-[calc(12*var(--u))] max-lg:h-30 max-lg:w-200' />
+            <Line className='mt-16 h-20 w-420 max-lg:mt-6 max-lg:h-14 max-lg:w-240' />
+          </div>
+        </div>
+        <Bone className='mt-31 h-88 rounded-[calc(44*var(--u))] max-lg:mt-20 max-lg:h-64 max-lg:rounded-full' />
+        <Line className='mt-48 h-20 w-360 max-lg:mt-20 max-lg:h-14 max-lg:w-240' />
+        {[0, 1].map(sec => (
+          <section key={sec} className={sec === 0 ? 'mt-28 max-lg:mt-20' : 'mt-68 max-lg:mt-32'}>
+            <Line className='h-18 w-160 max-lg:h-12 max-lg:w-120' />
+            <div className='mt-19 grid grid-cols-2 gap-24 max-lg:mt-12 max-lg:grid-cols-1 max-lg:gap-12'>
+              {[0, 1, 2, 3].map(i => (
+                <div key={i} className='flex gap-24 rounded-[calc(24*var(--u))] border border-[#DCDCDC] p-24 max-lg:gap-12 max-lg:rounded-2xl max-lg:p-16'>
+                  <Bone className='size-48 shrink-0 rounded-[calc(14.4*var(--u))] max-lg:size-40 max-lg:rounded-xl' />
+                  <div className='flex flex-1 flex-col gap-10'>
+                    <Line className='h-24 w-2/3 max-lg:h-16' />
+                    <Line className='h-16 w-1/3 max-lg:h-13' />
+                    <Line className='h-16 w-full max-lg:h-13' />
+                    <div className='mt-6 flex gap-8'>
+                      {[0, 1, 2].map(j => <Bone key={j} className='h-28 w-80 rounded-full max-lg:h-22 max-lg:w-60' />)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
     </main>
   )

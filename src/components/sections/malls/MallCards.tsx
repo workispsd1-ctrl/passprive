@@ -9,7 +9,8 @@ import { SaveListSheet } from '@/components/SaveListSheet'
 import { CardChips } from '@/components/shared/CardChips'
 import { useSaved } from '@/lib/context/SavedContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
-import { getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
+import { getCardBadge, type MerchantCapabilityFields } from '@/lib/cashback'
+import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
 import type { CardChipKey } from '@/lib/cardChips'
 import { cn, formatDistanceKm } from '@/lib/utils'
 
@@ -111,16 +112,6 @@ function RatingPill({ rating, className }: { rating: number; className?: string 
   )
 }
 
-/** White "4% Cashback" pill with the orange coin — Figma 146×32. */
-function CashbackPill({ pct }: { pct: number }) {
-  return (
-    <span className='absolute top-16 left-11 z-10 flex h-32 items-center gap-7 rounded-full bg-white/77 pr-14 pl-7 max-lg:top-[8px] max-lg:left-[8px] max-lg:h-[26px] max-lg:gap-[4px] max-lg:pr-[8px] max-lg:pl-[3px]'>
-      <span aria-hidden className='size-[calc(26*var(--u))] rounded-[calc(6.8*var(--u))] bg-[radial-gradient(circle_at_35%_30%,#FFB27A,#E8521A_60%,#B83A0C)] max-lg:size-[20px] max-lg:rounded-[5px]' />
-      <span className='text-[calc(15.52*var(--u))] leading-[calc(22*var(--u))] font-semibold text-[#454040] max-lg:text-[11px] max-lg:leading-[16px]'>{pct}% Cashback</span>
-    </span>
-  )
-}
-
 // ─── Place card: rail 376 wide, grid 509 wide ────────────────────────────
 
 /**
@@ -131,7 +122,7 @@ function CashbackPill({ pct }: { pct: number }) {
 export function PlaceCard({ place, variant = 'rail' }: { place: MallPlace; variant?: 'rail' | 'grid' }) {
   const plan = useUserPlan()
   const grid = variant === 'grid'
-  const pct = grid ? getCashbackPct(place.caps, plan) : 0
+  const badge = grid ? getCardBadge(place.caps, plan) : null
   const line1 = grid ? join(formatDistanceKm(place.distance), place.area) : join(floorText(place) ?? formatDistanceKm(place.distance), place.tagline)
   const line2 = grid ? join(floorText(place), place.tagline, cost(place)) : null
   const meta = 'truncate font-medium text-[#717171] max-lg:text-[13px] max-lg:leading-[19px]'
@@ -154,7 +145,8 @@ export function PlaceCard({ place, variant = 'rail' }: { place: MallPlace; varia
           )}
         >
           {place.image && <Image src={place.image} alt='' fill sizes={grid ? '(min-width: 1024px) 27vw, 100vw' : '(min-width: 1024px) 20vw, 280px'} className='object-cover' />}
-          {pct > 0 && <CashbackPill pct={pct} />}
+          {/* app parity: StoresCard → CashbackBadge; scaled from an app-sized card, corner follows the photo */}
+          <CardBadgeArt badge={badge} radius='inherit' scaleWidth='min(100cqw, 360px)' />
           <SaveHeart
             place={place}
             className={cn('absolute max-lg:top-[8px] max-lg:right-[8px]', grid ? 'top-10 right-14' : 'top-7 right-9')}
