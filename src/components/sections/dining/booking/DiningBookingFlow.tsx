@@ -13,6 +13,8 @@ import { canPayBill, getCashbackPct, type CashbackPlan, type MerchantCapabilityF
 import { buildDates, buildSlots, defaultMeal, longDate, type HoursRow, type Meal, type Slot } from '@/lib/booking/slots'
 import type { BookingOption, DiningBooking } from '@/lib/booking/payload'
 import { confirmBooking, initiateBookingPayment } from '@/lib/booking/client'
+import { bookingUpfront } from '@/lib/booking/terms'
+import { bookingReturnHref } from '@/components/shared/useBookingPayment'
 import { useExistingBookingGuard } from './useExistingBookingGuard'
 import { usePaymentWindow } from '@/lib/hooks/usePaymentWindow'
 import type { DiningOffer } from '@/lib/types/dining'
@@ -61,6 +63,8 @@ export interface DiningBookingRestaurant extends MerchantCapabilityFields {
   cover_charge_amount: number | null
   /** the platform booking fee (booking_fee_amount) */
   booking_fee: number
+  /** the restaurant takes requests, not instant bookings — nothing is paid now (app b2ff80a useBookingTerms) */
+  is_request: boolean
 }
 
 interface Props {
@@ -234,12 +238,11 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
         }
     : null
 
-  // app parity (fbaf070): ReviewRestaurantBooking bookingSummaryAmount — the booking fee, or the
-  // cover charge when that's higher; one amount per booking, redeemed on the bill
-  const payAmount = bookingOption
-    ? Math.max(restaurant.booking_fee, bookingOption.coverChargeRequired ? (bookingOption.coverChargeAmount ?? 0) : 0)
-    : 0
+  // app parity (b2ff80a): ReviewRestaurantBooking useBookingTerms().upfront — nothing for a request
+  // booking, else the booking fee or the cover charge when that's higher; redeemed on the bill
+  const payAmount = bookingOption ? bookingUpfront(restaurant, restaurant.booking_fee) : 0
   const isFree = payAmount <= 0
+  const isRequest = restaurant.is_request
   const deadline = slot ? cancelDeadline(dateId, slot.time24, cancellation.cutoffMinutes) : null
 
   function pickSlot(s: Slot) {
@@ -261,12 +264,8 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
     return `${bookHref}?${qs}`
   }
 
-  // a cover charge is paid on the bank's page in its own window; the return page verifies + creates the booking
-  const bank = usePaymentWindow(({ sessionId, merchantTrace, outcome }) => {
-    const qs = new URLSearchParams({ session_id: sessionId, merchant_trace: merchantTrace })
-    if (outcome) qs.set('outcome', outcome)
-    router.replace(`/dining/cover-charge-return?${qs}`)
-  })
+  // a cover charge is paid on the bank's page in its own window; the return page waits for the booking
+  const bank = usePaymentWindow(end => router.replace(bookingReturnHref(end)))
 
   async function confirmFree() {
     if (!booking) return
@@ -290,7 +289,7 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
     setError(null)
     setSubmitting(true)
     try {
-      const { data, session } = await initiateBookingPayment(booking, { bookHref, offerLabel: chosen?.offer ? chosen.title : undefined })
+      const { data, session } = await initiateBookingPayment(booking, payAmount, { bookHref, offerLabel: chosen?.offer ? chosen.title : undefined })
       bank.launch(data, session)
     } catch (err) {
       bank.close()
@@ -539,7 +538,10 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
                     )}
                   </p>
                 )}
-                {hasCoverCharge ? (
+                {isRequest ? (
+                  // app parity (b2ff80a): a request booking — the restaurant confirms it, nothing is paid now
+                  <Line label='Pay now' value='MUR 0' />
+                ) : hasCoverCharge ? (
                   <Line label='Cover charge' sub='Redeemable when you pay bill via PassPrivé' value={`MUR ${payAmount}`} />
                 ) : (
                   <Line label='Cover charge' value='None' />
@@ -591,7 +593,7 @@ export function DiningBookingFlow({ restaurant, panel, hours, offers, isLoggedIn
             {error && <p role='alert' className='self-start rounded-2xl bg-[#fdecec] font-medium text-[#c62828]' style={{ marginTop: t(16), padding: `${t(12)} ${t(18)}`, fontSize: t(18) }}>{error}</p>}
             <div className='mt-auto' style={{ paddingTop: t(36) }}>
               {isFree ? (
-                <CardButton onClick={confirmFree} disabled={submitting}>{submitting ? 'Booking…' : isLoggedIn ? 'Book table' : 'Log in to book'}</CardButton>
+                <CardButton onClick={confirmFree} disabled={submitting}>{submitting ? 'Booking…' : !isLoggedIn ? 'Log in to book' : isRequest ? 'Send booking request' : 'Book table'}</CardButton>
               ) : (
                 <CardButton onClick={() => (isLoggedIn ? go('method') : promptLogin())}>{isLoggedIn ? `Proceed to pay MUR ${payAmount}` : 'Log in to book'}</CardButton>
               )}

@@ -12,8 +12,10 @@ export type PlatformFlags = {
   referralRefereeAmount: number
   /** app parity: repeat_reward_enabled — stamp sheets / visit rewards, unless a merchant overrides it */
   repeatRewards: boolean
-  /** stamp pages and menu entries show — the switch is on, or some merchant has its stamps forced on */
+  /** stamp pages and menu entries show — app b2ff80a: only while the switch is on */
   stampsVisible: boolean
+  /** app parity (b2ff80a): order_collect_enabled — Order & Collect anywhere, on top of the restaurant's own switch */
+  orderCollect: boolean
 }
 
 export const DEFAULT_PLATFORM_FLAGS: PlatformFlags = {
@@ -25,6 +27,7 @@ export const DEFAULT_PLATFORM_FLAGS: PlatformFlags = {
   referralRefereeAmount: 0,
   repeatRewards: false,
   stampsVisible: false,
+  orderCollect: false,
 }
 
 let flags = DEFAULT_PLATFORM_FLAGS
@@ -41,10 +44,12 @@ export function burnOn() {
 
 /**
  * Whether a merchant's repeat rewards (stamp sheet, visit offers) show — app
- * parity: platformFlags.js repeatRewardsOn. The merchant's `repeat_reward_mode`
- * ('on' / 'off') wins; 'inherit' (the default) follows the platform switch.
+ * parity: platformFlags.js repeatRewardsOn. The platform switch off hides them
+ * everywhere (app b2ff80a); while it's on, the merchant's `repeat_reward_mode`
+ * 'off' hides them and 'on' / 'inherit' show them.
  */
 export function repeatRewardsOn(merchant?: { repeat_reward_mode?: string | null } | null) {
+  if (!flags.repeatRewards) return false
   const mode = String(merchant?.repeat_reward_mode ?? 'inherit').toLowerCase()
   if (mode === 'on') return true
   if (mode === 'off') return false
@@ -60,6 +65,7 @@ export function flagsFromRow(row: {
   referral_reward_amount?: number | string | null
   referral_referee_amount?: number | string | null
   repeat_reward_enabled?: boolean | null
+  order_collect_enabled?: boolean | null
 } | null | undefined): PlatformFlags {
   if (!row) return DEFAULT_PLATFORM_FLAGS
   const earn = row.cashback_earn_enabled !== false
@@ -72,5 +78,6 @@ export function flagsFromRow(row: {
     referralRefereeAmount: Number(row.referral_referee_amount || 0),
     repeatRewards: row.repeat_reward_enabled !== false,
     stampsVisible: row.repeat_reward_enabled !== false,
+    orderCollect: row.order_collect_enabled === true,
   }
 }

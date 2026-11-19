@@ -1,10 +1,11 @@
 'use client'
 
 import { cardOfferText } from '@/lib/deals'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import { useMemo, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Gem, Heart } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Gem, } from 'lucide-react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCardBadge, getCashbackPct } from '@/lib/cashback'
@@ -99,7 +100,7 @@ function WideCard({ store }: { store: WithDist }) {
             onClick={saver.onSave}
             className='relative z-20 ml-auto flex size-[calc(40*var(--u))] items-center justify-center rounded-[calc(20*var(--u))] bg-[rgba(217,217,217,0.1)] text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]'
           >
-            <Heart className={cn('size-[calc(22*var(--u))]', saver.saved && 'fill-brand text-brand')} strokeWidth={1.4} />
+            <PopHeart saved={saver.saved} className={cn('size-[calc(22*var(--u))]', saver.saved && 'fill-brand text-brand')} strokeWidth={1.4} />
           </button>
         </div>
       </div>

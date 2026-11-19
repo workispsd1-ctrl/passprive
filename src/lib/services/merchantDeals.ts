@@ -1,3 +1,5 @@
+import { createPublicClient } from '@/lib/supabase/public'
+import { cachedCatalog, unwrap } from '@/lib/catalogCache'
 import { createClient } from '@/lib/supabase/server'
 import {
   bestFirst,
@@ -89,13 +91,12 @@ export type RevealPlan = {
 }
 
 /** Plan table for the "used all your reveals" sheet — app parity: DealQuotaSheet.loadPlans. */
-export async function getRevealPlans(): Promise<RevealPlan[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
+export const getRevealPlans = cachedCatalog('reveal-plans', async (): Promise<RevealPlan[]> => {
+  const data = unwrap(await createPublicClient()
     .from('subscription')
     .select('tier, plan_name, deals_per_month, deals_per_restaurant_per_month, sort_order, is_active')
     .eq('is_active', true)
-    .order('sort_order', { ascending: false })
+    .order('sort_order', { ascending: false }))
   return ((data ?? []) as (RevealPlan & { sort_order: number })[])
     .filter(plan => plan.tier !== 'cim')
     // monthly + yearly rows share a tier — one row per tier, as the app does
@@ -106,17 +107,16 @@ export async function getRevealPlans(): Promise<RevealPlan[]> {
       deals_per_month,
       deals_per_restaurant_per_month,
     }))
-}
+}, [])
 
-/** A restaurant's live deal rows with their tiers — app parity: dealReveals.js fetchRestaurantDealRows. */
-export async function getRestaurantDealRows(restaurantId: string): Promise<RestaurantDeal[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
+/** A restaurant's live deal rows with their tiers — app parity: dealReveals.js fetchRestaurantDealRows. Shared for CATALOG_TTL. */
+export const getRestaurantDealRows = cachedCatalog('restaurant-deal-rows', async (restaurantId: string): Promise<RestaurantDeal[]> => {
+  const data = unwrap(await createPublicClient()
     .from('restaurant_deals')
     .select(DEAL_COLUMNS)
     .eq('restaurant_id', restaurantId)
     .eq('is_active', true)
     .order('priority', { ascending: false })
-    .limit(10)
+    .limit(10))
   return (data ?? []) as RestaurantDeal[]
-}
+}, [])

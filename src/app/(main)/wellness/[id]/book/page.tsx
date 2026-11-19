@@ -20,9 +20,9 @@ export default async function WellnessBookPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ category?: string }>
+  searchParams: Promise<{ category?: string; booked?: string; paid?: string }>
 }) {
-  const [{ id }, { category }] = await Promise.all([params, searchParams])
+  const [{ id }, { category, booked: bookedId, paid }] = await Promise.all([params, searchParams])
   const [data, supabase] = await Promise.all([getServiceStoreBySlugOrId(id), createClient()])
   if (!data || !canBook(data.store)) notFound()
 
@@ -34,6 +34,19 @@ export default async function WellnessBookPage({
   ])
 
   const href = `/wellness/${store.slug ?? store.id}`
+
+  // after paying: the appointment the payment created, shown as "Appointment booked" (own orders only)
+  let booked: { when: string; paid: boolean } | null = null
+  if (bookedId && user) {
+    const { data: order } = await supabase
+      .from('store_orders')
+      .select('id, slot_start_at')
+      .eq('id', bookedId)
+      .eq('store_id', store.id)
+      .eq('customer_user_id', user.id)
+      .maybeSingle<{ id: string; slot_start_at: string | null }>()
+    if (order) booked = { when: appointmentWhen(order.slot_start_at), paid: paid === '1' }
+  }
   const address = store.address_line1 ?? [store.location_name, store.city].filter(Boolean).join(', ')
 
   return (
@@ -63,7 +76,18 @@ export default async function WellnessBookPage({
         offers={inStoreOffers}
         initialCategoryId={category ?? null}
         isLoggedIn={!!user}
+        booked={booked}
       />
     </ClientOnly>
   )
+}
+
+/** "Thu, Nov 19 at 4:30 PM" in Mauritius time — app parity (b2ff80a): formatAppointmentDateTime. */
+function appointmentWhen(iso: string | null): string {
+  const d = new Date(iso ?? '')
+  if (Number.isNaN(d.getTime())) return 'your chosen time'
+  const tz = 'Indian/Mauritius'
+  const date = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz })
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz })
+  return `${date} at ${time}`
 }

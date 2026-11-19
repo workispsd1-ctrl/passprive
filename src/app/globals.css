@@ -172,3 +172,50 @@
   88% { transform: translateX(-50%) rotate(-2deg); }
   94% { transform: translateX(-50%) rotate(2deg); }
 }
+
+/* ── App motion (app parity) ────────────────────────────────────────────── */
+/* OfferStripLabel: a light sweep (1.8s) then a 1.2s rest, looping */
+@keyframes pp-strip-shine {
+  0% { left: -5.5rem; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  60%, 100% { left: calc(100% + 2.75rem); }
+}
+/* the strip text sways with the sweep: translateX 6·sin(πt) */
+@keyframes pp-strip-sway {
+  0%, 60%, 100% { transform: translateX(0); }
+  30% { transform: translateX(6px); }
+}
+/* TextStar: pops in, turns 120°, fades — staggered along the sweep */
+@keyframes pp-strip-star {
+  0% { opacity: 0; transform: scale(0) rotate(0deg); }
+  18% { opacity: 0.75; transform: scale(1.15) rotate(60deg); }
+  36%, 100% { opacity: 0; transform: scale(0) rotate(120deg); }
+}
+/* AnimatedSaveHeart: up to 1.4× in 150ms, then springs back */
+@keyframes pp-heart-pop {
+  0% { transform: scale(1); }
+  33% { transform: scale(1.4); }
+  60% { transform: scale(0.9); }
+  80% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+/* Shimmer: a soft band sweeping across a placeholder */
+@keyframes pp-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+/* KenBurnsImage: slow zoom (to 1.15) with a drift, back and forth */
+@keyframes pp-ken-burns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.15) translate(-3%, -2%); }
+}
+/* OtpBoxesInput: a wrong code shakes the boxes */
+@keyframes pp-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-8px); }
+  35% { transform: translateX(8px); }
+  55% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-motion, .pp-motion * { animation: none !important; transition: none !important; }
+}

@@ -11,6 +11,8 @@ interface Props {
   wellnessBanners: WebsiteBanner[]
   /** horizontal padding for the nav row, e.g. "px-12" (desktop) / "px-4" (mobile) */
   pad: string
+  /** desktop home: the header bar lies over the hero banner */
+  underHeader?: boolean
 }
 
 /** The category home screens — the only ones that carry the category-nav pill. */
@@ -24,7 +26,7 @@ const NAV_ROUTES = new Set(['/', '/dining', '/stores', '/wellness', '/tourist'])
  * overlap). The other category homes render the pill below the top bar;
  * detail and every other screen opens on the top bar alone.
  */
-export function HeaderHeroNav({ banners, wellnessBanners, pad }: Props) {
+export function HeaderHeroNav({ banners, wellnessBanners, pad, underHeader = false }: Props) {
   const pathname = usePathname()
   if (!NAV_ROUTES.has(pathname)) return null
   const isHome = pathname === '/'
@@ -33,7 +35,7 @@ export function HeaderHeroNav({ banners, wellnessBanners, pad }: Props) {
   if (isHome) {
     return (
       <div className="relative">
-        <HomeHero banners={banners} />
+        <HomeHero banners={banners} underHeader={underHeader} />
         <div className={`relative z-20 pt-4 md:-mb-9.5 ${pad}`}>
           <HeaderNav />
         </div>

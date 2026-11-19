@@ -4,23 +4,19 @@ import { createPublicClient } from '@/lib/supabase/public'
 import { cachedCatalog } from '@/lib/catalogCache'
 import { DEFAULT_PLATFORM_FLAGS, flagsFromRow, setPlatformFlags, type PlatformFlags } from '@/lib/platformFlags'
 
-/** Merchants that override the platform's repeat-rewards switch (`repeat_reward_mode` 'on' / 'off'). */
-type RepeatOverrides = { on: string[]; off: string[] }
+/** Merchants that turned their repeat rewards off (`repeat_reward_mode` 'off'). */
+type RepeatOverrides = { off: string[] }
 
 const getRepeatOverrides = cachedCatalog('repeat-reward-overrides', async (): Promise<RepeatOverrides> => {
   const db = createPublicClient()
   const [r, s] = await Promise.all([
-    db.from('restaurants').select('id, repeat_reward_mode').in('repeat_reward_mode', ['on', 'off']),
-    db.from('stores').select('id, repeat_reward_mode').in('repeat_reward_mode', ['on', 'off']),
+    db.from('restaurants').select('id').eq('repeat_reward_mode', 'off'),
+    db.from('stores').select('id').eq('repeat_reward_mode', 'off'),
   ])
   if (r.error) throw r.error
   if (s.error) throw s.error
-  const rows = [...(r.data ?? []), ...(s.data ?? [])] as { id: string; repeat_reward_mode: string }[]
-  return {
-    on: rows.filter(x => x.repeat_reward_mode === 'on').map(x => String(x.id)),
-    off: rows.filter(x => x.repeat_reward_mode === 'off').map(x => String(x.id)),
-  }
-}, { on: [], off: [] })
+  return { off: [...(r.data ?? []), ...(s.data ?? [])].map(x => String(x.id)) }
+}, { off: [] })
 
 /**
  * Reads the switches and applies them to server-rendered cashback helpers.
@@ -29,19 +25,14 @@ const getRepeatOverrides = cachedCatalog('repeat-reward-overrides', async (): Pr
 export const getPlatformFlags = cache(async (): Promise<PlatformFlags> => {
   try {
     const supabase = await createClient()
-    const [{ data, error }, overrides] = await Promise.all([
-      supabase
-        .from('platform_settings')
-        .select('cashback_earn_enabled, cashback_burn_enabled, booking_reward_enabled, booking_reward_amount, referral_enabled, referral_reward_amount, referral_referee_amount, repeat_reward_enabled')
-        .maybeSingle(),
-      getRepeatOverrides(),
-    ])
+    const { data, error } = await supabase
+      .from('platform_settings')
+      .select('cashback_earn_enabled, cashback_burn_enabled, booking_reward_enabled, booking_reward_amount, referral_enabled, referral_reward_amount, referral_referee_amount, repeat_reward_enabled, order_collect_enabled')
+      .maybeSingle()
     if (error) return DEFAULT_PLATFORM_FLAGS
     const base = flagsFromRow(data)
-    // stamp entry points (menus, profile, deals) stay while any merchant still runs stamps
-    const flags = { ...base, stampsVisible: base.repeatRewards || overrides.on.length > 0 }
-    setPlatformFlags(flags)
-    return flags
+    setPlatformFlags(base)
+    return base
   } catch {
     return DEFAULT_PLATFORM_FLAGS
   }
@@ -49,16 +40,11 @@ export const getPlatformFlags = cache(async (): Promise<PlatformFlags> => {
 
 /**
  * Whether one merchant's stamps show — app parity: platformFlags.js
- * repeatRewardsOn. The merchant's own 'on' / 'off' wins over the admin switch.
+ * repeatRewardsOn. The admin switch off hides every merchant's (app b2ff80a);
+ * while it's on, a merchant's own 'off' hides theirs.
  */
 export const getStampGate = cache(async (): Promise<(id: string | null | undefined) => boolean> => {
   const [flags, overrides] = await Promise.all([getPlatformFlags(), getRepeatOverrides()])
-  const on = new Set(overrides.on)
   const off = new Set(overrides.off)
-  return id => {
-    const key = String(id ?? '')
-    if (on.has(key)) return true
-    if (off.has(key)) return false
-    return flags.repeatRewards
-  }
+  return id => flags.repeatRewards && !off.has(String(id ?? ''))
 })

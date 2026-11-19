@@ -2,7 +2,8 @@ import type { ReviewRow } from '@/lib/allReviews';
 import { orderableItems, type OrderItem } from '@/lib/orderCollect';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
-import { cachedCatalog, unwrap } from '@/lib/catalogCache';
+import { CATALOG_MISS, cachedCatalog, rowsOf, unwrap } from '@/lib/catalogCache';
+import { getPlatformFlags } from '@/lib/services/platformFlags';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { FEED_PAGE_SIZE, toRpcArgs, type Coords, type FeedFilters } from '@/lib/restaurantFilters';
 import { scopeToRadius, withinRadius } from '@/lib/nearby';
@@ -148,8 +149,12 @@ export type PromotionalCollection = {
   title: string;
   subtitle: string | null;
   hasBanner: boolean;
+  /** a CMS row made for the website ("<title> Website") — a wide strip banner, not the app's tall poster */
+  web: boolean;
   restaurants: FeaturedRestaurant[];
 };
+
+const WEB_SUFFIX = / website$/i;
 
 /**
  * CMS promo banners + their mood-matched restaurant rail — app parity:
@@ -160,32 +165,51 @@ export type PromotionalCollection = {
  * The banner itself is served by /api/promo-banner/[id] (rows store it as an
  * inline base64 image, far too large to ship in the page payload).
  */
+type PromoRow = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  restaurant_mood_categories: { title: string } | { title: string }[] | null;
+  hasBanner: boolean;
+};
+
+/** A screen's promotional collections as stored, shared for CATALOG_TTL — their dates are checked per request. */
+const getPromoRows = cachedCatalog('promotional-collections', async (screen: string): Promise<PromoRow[]> => {
+  const db = createPublicClient();
+  const rows = (unwrap(
+    await db
+      .from('promotional_collections')
+      .select('id, title, subtitle, starts_at, ends_at, restaurant_mood_categories(title)')
+      .eq('is_active', true)
+      .contains('screens', [screen])
+      .order('sort_order', { ascending: true }),
+  ) ?? []) as Omit<PromoRow, 'hasBanner'>[];
+  if (!rows.length) return [];
+  const withBanner = unwrap(
+    await db.from('promotional_collections').select('id').in('id', rows.map((c) => c.id)).not('banner_image_url', 'is', null),
+  ) ?? [];
+  const bannerIds = new Set(withBanner.map((r) => r.id));
+  return rows.map((c) => ({ ...c, hasBanner: bannerIds.has(c.id) }));
+}, []);
+
 export async function getPromotionalCollections(
   screen: string,
   coords?: Coords | null,
 ): Promise<PromotionalCollection[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('promotional_collections')
-    .select('id, title, subtitle, starts_at, ends_at, restaurant_mood_categories(title)')
-    .eq('is_active', true)
-    .contains('screens', [screen])
-    .order('sort_order', { ascending: true });
-
   const now = Date.now();
-  const active = (data ?? []).filter((c) => {
+  const live = (await getPromoRows(screen)).filter((c) => {
     const start = c.starts_at ? Date.parse(c.starts_at) : NaN;
     const end = c.ends_at ? Date.parse(c.ends_at) : NaN;
     return (Number.isNaN(start) || start <= now) && (Number.isNaN(end) || end >= now);
   });
+  // A live website variant replaces its app twin (same title without " Website").
+  const webTwins = new Set(
+    live.filter((c) => WEB_SUFFIX.test(c.title)).map((c) => c.title.replace(WEB_SUFFIX, '').trim().toLowerCase()),
+  );
+  const active = live.filter((c) => WEB_SUFFIX.test(c.title) || !webTwins.has(c.title.trim().toLowerCase()));
   if (!active.length) return [];
-
-  const { data: withBanner } = await supabase
-    .from('promotional_collections')
-    .select('id')
-    .in('id', active.map((c) => c.id))
-    .not('banner_image_url', 'is', null);
-  const bannerIds = new Set((withBanner ?? []).map((r) => r.id));
 
   return Promise.all(
     active.map(async (c) => {
@@ -197,11 +221,13 @@ export async function getPromotionalCollections(
       const restaurants = moodTitle
         ? await getRestaurantFeed({ moodTitle }, 0, 12, coords, { nearbyOnly: true })
         : [];
+      const web = WEB_SUFFIX.test(c.title);
       return {
         id: c.id as string,
-        title: c.title as string,
+        title: web ? c.title.replace(WEB_SUFFIX, '').trim() : c.title,
         subtitle: (c.subtitle as string | null) ?? null,
-        hasBanner: bannerIds.has(c.id),
+        hasBanner: c.hasBanner,
+        web,
         restaurants,
       };
     }),
@@ -305,29 +331,76 @@ export async function getActiveRestaurants(limit = 10): Promise<Restaurant[]> {
   return (data ?? []) as Restaurant[];
 }
 
+type RestaurantRows = {
+  restaurant: Restaurant;
+  offers: DiningOffer[];
+  tags: RestaurantTag[];
+  reviews: Review[];
+  mediaAssets: { file_url?: string; sort_order?: number | null; asset_type?: string | null }[];
+  reviewPhotoRows: { photo_urls?: string[] }[];
+  allHours: RestaurantHours[];
+} | null;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The restaurant page's rows, as stored — nothing here depends on the time or the visitor. */
+async function fetchRestaurantRows(db: SupabaseClient, slugOrId: string, strict: boolean): Promise<RestaurantRows> {
+  const one = async (col: 'slug' | 'id') =>
+    rowsOf(await db.from('restaurants').select(SELECT_FIELDS).eq(col, slugOrId).eq('is_active', true).maybeSingle(), strict) as Restaurant | null;
+  // an id lookup with a non-uuid would be a query error, not "not found"
+  const restaurant = (await one('slug')) ?? (UUID_RE.test(slugOrId) ? await one('id') : null);
+  if (!restaurant) return null;
+
+  const [offers, tags, reviews, mediaAssets, reviewPhotoRows, allHours] = await Promise.all([
+    db
+      .from('restaurant_offers')
+      .select('id, title, description, badge_text, offer_type, discount_value, min_spend, start_at, end_at, metadata')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('created_at'),
+    db.from('restaurant_tags').select('id, tag_type, tag_value').eq('restaurant_id', restaurant.id).order('sort_order'),
+    db
+      .from('restaurant_reviews')
+      .select('id, rating, review_text, username_snapshot, liked_tags, photo_urls, food_rating, service_rating, ambience_rating, created_at')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false })
+      .limit(20),
+    db
+      .from('restaurant_media_assets')
+      .select('file_url, sort_order, asset_type')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('sort_order'),
+    db.from('restaurant_reviews').select('photo_urls').eq('restaurant_id', restaurant.id).eq('is_approved', true).not('photo_urls', 'eq', '{}'),
+    db.from('restaurant_opening_hours').select('day_of_week, open_time, close_time, is_closed').eq('restaurant_id', restaurant.id).order('day_of_week'),
+  ]).then(results => results.map(r => rowsOf(r as { data: unknown; error: { message: string } | null }, strict) ?? []));
+
+  return {
+    restaurant: restaurant as Restaurant,
+    offers: offers as DiningOffer[],
+    tags: tags as RestaurantTag[],
+    reviews: reviews as Review[],
+    mediaAssets: mediaAssets as NonNullable<RestaurantRows>['mediaAssets'],
+    reviewPhotoRows: reviewPhotoRows as { photo_urls?: string[] }[],
+    allHours: allHours as RestaurantHours[],
+  };
+}
+
+/** Shared by every visitor for CATALOG_TTL — the page read the same public rows for all of them. */
+const getCachedRestaurantRows = cachedCatalog(
+  'restaurant-detail',
+  (slugOrId: string) => fetchRestaurantRows(createPublicClient(), slugOrId, true),
+  CATALOG_MISS as RestaurantRows | typeof CATALOG_MISS,
+);
+
 export async function getRestaurantBySlugOrId(
   slugOrId: string,
 ): Promise<RestaurantDetail> {
-  const supabase = await createClient();
+  let rows = await getCachedRestaurantRows(slugOrId);
+  if (rows === CATALOG_MISS) rows = await fetchRestaurantRows(await createClient(), slugOrId, false).catch(() => null);
 
-  let { data: restaurant } = await supabase
-    .from('restaurants')
-    .select(SELECT_FIELDS)
-    .eq('slug', slugOrId)
-    .eq('is_active', true)
-    .maybeSingle();
-
-  if (!restaurant) {
-    const res = await supabase
-      .from('restaurants')
-      .select(SELECT_FIELDS)
-      .eq('id', slugOrId)
-      .eq('is_active', true)
-      .maybeSingle();
-    restaurant = res.data;
-  }
-
-  if (!restaurant) {
+  if (!rows) {
     return {
       restaurant: null,
       offers: [],
@@ -342,66 +415,13 @@ export async function getRestaurantBySlugOrId(
       allHours: [],
     };
   }
+  const { restaurant, tags, reviews, mediaAssets, allHours } = rows;
 
-  const [offersRes, tagsRes, reviewsRes, mediaAssetsRes, reviewPhotosRes, hoursRes] =
-    await Promise.allSettled([
-      supabase
-        .from('restaurant_offers')
-        .select(
-          'id, title, description, badge_text, offer_type, discount_value, min_spend, start_at, end_at, metadata',
-        )
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_active', true)
-        .order('created_at'),
-      supabase
-        .from('restaurant_tags')
-        .select('id, tag_type, tag_value')
-        .eq('restaurant_id', restaurant.id)
-        .order('sort_order'),
-      supabase
-        .from('restaurant_reviews')
-        .select(
-          'id, rating, review_text, username_snapshot, liked_tags, photo_urls, food_rating, service_rating, ambience_rating, created_at',
-        )
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false })
-        .limit(20),
-      supabase
-        .from('restaurant_media_assets')
-        .select('file_url, sort_order, asset_type')
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_active', true)
-        .order('sort_order'),
-      supabase
-        .from('restaurant_reviews')
-        .select('photo_urls')
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_approved', true)
-        .not('photo_urls', 'eq', '{}'),
-      supabase
-        .from('restaurant_opening_hours')
-        .select('day_of_week, open_time, close_time, is_closed')
-        .eq('restaurant_id', restaurant.id)
-        .order('day_of_week'),
-    ]);
-
-  const offers: DiningOffer[] =
-    // app parity: isOfferCurrentlyActive — only offers inside their dates
-    offersRes.status === 'fulfilled'
-      ? (offersRes.value.data ?? []).filter((o) => {
-          const now = Date.now();
-          return !(o.start_at && Date.parse(o.start_at) > now) && !(o.end_at && Date.parse(o.end_at) < now);
-        })
-      : [];
-  const tags: RestaurantTag[] =
-    tagsRes.status === 'fulfilled' ? (tagsRes.value.data ?? []) : [];
-  const reviews: Review[] =
-    reviewsRes.status === 'fulfilled' ? (reviewsRes.value.data ?? []) : [];
-  const mediaAssets =
-    mediaAssetsRes.status === 'fulfilled'
-      ? (mediaAssetsRes.value.data ?? [])
-      : [];
+  // app parity: isOfferCurrentlyActive — only offers inside their dates (checked now, not when cached)
+  const now = Date.now();
+  const offers: DiningOffer[] = rows.offers.filter(
+    (o) => !(o.start_at && Date.parse(o.start_at) > now) && !(o.end_at && Date.parse(o.end_at) < now),
+  );
 
   const isFoodAsset = (assetType: string | null | undefined) =>
     ['food', 'food_photo', 'food_photos', 'food-photo', 'food-photos'].includes(
@@ -456,12 +476,7 @@ export async function getRestaurantBySlugOrId(
         }
       : { avg: 0, count: 0 };
 
-  const reviewPhotos =
-    reviewPhotosRes.status === 'fulfilled'
-      ? (reviewPhotosRes.value.data ?? [])
-          .flatMap((r: { photo_urls?: string[] }) => r.photo_urls ?? [])
-          .filter(Boolean)
-      : [];
+  const reviewPhotos = rows.reviewPhotoRows.flatMap((r) => r.photo_urls ?? []).filter(Boolean);
 
   const seen = new Set<string>();
   const galleryPhotos: string[] = [];
@@ -477,8 +492,6 @@ export async function getRestaurantBySlugOrId(
     }
   }
 
-  const allHours: RestaurantHours[] =
-    hoursRes.status === 'fulfilled' ? (hoursRes.value.data ?? []) : [];
   const todayHours = allHours.find(h => h.day_of_week === new Date().getDay()) ?? null;
 
   return {
@@ -496,16 +509,22 @@ export async function getRestaurantBySlugOrId(
   };
 }
 
-/** Menu items and whether they can be ordered — app parity: restaurants.js fetchOrderCollectById. */
+/**
+ * Menu items and whether they can be ordered — app parity: restaurants.js
+ * fetchOrderCollectById, and (b2ff80a) only while the platform's
+ * `order_collect_enabled` switch is on too.
+ */
 export async function getOrderCollect(restaurantId: string): Promise<{ enabled: boolean; items: OrderItem[] }> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('restaurants')
-    .select('order_collect_enabled, menu_json')
-    .eq('id', restaurantId)
-    .maybeSingle();
-  return { enabled: data?.order_collect_enabled === true, items: orderableItems(data?.menu_json) };
+  // the menu is shared for CATALOG_TTL; the platform switch is read per request
+  const [data, flags] = await Promise.all([getMenuRow(restaurantId), getPlatformFlags()]);
+  return { enabled: flags.orderCollect && data?.order_collect_enabled === true, items: orderableItems(data?.menu_json) };
 }
+
+const getMenuRow = cachedCatalog('restaurant-menu', async (restaurantId: string) => {
+  return unwrap(
+    await createPublicClient().from('restaurants').select('order_collect_enabled, menu_json').eq('id', restaurantId).maybeSingle(),
+  ) as { order_collect_enabled: boolean | null; menu_json: Parameters<typeof orderableItems>[0] } | null;
+}, null);
 
 const REVIEW_PAGE_SIZE = 1000;
 

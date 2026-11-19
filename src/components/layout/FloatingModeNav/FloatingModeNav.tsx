@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -28,6 +29,32 @@ function DealsIcon() {
   )
 }
 
+/** app parity: HomeFloatingNav useNavAutoHide — hide after scrolling down this far, show again after this far up. */
+const HIDE_TRAVEL = 24
+const SHOW_TRAVEL = 12
+
+/** Shown at the top and when scrolling up, hidden while scrolling down. */
+function useAutoHide() {
+  const [shown, setShown] = useState(true)
+  const last = useRef(0)
+  const travel = useRef(0)
+  useEffect(() => {
+    last.current = window.scrollY
+    const onScroll = () => {
+      const y = window.scrollY
+      const delta = y - last.current
+      last.current = y
+      if (delta > 0 !== travel.current > 0) travel.current = 0
+      travel.current += delta
+      if (y <= 0 || travel.current < -SHOW_TRAVEL) setShown(true)
+      else if (travel.current > HIDE_TRAVEL) setShown(false)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return shown
+}
+
 const ACTIVE = 'border-white bg-[linear-gradient(167.85deg,#FFD900_17.9%,#FFAA00_69.9%,#FFF1D5_100%)] shadow-[0_4px_4px_rgba(0,0,0,0.25)]'
 
 /**
@@ -39,6 +66,7 @@ const ACTIVE = 'border-white bg-[linear-gradient(167.85deg,#FFD900_17.9%,#FFAA00
 export function FloatingModeNav() {
   const pathname = usePathname()
   const params = useSearchParams()
+  const shown = useAutoHide()
   const fallbackCategory = SHOWN_ON[pathname]
   if (!fallbackCategory) return null
 
@@ -51,7 +79,13 @@ export function FloatingModeNav() {
   return (
     <nav
       aria-label='Deals and cashback'
-      className='fixed right-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-40 flex items-center gap-2 font-(family-name:--font-dm-sans)'
+      // app parity: slides away while scrolling down (240ms ease-in), springs back on the way up
+      className={cn(
+        'pp-motion fixed right-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-40 flex items-center gap-2 font-(family-name:--font-dm-sans) transition-[translate,opacity]',
+        shown
+          ? 'translate-y-0 opacity-100 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]'
+          : 'pointer-events-none translate-y-[calc(100%+2rem)] opacity-0 duration-240 ease-[cubic-bezier(0.32,0,0.67,0)]',
+      )}
     >
       <Link
         href='/'

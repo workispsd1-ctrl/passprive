@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import type { CardChipKey } from '@/lib/cardChips'
 import { CardChips } from '@/components/shared/CardChips'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronDown, ChevronLeft, Flame, Gem, Globe, Heart, Phone, Share, Signpost } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, Flame, Gem, Globe, Phone, Share, Signpost } from 'lucide-react'
 import { useGallery } from '@/components/sections/dining/PhotoGalleryClient'
 import { OpeningHoursPill } from '@/components/shared/detail/OpeningHours'
 import { areaLabel } from '@/components/shared/detail/MobileTitleCard'
@@ -162,7 +163,7 @@ export function WellnessDesktopHero({
               aria-pressed={saver.saved}
               className='flex size-[calc(40*var(--u))] items-center justify-center rounded-[calc(20*var(--u))] bg-[rgba(217,217,217,0.1)] text-white'
             >
-              <Heart className={cn('size-[calc(22*var(--u))]', saver.saved && 'fill-brand text-brand')} strokeWidth={1.4} />
+              <PopHeart saved={saver.saved} className={cn('size-[calc(22*var(--u))]', saver.saved && 'fill-brand text-brand')} strokeWidth={1.4} />
             </button>
             <button
               type='button'

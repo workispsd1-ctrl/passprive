@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -14,9 +13,32 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { GoogleSignInButton } from '@/components/GoogleSignInButton'
+import { EMAIL_CARD, EmailAuth } from '@/components/auth/EmailAuth'
 import { CODE_LENGTH, COUNTRY_CODE, RESEND_SECONDS, describeOtpError, normalizeLocalPhone } from '@/lib/phoneAuth'
 import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
 import { describeReferralError } from '@/lib/referral'
+import { cn } from '@/lib/utils'
+
+/**
+ * Design unit for the auth pop-up (Figma "Flow - Log in or sign up", 1920-wide
+ * frames): `--u` is 1px at 1920 and proportional on other desktop widths, so
+ * `p-32`, `h-54`, `gap-24` are design px. Below lg it stays 1px.
+ */
+const AUTH_UNIT = '[--u:1px] lg:[--u:calc(100vw/1920)] [--spacing:var(--u)]'
+
+/** "Remember my details for faster sign in" — the number, kept on this device only. */
+const REMEMBER_KEY = 'pp:login-phone'
+
+function readRememberedPhone(): string {
+  try { return localStorage.getItem(REMEMBER_KEY) ?? '' } catch { return '' }
+}
+
+function writeRememberedPhone(phone: string | null) {
+  try {
+    if (phone) localStorage.setItem(REMEMBER_KEY, phone)
+    else localStorage.removeItem(REMEMBER_KEY)
+  } catch { /* storage blocked — nothing to remember */ }
+}
 
 /**
  * Login / sign-up by mobile number — app parity: screens/Login.jsx →
@@ -50,7 +72,11 @@ export default function LoginDialog({
   }
 
   const [step, setStep] = useState<Step>('phone')
+  // Figma "Flow - Log in or sign up_with email", opened from the OTP step's "Try another way"
+  const [emailMode, setEmailMode] = useState(false)
+  const [emailBusy, setEmailBusy] = useState(false)
   const [phone, setPhone] = useState('')
+  const [remember, setRemember] = useState(true)
   const [code, setCode] = useState('')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -81,7 +107,9 @@ export default function LoginDialog({
 
   function reset() {
     setStep('phone')
-    setPhone('')
+    const remembered = readRememberedPhone()
+    setPhone(remembered)
+    setRemember(true)
     setCode('')
     setFullName('')
     setEmail('')
@@ -95,10 +123,12 @@ export default function LoginDialog({
     setReferralCode('')
     setReferralEligible(false)
     setReferralNotice('')
+    setEmailMode(false)
+    setEmailBusy(false)
   }
 
   function handleOpenChange(next: boolean) {
-    if (loading || googleLoading) return
+    if (loading || googleLoading || emailBusy) return
     setOpen(next)
     if (next) reset()
   }
@@ -113,6 +143,7 @@ export default function LoginDialog({
   async function sendCode() {
     const local = normalizeLocalPhone(phone)
     if (!local) { setError('Please enter your mobile number.'); return }
+    if (step === 'phone') writeRememberedPhone(remember ? local : null)
     setLoading(true)
     setError('')
     setNotice('')
@@ -247,6 +278,9 @@ export default function LoginDialog({
   }
 
   const busy = loading || googleLoading
+  // Figma "Phone input focused": once a number is typed, the remember option
+  // replaces the Google / terms block
+  const typing = phone.length > 0
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -275,254 +309,290 @@ export default function LoginDialog({
         </DialogTrigger>
       )}
 
-      {/* App parity: banner on top + white card overlapping it with 28px
-          rounded top corners (phone); side-by-side on wider screens. */}
+      {/* Figma "Authentication pop-up": 512 wide, 32 padding, 24 between blocks */}
       <DialogContent
         showCloseButton={false}
-        className="max-h-[calc(100dvh-2rem)] gap-0 overflow-hidden rounded-[28px] bg-white p-0 font-(family-name:--font-dm-sans) ring-0 sm:max-w-[820px] md:grid-cols-[1fr_1fr]"
+        className={cn(
+          AUTH_UNIT,
+          'font-(family-name:--font-dm-sans)',
+          emailMode
+            ? EMAIL_CARD
+            : 'flex flex-col gap-24 rounded-[calc(12*var(--u))] bg-white p-32 ring-0 shadow-[0_calc(4*var(--u))_calc(12*var(--u))_rgba(0,0,0,0.08)] sm:max-w-[512px] lg:max-w-512 max-lg:gap-20 max-lg:p-24',
+        )}
       >
-        <AuthBanner variant={step === 'otp' ? 'otp' : 'carousel'} />
-
-        <button
-          type="button"
-          onClick={() => handleOpenChange(false)}
+        {emailMode ? (
+          <EmailAuth
+            onBack={() => { setEmailMode(false); setError('') }}
+            onClose={() => handleOpenChange(false)}
+            onDone={finish}
+            onBusyChange={setEmailBusy}
+          />
+        ) : (
+        <>
+        <DialogHeading
+          title={step === 'phone' ? 'Log in or sign up' : step === 'otp' ? 'OTP Verification' : 'Almost there'}
+          onClose={() => handleOpenChange(false)}
           disabled={busy}
-          className="absolute top-4 right-4 z-20 rounded-full bg-white/25 px-3.5 py-1 text-xs font-semibold text-white backdrop-blur hover:bg-white/35 md:bg-black/5 md:text-[#666666] md:hover:bg-black/10"
-        >
-          {step === 'phone' ? 'Skip' : 'Close'}
-        </button>
+        />
 
-        <div className="relative z-10 -mt-7 overflow-y-auto rounded-t-[28px] bg-white px-6 pt-8 pb-6 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:mt-0 md:flex md:flex-col md:justify-center md:rounded-none md:px-10 md:shadow-none">
-          {step === 'phone' && (
-            <>
-              <DialogTitle className="mb-4.5 text-center text-[18px] font-bold tracking-[-0.36px] text-[#666666]">
-                Log in or sign up
-              </DialogTitle>
-              <DialogDescription className="sr-only">Enter your mobile number to log in or create an account.</DialogDescription>
+        {step === 'phone' && (
+          <>
+            <DialogDescription className="sr-only">Enter your mobile number to log in or create an account.</DialogDescription>
 
-              {/* app parity: components/PhoneNumberField.jsx */}
-              <label className="flex h-13.5 items-center rounded-full border border-[#E5E5EA] bg-white pr-5 pl-4 focus-within:border-brand">
-                <span className="pr-2.5 text-[15px] font-semibold text-[#1A1325]">{COUNTRY_CODE}</span>
-                <span className="mr-3 h-5.5 w-px bg-[#E5E5EA]" />
+            <div>
+              <label className="flex h-54 items-center gap-12 rounded-full border border-[#CAC5CD] px-16 focus-within:border-[1.5px] focus-within:border-brand">
+                <span aria-hidden className="text-[calc(20*var(--u))] leading-none">🇲🇺</span>
+                <span className="text-[calc(16*var(--u))] font-bold text-[#666666]">{COUNTRY_CODE}</span>
+                <span aria-hidden className="h-20 w-px bg-[#CAC5CD]" />
                 <input
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel-national"
-                  autoFocus
                   maxLength={15}
                   aria-label="Mobile number"
                   placeholder="Enter mobile number"
                   value={phone}
                   onChange={e => { setPhone(e.target.value.replace(/[^0-9]/g, '')); setError('') }}
                   onKeyDown={e => e.key === 'Enter' && !busy && sendCode()}
-                  className="h-full flex-1 bg-transparent text-[15px] text-[#1A1325] outline-none placeholder:text-[#8E8E93]"
+                  className="h-full min-w-0 flex-1 bg-transparent text-[calc(14*var(--u))] leading-20 text-[#1A1325] outline-none placeholder:text-[#605D64]"
                 />
               </label>
-              {error && <p className="mt-3 text-center text-[13px] font-semibold text-[#E23B3B]">{error}</p>}
+              {error && <ErrorText>{error}</ErrorText>}
+            </div>
 
-              <button
-                type="button"
-                disabled={busy}
-                onClick={sendCode}
-                className="mt-4.5 flex h-13.5 w-full items-center justify-center rounded-full bg-brand text-[16px] font-semibold tracking-[-0.32px] text-white transition-colors hover:bg-brand-dark disabled:opacity-70"
-              >
-                {loading ? <Loader2 className="size-5 animate-spin" /> : 'Continue'}
-              </button>
+            {typing && (
+              <label className="flex w-fit cursor-pointer items-center gap-4">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={e => setRemember(e.target.checked)}
+                  className="peer sr-only"
+                />
+                {remember ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src="/assets/auth/remember-check.svg" alt="" width={23} height={23} className="size-23 shrink-0" />
+                ) : (
+                  <span aria-hidden className="size-23 shrink-0 rounded-full border-[1.5px] border-[#CAC5CD]" />
+                )}
+                <span className="font-(family-name:--font-inter) text-[calc(11*var(--u))] text-[#605D64] peer-focus-visible:underline">
+                  Remember my details for faster sign in
+                </span>
+              </label>
+            )}
 
-              <div className="my-4.5 flex items-center">
-                <div className="h-px flex-1 bg-[#E5E5EA]" />
-                <span className="mx-3 text-[16px] font-bold tracking-[-0.32px] text-[#666666]">or continue with</span>
-                <div className="h-px flex-1 bg-[#E5E5EA]" />
+            <PrimaryButton onClick={sendCode} disabled={busy}>
+              {loading ? <Loader2 className="size-20 animate-spin" /> : 'Continue'}
+            </PrimaryButton>
+
+            {/* hidden, not unmounted, while typing — Google's button keeps its iframe and width */}
+            <div
+              aria-hidden={typing}
+              className={cn('flex flex-col gap-24 max-lg:gap-20', typing && 'invisible -mt-24 h-0 overflow-hidden max-lg:-mt-20')}
+            >
+              <div className="flex items-center gap-12">
+                <span aria-hidden className="h-px flex-1 bg-[#EDEDED]" />
+                <span className="text-[calc(16*var(--u))] font-bold tracking-[-0.02em] text-[#666666]">or continue with</span>
+                <span aria-hidden className="h-px flex-1 bg-[#EDEDED]" />
               </div>
-
               <GoogleSignInButton
-                disabled={busy}
+                disabled={busy || typing}
                 onBusyChange={setGoogleLoading}
                 onSuccess={finish}
                 onError={setError}
               />
-
               <Terms />
-            </>
-          )}
+            </div>
+          </>
+        )}
 
-          {step === 'otp' && (
-            <>
-              <DialogTitle className="text-center text-[20px] font-bold text-[#1A1325]">OTP Verification</DialogTitle>
-              <DialogDescription className="mt-2.5 text-center text-[14px] leading-5 text-[#7A7086]">
-                Enter the code we just shared with
-                <br />
-                <span className="font-bold text-[#1A1325]">{COUNTRY_CODE} {phone}</span>
-              </DialogDescription>
+        {step === 'otp' && (
+          <div className="flex flex-col gap-32 max-lg:gap-24">
+            <DialogDescription className="text-center text-[calc(14*var(--u))] leading-18 text-[#605D64]">
+              Enter the code we just shared with
+              <br />
+              <span className="font-bold text-[#1A1325]">{COUNTRY_CODE} {phone}</span>
+            </DialogDescription>
 
-              <div className="mt-7 mb-5">
-                <OtpBoxes
-                  value={code}
-                  disabled={loading || locked}
-                  error={!!error && !locked}
-                  onChange={v => {
-                    setCode(v)
-                    setError('')
-                    if (v.length === CODE_LENGTH) verify(v)
-                  }}
-                />
-              </div>
-
+            <div className="relative">
+              <OtpBoxes
+                value={code}
+                disabled={loading || locked}
+                error={!!error && !locked}
+                onChange={v => {
+                  setCode(v)
+                  setError('')
+                  if (v.length === CODE_LENGTH) verify(v)
+                }}
+              />
+              {/* Figma "Desktop · OTP loading": dots over the boxes */}
               {loading && (
-                <p className="mt-1 flex items-center justify-center gap-2 text-[13px] font-medium text-[#7A7086]">
-                  <Loader2 className="size-4 animate-spin text-brand" /> Verifying code…
-                </p>
+                <div role="status" className="absolute inset-0 flex items-center justify-center gap-[calc(11*var(--u))] bg-white">
+                  {[0, 1, 2].map(i => (
+                    <span
+                      key={i}
+                      aria-hidden
+                      className="size-[calc(11*var(--u))] animate-bounce rounded-full bg-brand"
+                      style={{ animationDelay: `${i * 0.15}s` }}
+                    />
+                  ))}
+                  <span className="sr-only">Verifying code…</span>
+                </div>
               )}
-              {!loading && error && <p className="mt-3 text-center text-[13px] font-semibold text-[#E23B3B]">{error}</p>}
-              {!loading && !error && notice && <p className="mt-3 text-center text-[13px] font-semibold text-[#3AA456]">{notice}</p>}
+              {!loading && error && <ErrorText>{error}</ErrorText>}
+              {!loading && !error && notice && (
+                <p className="mt-8 text-center text-[calc(13*var(--u))] font-semibold text-[#3AA456]">{notice}</p>
+              )}
+            </div>
 
-              <p className="mt-3 text-center text-[12.5px] text-[#8E8E93]">
-                Didn’t receive the OTP?{' '}
-                {resendIn > 0 ? (
-                  <>Resend SMS in {resendIn}s</>
-                ) : (
-                  <button type="button" onClick={handleResend} disabled={loading} className="font-semibold text-brand hover:underline">
-                    Resend SMS
-                  </button>
-                )}
-              </p>
+            <p className="text-center text-[calc(14*var(--u))] leading-18 text-[#605D64]">
+              Didn’t receive the OTP?{' '}
+              {resendIn > 0 ? (
+                <>Resend SMS in <span className="font-bold">{formatCountdown(resendIn)}</span></>
+              ) : (
+                <button type="button" onClick={handleResend} disabled={loading} className="font-bold text-brand hover:underline">
+                  Resend SMS
+                </button>
+              )}
+            </p>
 
-              <button
-                type="button"
-                onClick={() => { setStep('phone'); setCode(''); setError(''); setNotice(''); setLocked(false) }}
-                className="mt-4.5 h-12 w-full rounded-full bg-[#F2F2F5] text-[14px] font-semibold text-[#1A1325] transition-colors hover:bg-[#E9E9EE]"
-              >
-                Try another way
-              </button>
-            </>
-          )}
+            <button
+              type="button"
+              disabled={loading}
+              // opens the email login; its back arrow returns here
+              onClick={() => { setEmailMode(true); setError(''); setNotice('') }}
+              className="flex h-54 w-full items-center justify-center rounded-full border border-[#CAC5CD] text-[calc(16*var(--u))] font-semibold tracking-[-0.02em] text-[#605D64] transition-colors hover:bg-[#F7F7F8] disabled:opacity-60"
+            >
+              Try another way
+            </button>
+          </div>
+        )}
 
-          {step === 'details' && (
-            <>
-              <DialogTitle className="text-center text-[20px] font-bold text-[#666666]">Almost there</DialogTitle>
-              <DialogDescription className="mt-1.5 text-center text-[13px] text-[#9890A6]">
-                A couple of details to personalize your experience.
-              </DialogDescription>
+        {step === 'details' && (
+          <>
+            <DialogDescription className="-mt-12 text-[calc(14*var(--u))] leading-20 text-[#605D64] max-lg:-mt-8">
+              A couple of details to personalize your experience.
+            </DialogDescription>
 
-              <div className="mt-6 flex flex-col gap-3">
-                <input
-                  aria-label="Full name"
-                  autoFocus
-                  placeholder="Full name"
-                  value={fullName}
-                  onChange={e => { setFullName(e.target.value); setError('') }}
-                  className="h-13.5 rounded-[28px] border-[1.5px] border-[#E2E2EA] bg-white px-5 text-[15px] text-[#1A1325] outline-none placeholder:text-[#BCBCC4] focus:border-brand"
-                />
-                <input
-                  aria-label="Email address"
-                  type="email"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setError('') }}
+            <div className="flex flex-col gap-12">
+              <TextField
+                aria-label="Full name"
+                autoFocus
+                placeholder="Full name"
+                value={fullName}
+                onChange={e => { setFullName(e.target.value); setError('') }}
+              />
+              <TextField
+                aria-label="Email address"
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setError('') }}
+                onKeyDown={e => e.key === 'Enter' && !busy && !referralNotice && saveDetails()}
+              />
+              {showReferral && (
+                <TextField
+                  aria-label="Referral code, optional"
+                  placeholder="Referral code (optional)"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={12}
+                  value={referralCode}
+                  disabled={!!referralNotice}
+                  onChange={e => { setReferralCode(e.target.value.toUpperCase()); setError('') }}
                   onKeyDown={e => e.key === 'Enter' && !busy && !referralNotice && saveDetails()}
-                  className="h-13.5 rounded-[28px] border-[1.5px] border-[#E2E2EA] bg-white px-5 text-[15px] text-[#1A1325] outline-none placeholder:text-[#BCBCC4] focus:border-brand"
+                  className="uppercase placeholder:normal-case"
                 />
-                {showReferral && (
-                  <input
-                    aria-label="Referral code, optional"
-                    placeholder="Referral code (optional)"
-                    autoCapitalize="characters"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    maxLength={12}
-                    value={referralCode}
-                    disabled={!!referralNotice}
-                    onChange={e => { setReferralCode(e.target.value.toUpperCase()); setError('') }}
-                    onKeyDown={e => e.key === 'Enter' && !busy && !referralNotice && saveDetails()}
-                    className="h-13.5 rounded-[28px] border-[1.5px] border-[#E2E2EA] bg-white px-5 text-[15px] text-[#1A1325] uppercase outline-none placeholder:text-[#BCBCC4] placeholder:normal-case focus:border-brand disabled:bg-[#F2F2F5]"
-                  />
-                )}
-                {showReferral && platformFlags.referralRefereeAmount > 0 && (
-                  <p className="px-2 text-[12px] leading-[17px] text-[#9890A6]">
-                    Got a code from a friend? You get {platformFlags.referralRefereeAmount.toLocaleString('en-US')} Privé Credits after
-                    your first bill paid through PassPrivé.
-                  </p>
-                )}
-              </div>
-              {error && <p className="mt-3 text-center text-[13px] font-semibold text-[#E23B3B]">{error}</p>}
-              {referralNotice && (
-                <p className="mt-3 text-center text-[13px] font-semibold text-[#E23B3B]">
-                  Your account is ready, but your referral code wasn’t added: {referralNotice}
+              )}
+              {showReferral && platformFlags.referralRefereeAmount > 0 && (
+                <p className="px-8 text-[calc(12*var(--u))] leading-[1.4] text-[#605D64]">
+                  Got a code from a friend? You get {platformFlags.referralRefereeAmount.toLocaleString('en-US')} Privé Credits after
+                  your first bill paid through PassPrivé.
                 </p>
               )}
+              {error && <ErrorText>{error}</ErrorText>}
+              {referralNotice && (
+                <ErrorText>Your account is ready, but your referral code wasn’t added: {referralNotice}</ErrorText>
+              )}
+            </div>
 
-              <button
-                type="button"
-                disabled={busy}
-                onClick={referralNotice ? finish : saveDetails}
-                className="mt-4.5 flex h-13.5 w-full items-center justify-center rounded-full bg-brand text-[16px] font-semibold tracking-[-0.32px] text-white transition-colors hover:bg-brand-dark disabled:opacity-70"
-              >
-                {loading ? <Loader2 className="size-5 animate-spin" /> : referralNotice ? 'Continue' : 'Save & continue'}
-              </button>
-              <Terms />
-            </>
-          )}
-        </div>
+            <PrimaryButton disabled={busy} onClick={referralNotice ? finish : saveDetails}>
+              {loading ? <Loader2 className="size-20 animate-spin" /> : referralNotice ? 'Continue' : 'Save & continue'}
+            </PrimaryButton>
+            <Terms />
+          </>
+        )}
+        </>
+        )}
       </DialogContent>
     </Dialog>
   )
 }
 
+/** "1:05" / "0:28" */
+function formatCountdown(s: number) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+/** Figma "Dialog heading": title left, close icon right. */
+function DialogHeading({ title, onClose, disabled }: { title: string; onClose: () => void; disabled?: boolean }) {
+  return (
+    <div className="flex items-center gap-16">
+      <DialogTitle className="flex-1 text-[calc(18*var(--u))] leading-[calc(26*var(--u))] font-bold text-[#605D64]">
+        {title}
+      </DialogTitle>
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={disabled}
+        aria-label="Close"
+        className="-m-4 rounded-full p-4 transition-colors hover:bg-black/5 disabled:opacity-50"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/assets/auth/close.svg" alt="" width={24} height={24} className="size-24" />
+      </button>
+    </div>
+  )
+}
+
+function PrimaryButton({ children, ...props }: React.ComponentProps<'button'>) {
+  return (
+    <button
+      type="button"
+      {...props}
+      className="flex h-54 w-full items-center justify-center rounded-full bg-brand text-[calc(16*var(--u))] font-semibold tracking-[-0.02em] text-white transition-colors hover:bg-brand-dark disabled:opacity-70"
+    >
+      {children}
+    </button>
+  )
+}
+
+function TextField({ className, ...props }: React.ComponentProps<'input'>) {
+  return (
+    <input
+      {...props}
+      className={cn(
+        'h-54 rounded-full border border-[#CAC5CD] bg-white px-20 text-[calc(14*var(--u))] text-[#1A1325] outline-none placeholder:text-[#605D64] focus:border-[1.5px] focus:border-brand disabled:bg-[#F2F2F5]',
+        className,
+      )}
+    />
+  )
+}
+
+function ErrorText({ children }: { children: React.ReactNode }) {
+  return <p className="mt-8 text-center text-[calc(13*var(--u))] font-semibold text-[#E23B3B]">{children}</p>
+}
+
 function Terms() {
   return (
-    <p className="mt-6 text-center text-[11px] text-[#8E8E93]">
+    <p className="text-center font-(family-name:--font-inter) text-[calc(12*var(--u))] text-[#605D64]">
       By continuing you agree to our{' '}
-      <Link href="/terms" className="text-[#666666] underline">Terms &amp; Privacy Policy</Link>
+      <Link href="/terms" className="underline">Terms &amp; Privacy Policy</Link>
     </p>
   )
 }
 
-// app parity: components/BannerCarousel.jsx SLIDES + 3.5s auto-advance
-const SLIDES = [1, 2, 3, 4, 5].map(i => `/assets/auth/onboarding-${i}.webp`)
-
-/**
- * Login banner — app parity: the onboarding carousel on a blue→peach
- * gradient. The OTP step uses the app's plain orange strip on phones; on
- * desktop the carousel panel stays so the dialog doesn't turn half-orange.
- */
-function AuthBanner({ variant }: { variant: 'carousel' | 'otp' }) {
-  const [index, setIndex] = useState(0)
-
-  useEffect(() => {
-    const t = setInterval(() => setIndex(i => (i + 1) % SLIDES.length), 3500)
-    return () => clearInterval(t)
-  }, [])
-
-  return (
-    <>
-      {/* OTP on phones: the app's short orange strip */}
-      {variant === 'otp' && <div aria-hidden className="h-36 bg-linear-to-br from-brand to-[#FF7A3D] md:hidden" />}
-      <div
-        aria-hidden
-        className={`relative h-64 overflow-hidden bg-linear-to-b from-[#2247FF] to-[#FFD1BF] md:h-auto md:min-h-140 ${variant === 'otp' ? 'hidden md:block' : ''}`}
-      >
-      {SLIDES.map((src, i) => (
-        <Image
-          key={src}
-          src={src}
-          alt=""
-          fill
-          priority={i === 0}
-          sizes="(max-width: 768px) 100vw, 410px"
-          className={`object-cover object-top transition-opacity duration-700 ${i === index ? 'opacity-100' : 'opacity-0'}`}
-        />
-      ))}
-        <div className="absolute inset-x-0 bottom-10 flex justify-center gap-1.5 md:bottom-6">
-          {SLIDES.map((src, i) => (
-            <span key={src} className={`h-1.5 rounded-full transition-all ${i === index ? 'w-5 bg-white' : 'w-1.5 bg-white/40'}`} />
-          ))}
-        </div>
-      </div>
-    </>
-  )
-}
-
-/** Six single-digit boxes — app parity: components/OtpBoxesInput.jsx. Supports paste. */
+/** Six single-digit boxes — Figma "Six-digit verification code" (448 wide, 12 gaps, 56 tall). Supports paste. */
 function OtpBoxes({ value, onChange, disabled, error }: { value: string; onChange: (v: string) => void; disabled?: boolean; error?: boolean }) {
   const refs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -537,7 +607,12 @@ function OtpBoxes({ value, onChange, disabled, error }: { value: string; onChang
   }
 
   return (
-    <div className="flex justify-center gap-2.5" onPaste={e => { e.preventDefault(); setAt(0, e.clipboardData.getData('text')) }}>
+    <div
+      // app parity: OtpBoxesInput — a wrong code shakes the boxes
+      className="pp-motion flex gap-12 max-lg:gap-8"
+      style={error ? { animation: 'pp-shake 260ms linear' } : undefined}
+      onPaste={e => { e.preventDefault(); setAt(0, e.clipboardData.getData('text')) }}
+    >
       {Array.from({ length: CODE_LENGTH }, (_, i) => (
         <input
           key={i}
@@ -556,9 +631,10 @@ function OtpBoxes({ value, onChange, disabled, error }: { value: string; onChang
               onChange(value.slice(0, value[i] ? i : Math.max(0, i - 1)))
             }
           }}
-          className={`h-11 w-11 rounded-full border text-center text-[18px] font-bold text-[#1A1325] outline-none focus:border-brand disabled:border-[#ECECEF] disabled:bg-[#F2F2F5] ${
-            error ? 'border-[#E23B3B] bg-[#FFF5F5]' : value[i] ? 'border-[#D8D8DE] bg-white' : 'border-[#E5E5EA] bg-white'
-          }`}
+          className={cn(
+            'h-56 w-full min-w-0 flex-1 rounded-[calc(12*var(--u))] border text-center text-[calc(20*var(--u))] font-bold text-[#1A1325] outline-none focus:border-[1.5px] focus:border-brand disabled:bg-[#F7F7F8]',
+            error ? 'border-[#E23B3B] bg-[#FFF5F5]' : 'border-[#CAC5CD] bg-white',
+          )}
         />
       ))}
     </div>

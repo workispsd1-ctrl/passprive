@@ -15,7 +15,36 @@ export function PromotionalCollectionsSection({
 }) {
   return (
     <>
-      {collections.map((c) => (
+      {collections.map((c) =>
+        c.web ? (
+          // Website rows ("<title> Website") — Figma "Promotional Cards_Christmas":
+          // the banner is the card's background (anchored top-left, where its
+          // title and ornaments sit) with the restaurant cards over it.
+          <section key={c.id} className="mx-auto max-w-7xl px-4 py-4 md:px-8">
+            <div className="relative overflow-hidden rounded-[16px] bg-linear-to-b from-[#1F4A33] to-[#FDF0E6] pb-6 md:rounded-[20px]">
+              {c.hasBanner && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/api/promo-banner/${c.id}`}
+                  alt={c.title}
+                  className="absolute inset-0 h-full w-full object-cover object-left-top"
+                  loading="lazy"
+                />
+              )}
+              {/* clear the banner's title band before the cards start */}
+              <div className="h-14 md:h-20 lg:h-24" />
+              {c.restaurants.length > 0 && (
+                <div className="relative">
+                  <HScroll>
+                    {c.restaurants.map((r, i) => (
+                      <FeedRestaurantCard key={r.id} r={r} kenBurns={i} />
+                    ))}
+                  </HScroll>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : (
         <section key={c.id} className="mx-auto max-w-7xl px-4 py-4 md:px-8">
           <div className="relative flex min-h-[520px] flex-col justify-end overflow-hidden rounded-[20px] bg-linear-to-br from-brand-light to-[#FF9A5C] md:min-h-[600px]">
             {c.hasBanner ? (
@@ -35,15 +64,16 @@ export function PromotionalCollectionsSection({
             {c.restaurants.length > 0 && (
               <div className="relative">
                 <HScroll>
-                  {c.restaurants.map((r) => (
-                    <FeedRestaurantCard key={r.id} r={r} />
+                  {c.restaurants.map((r, i) => (
+                    <FeedRestaurantCard key={r.id} r={r} kenBurns={i} />
                   ))}
                 </HScroll>
               </div>
             )}
           </div>
         </section>
-      ))}
+        ),
+      )}
     </>
   )
 }

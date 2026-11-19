@@ -22,7 +22,8 @@ export function HomeRestaurantRail({
   const items = restaurants.filter(r => r.cover_image)
   if (!items.length) return null
   return (
-    <HScroll title={title}>
+    // app parity: FamilyFeast glides its cards as the rail moves (FreshSpots has no card motion)
+    <HScroll title={title} motion={variant === 'card' ? 'glide' : undefined}>
       {items.map(r => (
         <FeedRestaurantCard key={r.id} r={r} variant={variant} withCost />
       ))}

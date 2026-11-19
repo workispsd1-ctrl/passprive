@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Heart } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { SaveListSheet } from '@/components/SaveListSheet'
 import { CardChips } from '@/components/shared/CardChips'
 import { useSaved } from '@/lib/context/SavedContext'
@@ -81,7 +82,7 @@ export function SaveHeart({ place, className, iconClassName, outline }: { place:
         }}
         className={cn('z-20 transition-transform hover:scale-110', className)}
       >
-        <Heart
+        <PopHeart saved={saved}
           className={cn(
             iconClassName,
             saved ? 'fill-[#FF4800] text-[#FF4800]' : outline ? 'fill-transparent text-[#B2B2B2]' : 'fill-black/30 text-[#E5E5E5]',

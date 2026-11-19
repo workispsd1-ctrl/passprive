@@ -16,7 +16,7 @@ export function HotOnPassprive({
   if (!collections.length) return null
 
   return (
-    <HScroll title="Hot on Passprivé">
+    <HScroll title="Hot on Passprivé" motion="drift">
       {collections.map((c) => (
         <Link
           key={c.id}

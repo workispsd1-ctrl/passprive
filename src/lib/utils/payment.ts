@@ -24,6 +24,19 @@ export function resolveGatewayUrl(payload: Record<string, unknown>): string {
   return String(candidates.find(v => typeof v === 'string' && (v as string).trim()) ?? '')
 }
 
+/**
+ * The MIPS payment page from an initiate response — app parity:
+ * PaymentProcessingScreen: `payment_zone_html` is an iframe to the page, its
+ * URL, or HTML to show as is. Null when the response isn't a MIPS one.
+ */
+export function resolveMipsZone(payload: Record<string, unknown>): { url: string; html: string } | null {
+  const raw = String(payload?.payment_zone_html ?? '').trim()
+  if (!raw) return null
+  const src = raw.match(/<iframe[^>]+src=["'](https?:\/\/[^"']+)["']/i)?.[1]?.replace(/&amp;/g, '&')
+  const zone = src || raw
+  return /^https?:\/\//i.test(zone) ? { url: zone, html: '' } : { url: '', html: zone }
+}
+
 // Browser-only — submits a hidden POST form to redirect to the iVeri hosted page
 // (into a named window when `target` is given, e.g. a payment pop-up).
 export function submitGatewayForm(url: string, fields: Record<string, string>, target?: string) {

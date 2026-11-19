@@ -19,6 +19,10 @@ export type ProposalRow = {
   proposed_date?: string | null
   proposed_time?: string | null
   proposed_at?: string | null
+  /** a cover charge asked for with the new time (app b2ff80a) */
+  proposed_cover_amount?: number | string | null
+  /** what the booking already carries — the ask only counts above it */
+  cover_charge_amount?: number | string | null
 }
 
 export const isBookingConfirmed = (row: BookingStatusRow) => CONFIRMED_BOOKING_STATUSES.includes(norm(row.status))
@@ -37,12 +41,28 @@ export function isBlockingBooking(row: BookingStatusRow) {
   return row.payment_required !== true
 }
 
-/** A new time the restaurant proposed, still pending and not yet passed. */
-export function hasLiveProposal(row: ProposalRow, now = Date.now()) {
+/**
+ * A new time the merchant proposed, still open and not yet passed. A restaurant
+ * booking is open while `pending`; a store appointment while `new` / `placed`
+ * (app b2ff80a).
+ */
+export function hasLiveProposal(row: ProposalRow, now = Date.now(), kind: 'restaurant' | 'store' = 'restaurant') {
   if (!row.proposed_at || !row.proposed_date || !row.proposed_time) return false
-  if (norm(row.status) !== 'pending') return false
+  const status = norm(row.status)
+  if (kind === 'store' ? !['new', 'placed'].includes(status) : status !== 'pending') return false
   const startsAt = Date.parse(`${row.proposed_date}T${String(row.proposed_time).slice(0, 5)}:00+04:00`)
   return Number.isFinite(startsAt) && startsAt > now
+}
+
+/** The cover charge asked for with a new time, 0 when none — app parity: proposalCoverAmount. */
+export function proposalCoverAmount(row: ProposalRow) {
+  const ask = Number(row.proposed_cover_amount) || 0
+  return ask > (Number(row.cover_charge_amount) || 0) ? ask : 0
+}
+
+/** What accepting the new time charges now — app parity: ProposalRequestBox `payNow`. */
+export function proposalPayNow(row: ProposalRow) {
+  return Math.max(0, proposalCoverAmount(row) - (Number(row.cover_charge_amount) || 0))
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

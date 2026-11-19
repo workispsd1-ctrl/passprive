@@ -39,8 +39,8 @@ export function UpcomingBookings({ bookings }: { bookings: DiningBooking[] }) {
               {hasLiveProposal(b) ? (
                 <span className="ml-1 rounded-full bg-brand-tint px-1.5 py-0.5 text-[10px] font-semibold text-brand">NEW TIME</span>
               ) : hasOpenCoverRequest(b) ? (
-                // app parity: ActiveBookingBar — an open cover-charge request; the receipt has Pay / Decline
-                <span className="ml-1 rounded-full bg-brand-tint px-1.5 py-0.5 text-[10px] font-semibold text-brand">PAY COVER</span>
+                // app parity (b2ff80a): statusBadge "AWAITING PAYMENT" — the receipt has Pay / Decline
+                <span className="ml-1 rounded-full bg-brand-tint px-1.5 py-0.5 text-[10px] font-semibold text-brand">AWAITING PAYMENT</span>
               ) : (
                 <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold capitalize text-green-700">
                   {b.status}

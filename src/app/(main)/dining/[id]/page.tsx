@@ -8,7 +8,6 @@ import { getOrderCollect, getRestaurantBySlugOrId } from '@/lib/services/dining'
 import { PhotoGalleryProvider } from '@/components/sections/dining/PhotoGalleryClient';
 import { DetailSectionTabs, type DetailTab } from '@/components/shared/detail/DetailSectionTabs';
 import { type CtaAction } from '@/components/shared/detail/DetailCtaBar';
-import { type OfferBody } from '@/components/shared/detail/OffersForToday';
 import { RestaurantCtaCard, RestaurantDesktopHero, RestaurantTitleCard } from '@/components/sections/dining/RestaurantDesktopHero';
 import { RestaurantDesktopSections } from '@/components/sections/dining/RestaurantDesktopSections';
 import { HelpSideCard, SampleBillCard, StampSideCard } from '@/components/sections/dining/RestaurantSidebar';
@@ -27,6 +26,7 @@ import { OrderCollectBanner } from '@/components/sections/dining/order/OrderColl
 import { cn } from '@/lib/utils';
 import { DESIGN_UNIT, TYPE_SCALE, tMin, t } from '@/components/sections/dining/designUnit';
 import type { DiningOffer } from '@/lib/types/dining';
+import { bankOffer, exclusiveOffer } from '@/lib/diningOffers';
 
 const fetchRestaurant = cache((id: string) => getRestaurantBySlugOrId(id));
 
@@ -68,22 +68,6 @@ export async function generateMetadata({
     },
     alternates: { canonical: `/dining/${restaurant.slug ?? id}` },
   };
-}
-
-/** app parity: RestaurantDetails.jsx restaurantOfferBody — "Flat 40% OFF" over its condition. */
-function exclusiveOffer(o: DiningOffer): OfferBody {
-  const v = Number(o.discount_value);
-  const pct = String(o.offer_type ?? '').toLowerCase().startsWith('percent');
-  const main = Number.isFinite(v) && v > 0 ? (pct ? `Flat ${v}% OFF` : `Flat MUR ${v.toLocaleString('en-US')} OFF`) : o.badge_text || o.title;
-  const sub = o.min_spend != null
-    ? `on bills above MUR ${Number(o.min_spend).toLocaleString('en-US')}`
-    : o.description || (main === o.title ? null : o.title);
-  return { id: o.id, main, sub };
-}
-
-/** app parity: bankOfferBody */
-function bankOffer(o: DiningOffer): OfferBody {
-  return { id: o.id, main: o.title, sub: o.description || 'using eligible bank cards' };
 }
 
 /** Restaurant detail — app parity: screens/RestaurantDetails.jsx. */

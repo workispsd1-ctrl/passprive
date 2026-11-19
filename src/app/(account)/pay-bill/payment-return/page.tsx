@@ -6,8 +6,7 @@ import { PaymentErrorCard } from '@/components/shared/PaymentErrorCard'
 import { DESIGN_UNIT, TYPE_SCALE } from '@/components/sections/dining/designUnit'
 import { PENDING_BILL_KEY, fmtMur, type PendingBillPayment } from '@/lib/payBill'
 import { ORDER_CART_KEY } from '@/lib/orderCollect'
-import Link from 'next/link'
-import { ShoppingBag } from 'lucide-react'
+import { OrderPlacedView } from '@/components/sections/dining/order/OrderPlacedView'
 import { cn } from '@/lib/utils'
 import { BillCleared, PaymentSuccessful, ProcessingScreen } from '@/components/sections/dining/PaymentScreens'
 
@@ -98,7 +97,7 @@ function ReturnInner() {
     if (navigator.share) navigator.share({ text }).catch(() => {})
     else navigator.clipboard?.writeText(text).catch(() => {})
   }
-  if (bill.orderItems?.length) return <OrderPlaced bill={bill} />
+  if (bill.orderItems?.length) return <OrderPlacedView bill={bill} />
   return (
     <BillCleared
       name={bill.restaurantName}
@@ -110,33 +109,6 @@ function ReturnInner() {
       onShare={share}
       onDone={() => router.replace(bill.merchantHref || (bill.restaurantId ? `/dining/${bill.restaurantId}` : '/'))}
     />
-  )
-}
-
-/** After an Order & Collect payment — app parity: OrderPlacedScreen.jsx. */
-function OrderPlaced({ bill }: { bill: PendingBillPayment }) {
-  return (
-    <main className='mx-auto flex min-h-[70vh] max-w-lg flex-col px-4 py-10 font-(family-name:--font-dm-sans)'>
-      <span className='mx-auto flex size-20 items-center justify-center rounded-full bg-brand-tint text-brand'><ShoppingBag className='size-9' /></span>
-      <h1 className='mt-4 text-center font-(family-name:--font-libre-baskerville) text-3xl font-bold text-[#2C2D32] italic'>Order placed</h1>
-      <p className='mt-1 text-center text-[15px] font-semibold text-[#2C2D32]'>{bill.restaurantName}</p>
-      {bill.location && <p className='text-center text-sm text-[#6B6B6B]'>{bill.location}</p>}
-      <h2 className='mt-8 text-base font-bold text-[#2C2D32]'>Order details</h2>
-      <ul className='mt-2 divide-y divide-[#EFEFEF]'>
-        {bill.orderItems?.map(item => (
-          <li key={item.id} className='flex justify-between gap-4 py-2.5 text-sm text-[#2C2D32]'>
-            <span>{item.qty} × {item.name}</span>
-            <span className='shrink-0 font-medium'>MUR {fmtMur(item.price * item.qty)}</span>
-          </li>
-        ))}
-      </ul>
-      <p className='mt-2 flex justify-between border-t border-[#2C2D32] pt-3 text-base font-bold text-[#2C2D32]'>Paid <span>MUR {fmtMur(bill.paidAmount)}</span></p>
-      <Link href='/help' className='mt-6 rounded-2xl bg-[#F6F6F6] p-4 text-sm hover:bg-[#EFEFEF]'>
-        <span className='block font-semibold text-[#2C2D32]'>Need help with this payment?</span>
-        <span className='font-semibold text-brand'>Contact help &amp; support</span>
-      </Link>
-      <Link href={bill.merchantHref || (bill.restaurantId ? `/dining/${bill.restaurantId}` : '/')} className='mt-6 flex h-12 items-center justify-center rounded-full bg-brand font-semibold text-white hover:bg-brand-dark'>Done</Link>
-    </main>
   )
 }
 

@@ -1,10 +1,11 @@
 'use client'
 
 import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Heart, Lock, SlidersHorizontal } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Lock, SlidersHorizontal } from 'lucide-react'
 import { BankOffersSection } from '@/components/sections/dining/BankOffersSection'
 import { FilterDialog, type FilterDraft } from '@/components/sections/dining/FilterDialog'
 import { SaveListSheet } from '@/components/SaveListSheet'
@@ -130,7 +131,7 @@ function SaveHeart({ card, className, iconClassName }: { card: DealCard; classNa
         }}
         className={cn('absolute z-20 transition-transform hover:scale-110', className)}
       >
-        <Heart
+        <PopHeart saved={saved}
           className={cn(iconClassName, saved ? 'fill-[#FF4800] text-[#FF4800]' : 'fill-black/30 text-[#E5E5E5]')}
           strokeWidth={2.3}
         />

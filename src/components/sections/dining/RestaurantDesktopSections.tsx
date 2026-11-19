@@ -217,7 +217,7 @@ function MenuBanner() {
 }
 
 /** Figma: two rows of three, the sixth tile counting what's left. */
-function PhotosGrid({ photos }: { photos: string[] }) {
+export function PhotosGrid({ photos }: { photos: string[] }) {
   const { openAt } = useGallery()
   const tiles = photos.slice(0, 6)
   const hidden = photos.length - tiles.length

@@ -5,7 +5,9 @@ import type { DiningBooking, StoreBooking } from '@/lib/types/bookings'
 
 /** app parity: CoverRequestBox COVER_REQUEST_COLUMNS */
 const COVER_REQUEST_COLUMNS = 'cover_request_status, cover_request_amount, cover_request_total, cover_request_due_at'
-const BOOKING_SELECT = 'id, restaurant_id, booking_date, booking_time, party_size, status, booking_code, source, customer_name, special_request, proposed_date, proposed_time, proposed_at, ' + COVER_REQUEST_COLUMNS + ', restaurants(id, name, slug, cover_image, area, full_address, cost_for_two, merchant_type, cancellation_available, cancellation_cutoff_minutes)'
+/** app parity: BookingProposalBanner BOOKING_PROPOSAL_COLUMNS (b2ff80a adds the cover ask) */
+const PROPOSAL_COLUMNS = 'proposed_date, proposed_time, proposed_at, proposed_cover_amount, cover_charge_amount'
+const BOOKING_SELECT = 'id, restaurant_id, booking_date, booking_time, party_size, status, booking_code, source, customer_name, special_request, ' + PROPOSAL_COLUMNS + ', ' + COVER_REQUEST_COLUMNS + ', restaurants(id, name, slug, cover_image, area, full_address, cost_for_two, merchant_type, cancellation_available, cancellation_cutoff_minutes)'
 
 export async function getUserDiningBookings(userId: string): Promise<DiningBooking[]> {
   const supabase = await createClient()
@@ -26,7 +28,7 @@ export async function getUserStoreBookings(userId: string): Promise<StoreBooking
   const supabase = await createClient()
   const { data: orders } = await supabase
     .from('store_orders')
-    .select(`id, store_id, status, service_type, total_amount, slot_start_at, created_at, ${COVER_REQUEST_COLUMNS}`)
+    .select(`id, store_id, status, service_type, total_amount, slot_start_at, created_at, ${PROPOSAL_COLUMNS}, ${COVER_REQUEST_COLUMNS}`)
     .eq('customer_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50)

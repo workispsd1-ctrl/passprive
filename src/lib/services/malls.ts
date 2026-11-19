@@ -37,16 +37,20 @@ const getRestaurantLocations = cachedCatalog('restaurant-locations', async (): P
 const getMallCandidateStores = cachedCatalog('mall-stores', async (): Promise<MallStoreRow[]> =>
   (unwrap(await createPublicClient().from('stores').select(STORE_SELECT).eq('is_active', true)) ?? []) as unknown as MallStoreRow[], [])
 
-export async function getMallBySlugOrId(slugOrId: string, coords?: Coords | null): Promise<Mall | null> {
-  const supabase = await createClient()
+/** The mall row, shared for CATALOG_TTL — its distance is measured per visitor afterwards. */
+const getMallRow = cachedCatalog('mall-detail', async (slugOrId: string): Promise<Mall | null> => {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId)
-  const { data } = await supabase
+  return unwrap(await createPublicClient()
     .from('malls')
     .select(MALL_SELECT)
     .eq(isUuid ? 'id' : 'slug', slugOrId)
     .eq('is_active', true)
-    .maybeSingle()
-  return data ? withDistance(data as Mall, coords) : null
+    .maybeSingle()) as Mall | null
+}, null)
+
+export async function getMallBySlugOrId(slugOrId: string, coords?: Coords | null): Promise<Mall | null> {
+  const data = await getMallRow(slugOrId)
+  return data ? withDistance(data, coords) : null
 }
 
 /** What's inside — app parity: MallDetails.jsx loadMallPlaces. */

@@ -29,7 +29,7 @@ export function SearchBar({ variant = 'hero', scaled = false }: Props) {
       aria-label='Search'
       className={cn(
         'flex w-full items-center rounded-full',
-        hero ? 'bg-white shadow-[0px_4px_4px_0px_rgba(223,94,43,1)]' : 'bg-[#F6F4F4]',
+        hero ? 'bg-white' : 'bg-[#F6F4F4]',
         scaled
           ? SCALED_BAR
           : hero

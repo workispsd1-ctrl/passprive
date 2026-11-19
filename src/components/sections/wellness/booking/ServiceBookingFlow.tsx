@@ -8,9 +8,11 @@ import { cn } from '@/lib/utils'
 import { useUserPlan } from '@/lib/context/PlanContext'
 import { getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
 import { useAuthPrompt } from '@/lib/context/AuthPromptContext'
-import { buildDates, buildSlots, dayLabel, longDate, type HoursRow, type Slot } from '@/lib/booking/slots'
+import { buildDates, buildSlots, dayLabel, longDate, merchantInstant, type HoursRow, type Slot } from '@/lib/booking/slots'
 import type { BookingOption, SelectedService, ServiceBooking } from '@/lib/booking/payload'
-import { confirmBooking, startBookingPayment } from '@/lib/booking/client'
+import { confirmBooking, initiateBookingPayment } from '@/lib/booking/client'
+import { bookingUpfront, isRequestBooking } from '@/lib/booking/terms'
+import { useBookingPayment } from '@/components/shared/useBookingPayment'
 import { DateStrip, TermsBlock } from '@/components/sections/booking/BookingPickers'
 import type { ServiceCategory, ServiceItem, ServiceOffer } from '@/lib/types/stores'
 
@@ -62,9 +64,11 @@ interface Props {
   offers: ServiceOffer[]
   initialCategoryId: string | null
   isLoggedIn: boolean
+  /** an appointment just paid for (`?booked=`) — the page opens on "Appointment booked" */
+  booked?: { when: string; paid: boolean } | null
 }
 
-export function ServiceBookingFlow({ store, categories, hours, offers, initialCategoryId, isLoggedIn }: Props) {
+export function ServiceBookingFlow({ store, categories, hours, offers, initialCategoryId, isLoggedIn, booked = null }: Props) {
   const { promptLogin } = useAuthPrompt()
   const plan = useUserPlan()
   const dates = useMemo(() => buildDates(DATE_COUNT), [])
@@ -122,9 +126,11 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
     ? { type: offer.title, label: offer.description || offer.title, coverChargeRequired: false, coverChargeAmount: null }
     : { type: 'Regular appointment slot', label: 'No cover charge required', coverChargeRequired: false, coverChargeAmount: null }
 
-  // app parity (fbaf070): ReviewStoreBooking `bookingSummaryAmount` — the platform booking fee
-  const payAmount = store.bookingFee > 0 ? store.bookingFee : 0
+  // app parity (b2ff80a): ReviewStoreBooking useBookingTerms — nothing now for a request booking, else the booking fee
+  const isRequest = isRequestBooking({ service_level: store.caps?.service_level })
+  const payAmount = bookingUpfront({ is_request: isRequest }, store.bookingFee)
   const isFree = payAmount <= 0
+  const payment = useBookingPayment()
 
   /** app parity: ServiceBookSlotScreen `onProceed` — login, then the existing-booking check. */
   async function proceedFromSlot() {
@@ -137,8 +143,9 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
       const data = await res.json() as { bookings?: ActiveOrder[]; error?: string }
       if (!res.ok) throw new Error(data.error ?? 'check failed')
       const orders = data.bookings ?? []
-      const wanted = new Date(`${dateId}T${slot.time24}:00`).getTime()
-      const same = orders.find(o => o.slot_start_at && new Date(o.slot_start_at).getTime() === wanted)
+      // app parity (b2ff80a): the slot is Mauritius time, compared to the minute
+      const wanted = Math.floor(merchantInstant(dateId, slot.time24) / 60000)
+      const same = orders.find(o => o.slot_start_at && Math.floor(new Date(o.slot_start_at).getTime() / 60000) === wanted)
       if (same) setConflict({ sameSlot: true, order: same })
       else if (orders.length) setConflict({ sameSlot: false, order: orders[0] })
       else setStep('summary')
@@ -182,8 +189,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
         await confirmBooking(booking)
         setStep('done')
       } else {
-        await startBookingPayment(booking, { storeHref: store.href, storeName: store.name })
-        return // navigating to the gateway
+        await payment.run(() => initiateBookingPayment(booking, payAmount, { storeHref: store.href, storeName: store.name }))
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'We could not confirm your booking right now.')
@@ -239,6 +245,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
         </div>
       </section>
       <div className='px-4 pt-6 md:px-[max(32px,calc(172*var(--u)))] lg:pt-8'>{children}</div>
+      {payment.overlay}
     </main>
   )
 
@@ -312,14 +319,20 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
   }
 
   /* ── Done (app parity: PaymentSuccess after BookingSaving) ─────────── */
-  if (step === 'done' && slot) {
+  if (booked || (step === 'done' && slot)) {
+    const when = booked?.when ?? (slot ? `${dayLabel(dateId)}, ${longDate(dateId)} at ${slot.label}` : '')
+    const services = booked ? '' : selected.map(sv => (sv.quantity > 1 ? `${sv.title} ×${sv.quantity}` : sv.title)).join(', ')
     return frame(
-      <div className={cn(CARD, 'mx-auto flex max-w-lg flex-col items-center gap-3 p-10 text-center')}>
+      <div className={cn(CARD, 'mx-auto flex max-w-2xl flex-col items-center gap-3 p-8 text-center md:p-12')}>
         <CheckCircle2 className='size-16 text-green-600' />
-        <p className='text-2xl font-bold text-gray-900'>Appointment booked</p>
-        <p className='text-sm text-gray-500'>{store.name} · {dayLabel(dateId)}, {longDate(dateId)} at {slot.label}</p>
-        <p className='text-sm text-gray-500'>{selected.map(sv => (sv.quantity > 1 ? `${sv.title} ×${sv.quantity}` : sv.title)).join(', ')}</p>
-        <Link href={store.href} className='mt-3 rounded-full bg-brand px-8 py-3 text-sm font-bold text-white hover:bg-brand-dark'>Done</Link>
+        <p className='text-2xl font-bold text-gray-900 md:text-3xl'>Appointment booked</p>
+        <p className='text-[15px] text-[#5B5A5A]'>{store.name} · {when}</p>
+        {services && <p className='text-sm text-[#8A8A8E]'>{services}</p>}
+        {booked?.paid && <p className='text-sm text-[#8A8A8E]'>Your booking fee is paid and <span className='text-brand'>redeemable</span> when you pay your bill via PassPrivé.</p>}
+        <div className='mt-4 flex w-full flex-col gap-3 sm:w-auto sm:flex-row'>
+          <Link href='/bookings' className='rounded-full border border-[#D5D5D5] px-8 py-3 text-sm font-bold text-[#2C2D32] hover:border-[#BDBDBD]'>View my bookings</Link>
+          <Link href={store.href} className='rounded-full bg-brand px-8 py-3 text-sm font-bold text-white hover:bg-brand-dark'>Done</Link>
+        </div>
       </div>,
     )
   }
@@ -392,7 +405,7 @@ export function ServiceBookingFlow({ store, categories, hours, offers, initialCa
         <p className='flex items-baseline justify-between'><span className='text-sm font-medium text-[#5B5A5A]'>To be paid</span><span className='text-2xl font-bold text-[#101010]'>{isFree ? 'Free' : money(payAmount)}</span></p>
         {payAmount > 0 && <p className='mt-2 text-[13px] text-[#8A8A8E]'>Cover charge is <span className='text-brand'>redeemable</span> when you pay bill via PassPrivé</p>}
         {error && <p className='mt-3 rounded-xl bg-red-50 px-3 py-2 text-[13px] text-red-600'>{error}</p>}
-        <div className='mt-4'>{button(!isLoggedIn ? 'Log in to book' : isFree ? 'Proceed to book' : `Proceed to pay ${money(payAmount)}`, confirm)}</div>
+        <div className='mt-4'>{button(!isLoggedIn ? 'Log in to book' : isRequest ? 'Send booking request' : isFree ? 'Proceed to book' : `Proceed to pay ${money(payAmount)}`, confirm)}</div>
       </div>,
     ))
   }

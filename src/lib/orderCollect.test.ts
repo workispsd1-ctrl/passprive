@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cartLines, cartTotal, changeQty, matchingOrder, orderableItems, visibleItems } from './orderCollect'
+import { cartLines, cartTotal, changeQty, matchingOrder, orderableItems, parseDraft, visibleItems } from './orderCollect'
 
 const menu = {
   sections: [
@@ -53,5 +53,24 @@ describe('cart', () => {
     expect(matchingOrder(order, 'r', 301)).toBeNull()
     expect(matchingOrder(order, 'other', 300)).toBeNull()
     expect(matchingOrder(null, 'r', 300)).toBeNull()
+  })
+})
+
+describe('parseDraft', () => {
+  const items = orderableItems(menu)
+  const [first, second] = items
+
+  it('keeps quantities for items still on the menu', () => {
+    expect(parseDraft(JSON.stringify({ [first.id]: 2, [second.id]: 1 }), items)).toEqual({ [first.id]: 2, [second.id]: 1 })
+  })
+
+  it('drops removed items, zero or bad quantities, and bad JSON', () => {
+    expect(parseDraft(JSON.stringify({ gone: 3, [first.id]: 0, [second.id]: 'x' }), items)).toEqual({})
+    expect(parseDraft('not json', items)).toEqual({})
+    expect(parseDraft(null, items)).toEqual({})
+  })
+
+  it('keeps every photo of an item, first one as the image', () => {
+    expect(first.images[0] ?? null).toBe(first.image)
   })
 })

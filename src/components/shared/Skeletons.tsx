@@ -4,6 +4,7 @@ import { PROFILE_UNIT } from '@/components/sections/profile/units'
 import { SEARCH_PAGE } from '@/components/search/unit'
 import { MALL_PAGE } from '@/components/sections/malls/unit'
 import { cn } from '@/lib/utils'
+import { OC_PAGE, OC_UNIT } from '@/components/sections/dining/order/unit'
 
 /**
  * Loading skeletons that mirror the real components' frames — same widths,
@@ -13,8 +14,17 @@ import { cn } from '@/lib/utils'
  */
 
 /** A pulsing placeholder block. */
+/** A placeholder block with the app's moving shimmer (components/Shimmer.jsx) rather than a pulse. */
 export function Bone({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return <div className={cn('animate-pulse bg-gray-200/80', className)} style={style} />
+  return (
+    <div className={cn('pp-motion relative overflow-hidden bg-gray-200/80', className)} style={style}>
+      <span
+        aria-hidden
+        className='absolute inset-0 bg-linear-to-r from-transparent via-white/60 to-transparent'
+        style={{ animation: 'pp-shimmer 1.2s ease-in-out infinite' }}
+      />
+    </div>
+  )
 }
 
 /** Text-line placeholder. */
@@ -209,7 +219,7 @@ export function CardGridPageSkeleton({ count = 8, subtitle = false }: { count?: 
         {subtitle && <Line className='mt-2 w-80' />}
       </div>
       <div className='mx-auto max-w-7xl px-4 py-6 md:px-8'>
-        <div className='flex flex-wrap justify-center gap-4 md:justify-start'>
+        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 *:w-full!'>
           {Array.from({ length: count }, (_, i) => <MerchantCardSkeleton key={i} />)}
         </div>
       </div>
@@ -404,27 +414,25 @@ export function MallDetailSkeleton() {
 
 /** Order & Collect (OrderCollectClient) — title, search, category chips + sort, then the item rows. */
 export function OrderCollectSkeleton() {
+  // mirrors OrderCollectClient: header, search + chips, the 376×320 card grid (4 across, 2 on phones)
   return (
-    <main className='mx-auto min-h-screen max-w-4xl px-4 pt-6 pb-32 md:px-8' aria-busy='true'>
-      <Bone className='h-8 w-56 rounded-full' />
-      <Line className='mt-2 h-3.5 w-64' />
-      <Bone className='mt-4 h-11 rounded-xl' />
-      <div className='mt-3 flex items-center justify-between gap-3'>
-        <div className='flex gap-2 overflow-hidden'>
-          {['w-16', 'w-24', 'w-20', 'w-24'].map((w, i) => <Bone key={i} className={cn('h-9 shrink-0 rounded-full', w)} />)}
-        </div>
-        <Bone className='h-9 w-28 shrink-0 rounded-lg' />
+    <main className={cn(OC_PAGE, OC_UNIT, 'px-172 pt-40 pb-160 max-lg:px-16 max-lg:pt-12')} aria-busy='true'>
+      <div className='flex h-64 items-start border-b border-[#EBEBED] max-lg:h-auto max-lg:pb-12'>
+        <Bone className='h-40 w-320 rounded-full max-lg:h-32 max-lg:w-200' />
       </div>
-      <div className='mt-4 divide-y divide-[#EAEAEA]'>
-        {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className='flex gap-4 py-4'>
-            <div className='flex-1 space-y-2'>
-              <Line className='w-16' />
-              <Line className='h-4 w-1/2' />
-              <Line className='h-3.5 w-20' />
-              <Line className='w-4/5' />
-            </div>
-            <Bone className='size-28 shrink-0 rounded-xl' />
+      <div className='mt-28 flex items-center gap-32 max-lg:mt-14 max-lg:flex-col max-lg:items-stretch max-lg:gap-12'>
+        <Bone className='h-50 w-640 shrink-0 rounded-full max-lg:h-46 max-lg:w-full' />
+        <div className='flex gap-8 overflow-hidden'>
+          {[88, 92, 120, 110, 96].map((w, i) => <Bone key={i} className='h-34 shrink-0 rounded-full' style={{ width: `calc(${w}*var(--u))` }} />)}
+        </div>
+      </div>
+      <div className='mt-32 grid grid-cols-4 gap-24 max-lg:mt-16 max-lg:grid-cols-2 max-lg:gap-12'>
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className='flex h-320 flex-col rounded-[calc(16*var(--u))] border border-[#E8E8EA] px-20 pt-16 pb-20 max-lg:h-230 max-lg:px-12 max-lg:pt-12'>
+            <Bone className='mx-auto size-160 rounded-[calc(24*var(--u))] max-lg:size-112' />
+            <Line className='mt-18 h-16 w-2/3' />
+            <Line className='mt-10 w-1/3' />
+            <Bone className='mt-auto ml-auto h-36 w-76 rounded-full max-lg:h-32 max-lg:w-68' />
           </div>
         ))}
       </div>

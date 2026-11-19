@@ -1,6 +1,6 @@
 'use client'
 
-import { resolveSessionId, resolveMerchantTrace, resolveGatewayUrl, submitGatewayForm } from '@/lib/utils/payment'
+import { resolveSessionId, resolveMerchantTrace } from '@/lib/utils/payment'
 import { SESSION_KEY_COVER_CHARGE } from '@/lib/constants/sessionKeys'
 import {
   bookingPaymentBody,
@@ -11,7 +11,7 @@ import {
   type ServiceBooking,
 } from './payload'
 
-/** What the cover-charge return page needs to finish a booking after iVeri. */
+/** What the booking return page needs once the payment session ends. */
 export type StoredBookingPayment = {
   sessionId: string
   merchantTrace: string
@@ -23,7 +23,7 @@ export type StoredBookingPayment = {
   bookHref?: string
   /** the chosen offer, for the receipt */
   offerLabel?: string
-  /** paying a cover-charge request on an existing booking — back to /bookings afterwards */
+  /** paying a cover-charge request on an existing booking — back to the receipt (bookHref) or /bookings */
   coverRequest?: boolean
 }
 
@@ -48,59 +48,41 @@ export async function confirmBooking(b: DiningBooking | ServiceBooking) {
 }
 
 /**
- * Paid booking — app parity: PaymentMethod → CardPayment (BOOKING). Starts
- * the iVeri session and remembers it for the cover-charge return page; the
- * booking itself is created by the backend's finalize-booking once iVeri
- * succeeds. Returns the gateway response for the caller to launch.
+ * Paid booking — app parity (b2ff80a): PaymentMethod → PaymentProcessing
+ * (BOOKING, via MIPS). Starts the session and remembers it for the return
+ * page; the backend creates the booking once the payment goes through.
+ * Returns the gateway response for the caller to launch.
  */
 export async function initiateBookingPayment(
   b: DiningBooking | ServiceBooking,
+  amount: number,
   meta: Pick<StoredBookingPayment, 'storeHref' | 'storeName' | 'bookHref' | 'offerLabel'> = {},
 ) {
-  const data = await postJson('/api/payments/booking/initiate', bookingPaymentBody(b))
-  if (!resolveGatewayUrl(data)) throw new Error('Payment gateway URL not returned. Please try again.')
-
-  const stored: StoredBookingPayment = {
-    sessionId: resolveSessionId(data),
-    merchantTrace: resolveMerchantTrace(data),
-    kind: b.kind,
-    ...meta,
-  }
-  sessionStorage.setItem(SESSION_KEY_COVER_CHARGE, JSON.stringify(stored))
-  return { data, session: { sessionId: stored.sessionId, merchantTrace: stored.merchantTrace } }
-}
-
-/** Paid booking in this tab — starts the session and goes to the gateway. */
-export async function startBookingPayment(
-  b: DiningBooking | ServiceBooking,
-  meta: Pick<StoredBookingPayment, 'storeHref' | 'storeName'> = {},
-) {
-  const { data } = await initiateBookingPayment(b, meta)
-  const gatewayUrl = resolveGatewayUrl(data)
-  const fields = (data?.form_fields ?? data?.fields ?? {}) as Record<string, string>
-  if (Object.keys(fields).length > 0) submitGatewayForm(gatewayUrl, fields)
-  else window.location.href = gatewayUrl
+  const data = await postJson('/api/payments/booking/initiate', { ...bookingPaymentBody(b), amount })
+  return remember(data, { kind: b.kind, ...meta })
 }
 
 /**
  * Pay a merchant's cover-charge request on an existing booking — app parity:
- * CoverRequestBox → PaymentProcessing with `cover_request_booking_id`.
+ * CoverRequestBox → PaymentProcessing with `cover_request_booking_id` (the
+ * server reads the amount due from the booking).
  */
-export async function startCoverRequestPayment(kind: 'restaurant' | 'store', merchantId: string, bookingId: string) {
+export async function initiateCoverRequestPayment(
+  kind: 'restaurant' | 'store',
+  merchantId: string,
+  bookingId: string,
+  meta: Pick<StoredBookingPayment, 'bookHref'> = {},
+) {
   const data = await postJson('/api/payments/booking/initiate', {
     [kind === 'store' ? 'store_id' : 'restaurant_id']: merchantId,
     cover_request_booking_id: bookingId,
   })
-  const gatewayUrl = resolveGatewayUrl(data)
-  if (!gatewayUrl) throw new Error('Payment gateway URL not returned. Please try again.')
-  const stored: StoredBookingPayment = {
-    sessionId: resolveSessionId(data),
-    merchantTrace: resolveMerchantTrace(data),
-    kind,
-    coverRequest: true,
-  }
-  sessionStorage.setItem(SESSION_KEY_COVER_CHARGE, JSON.stringify(stored))
-  const fields = (data?.form_fields ?? data?.fields ?? {}) as Record<string, string>
-  if (Object.keys(fields).length > 0) submitGatewayForm(gatewayUrl, fields)
-  else window.location.href = gatewayUrl
+  return remember(data, { kind, coverRequest: true, ...meta })
+}
+
+function remember(data: Record<string, unknown>, meta: Omit<StoredBookingPayment, 'sessionId' | 'merchantTrace'>) {
+  const stored: StoredBookingPayment = { sessionId: resolveSessionId(data), merchantTrace: resolveMerchantTrace(data), ...meta }
+  if (!stored.sessionId) throw new Error('Payment session id was not returned.')
+  try { sessionStorage.setItem(SESSION_KEY_COVER_CHARGE, JSON.stringify(stored)) } catch { /* private mode — the return page falls back to /bookings */ }
+  return { data, session: { sessionId: stored.sessionId, merchantTrace: stored.merchantTrace } }
 }

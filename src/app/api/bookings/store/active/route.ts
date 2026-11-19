@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getMerchantNow } from '@/lib/booking/slots'
 
 const ACTIVE_STATUSES = ['NEW', 'PLACED', 'ACCEPTED', 'PREPARING', 'READY']
 
@@ -16,8 +17,8 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Please log in to continue.' }, { status: 401 })
 
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
+  // app parity (b2ff80a): the start of today in Mauritius, not the server's timezone
+  const todayStart = new Date(`${getMerchantNow().dateId}T00:00:00+04:00`)
 
   const { data, error } = await supabase
     .from('store_orders')

@@ -61,7 +61,7 @@ export function RestaurantResults({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 md:px-8">
-      <div className="flex flex-wrap justify-center gap-4 md:justify-start">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 *:w-full!">
         {rows.map((r) => (
           <FeedRestaurantCard key={r.id} r={r} />
         ))}

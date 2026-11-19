@@ -330,6 +330,9 @@ export type PendingBillPayment = {
   cashback: number
   /** Order & Collect — what was ordered; the receipt is "Order placed" */
   orderItems?: { id: string; name: string; price: number; qty: number }[]
+  /** where to collect it — "Get directions" on Order placed */
+  lat?: number | null
+  lng?: number | null
 }
 export const PENDING_BILL_KEY = 'pp_bill_payment_session'
 /** sessionStorage — the bill to reopen after buying a membership from its summary */

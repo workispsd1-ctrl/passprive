@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { HScroll } from '@/components/sections/home/HScroll'
+import { HScroll, type RailMotion } from '@/components/sections/home/HScroll'
 import {
   Dialog,
   DialogContent,
@@ -32,10 +32,13 @@ export function BankOffersSection({
   className,
   cardClassName,
   renderRail,
+  motion,
 }: {
   cards: OfferForYouCard[]
   title?: string
   className?: string
+  /** the app's rail motion (OffersForYou fans its cards) */
+  motion?: RailMotion
   /** replaces the default card size */
   cardClassName?: string
   /** lay the cards out in the caller's own titled rail instead of HScroll */
@@ -78,7 +81,7 @@ export function BankOffersSection({
 
   return (
     <>
-      {renderRail ? renderRail(items) : <HScroll title={title} className={className}>{items}</HScroll>}
+      {renderRail ? renderRail(items) : <HScroll title={title} className={className} motion={motion}>{items}</HScroll>}
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent className="sm:max-w-sm overflow-hidden p-0">

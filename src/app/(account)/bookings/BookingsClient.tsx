@@ -29,7 +29,9 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
   const restaurant = booking.restaurants
   const badge = hasLiveProposal(booking)
     ? { label: 'New time', className: 'bg-brand-tint text-brand' }
-    : getStatusBadge(booking.status, booking.booking_date)
+    : booking.cover_request_status === 'requested'
+      ? AWAITING_PAYMENT
+      : getStatusBadge(booking.status, booking.booking_date)
   const location = restaurant?.area ?? restaurant?.full_address ?? restaurant?.name ?? '—'
 
   return (
@@ -78,7 +80,7 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
         </div>
       </div>
 
-      <BookingProposalBanner booking={booking} restaurantName={restaurant?.name} className="mx-4 mb-3" />
+      <BookingProposalBanner booking={booking} merchantId={booking.restaurant_id} restaurantName={restaurant?.name} className="mx-4 mb-3" />
       <CoverRequestBox booking={booking} kind="restaurant" merchantId={booking.restaurant_id} merchantName={restaurant?.name} className="mx-4 mb-3" />
 
       <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
@@ -118,6 +120,9 @@ function BookingCard({ booking }: { booking: DiningBooking }) {
   )
 }
 
+/** app parity (b2ff80a): UpcomingBookings statusBadge — a cover charge still to pay */
+const AWAITING_PAYMENT = { label: 'Awaiting payment', className: 'bg-brand-tint text-brand' }
+
 /** app parity: `store_orders.status` values */
 function getStoreStatusBadge(status: string) {
   const s = status.toUpperCase()
@@ -130,7 +135,9 @@ function getStoreStatusBadge(status: string) {
 function formatStoreWhen(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
-  return `${d.getDate()} ${d.toLocaleDateString('en-GB', { month: 'short' })} at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+  // app parity (b2ff80a): appointment times read in Mauritius time, wherever the browser is
+  const tz = 'Indian/Mauritius'
+  return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: tz })} at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz })}`
 }
 
 const WELLNESS_CATEGORY = 'salon & wellness'
@@ -143,7 +150,13 @@ function storeHref(b: StoreBooking): string | null {
 
 function StoreBookingCard({ booking }: { booking: StoreBooking }) {
   const store = booking.store
-  const badge = getStoreStatusBadge(booking.status)
+  // read the clock once per card; the server re-checks when answering
+  const [now] = useState(() => Date.now())
+  const badge = hasLiveProposal(booking, now, 'store')
+    ? { label: 'New time', className: 'bg-brand-tint text-brand' }
+    : booking.cover_request_status === 'requested'
+      ? AWAITING_PAYMENT
+      : getStoreStatusBadge(booking.status)
   const isAppointment = (booking.service_type ?? '').toUpperCase() === 'APPOINTMENT'
   const location = store?.location_name ?? store?.city ?? '—'
   const href = storeHref(booking)
@@ -175,6 +188,7 @@ function StoreBookingCard({ booking }: { booking: StoreBooking }) {
         </div>
       </div>
 
+      <BookingProposalBanner booking={booking} kind="store" merchantId={booking.store_id} restaurantName={store?.name} className="mx-4 mb-3" />
       <CoverRequestBox booking={booking} kind="store" merchantId={booking.store_id} merchantName={store?.name} className="mx-4 mb-3" />
 
       <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">

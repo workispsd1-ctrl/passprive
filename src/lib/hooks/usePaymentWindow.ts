@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { resolveGatewayUrl, submitGatewayForm } from '@/lib/utils/payment'
+import { resolveGatewayUrl, resolveMipsZone, submitGatewayForm } from '@/lib/utils/payment'
 
 const WINDOW = 'pp_bank_payment'
 const PAID = ['VERIFIED_SUCCESS', 'FINALIZED']
@@ -43,6 +43,25 @@ export function usePaymentWindow(onEnd: (end: PaymentEnd) => void) {
 
   /** Send the gateway from an initiate response; true when it opened in the window. */
   const launch = useCallback((data: Record<string, unknown>, session: PaymentSession) => {
+    // MIPS (bill and, since app b2ff80a, booking payments): its page as a URL or as HTML
+    const zone = resolveMipsZone(data)
+    if (zone) {
+      const popup = popupRef.current
+      if (popup && !popup.closed) {
+        if (zone.url) popup.location.href = zone.url
+        else {
+          popup.document.open()
+          popup.document.write(zone.html)
+          popup.document.close()
+        }
+        popup.focus()
+        setWaiting(session)
+        return true
+      }
+      if (!zone.url) throw new Error('Please allow pop-ups for PassPrivé to open your bank’s secure page.')
+      window.location.href = zone.url
+      return false
+    }
     const gateway = (data.gateway ?? null) as { url?: string; fields?: Record<string, string> } | null
     const fields = gateway?.fields ?? ((data.form_fields ?? data.fields ?? null) as Record<string, string> | null)
     const url = gateway?.url || resolveGatewayUrl(data)

@@ -12,6 +12,8 @@ export type DiningBooking = {
   proposed_date?: string | null
   proposed_time?: string | null
   proposed_at?: string | null
+  proposed_cover_amount?: number | string | null
+  cover_charge_amount?: number | string | null
 } & CoverRequestFields & {
   restaurants: {
     id: string
@@ -42,6 +44,11 @@ export type StoreBooking = CoverRequestFields & {
   id: string
   store_id: string
   status: string
+  proposed_date?: string | null
+  proposed_time?: string | null
+  proposed_at?: string | null
+  proposed_cover_amount?: number | string | null
+  cover_charge_amount?: number | string | null
   service_type: string | null
   total_amount: number | null
   slot_start_at: string | null

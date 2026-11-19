@@ -5,6 +5,7 @@ import { getRestaurantBySlugOrId } from '@/lib/services/dining'
 import { getBookingById, getBookingFee, getBookingRewardAmount } from '@/lib/services/bookings'
 import { createClient } from '@/lib/supabase/server'
 import { cn } from '@/lib/utils'
+import { isRequestBooking } from '@/lib/booking/terms'
 import { DiningBookingFlow } from '@/components/sections/dining/booking/DiningBookingFlow'
 import { BookingResult } from '@/components/sections/dining/booking/BookingResult'
 import { ClientOnly } from '@/components/sections/booking/BookingPickers'
@@ -41,14 +42,34 @@ export default async function BookTablePage({
   const [{ data: { user } }, bookingFee, stampGate] = await Promise.all([supabase.auth.getUser(), getBookingFee(), getStampGate()])
   const { data: policy } = await supabase
     .from('restaurants')
-    .select('cancellation_available, cancellation_cutoff_minutes')
+    .select('cancellation_available, cancellation_cutoff_minutes, service_level, booking_service_type')
     .eq('id', restaurant.id)
-    .maybeSingle<{ cancellation_available: boolean | null; cancellation_cutoff_minutes: number | null }>()
+    .maybeSingle<{ cancellation_available: boolean | null; cancellation_cutoff_minutes: number | null; service_level: string | null; booking_service_type: string | null }>()
   const cancellation = { available: policy?.cancellation_available === true, cutoffMinutes: policy?.cancellation_cutoff_minutes ?? null }
   const location = [restaurant.area, restaurant.city].filter(Boolean).join(', ')
   // the frames span the screen — break out of the site's 1280px column, as the detail page does
   const wrapper = cn('min-h-screen bg-white font-(family-name:--font-dm-sans) max-md:[--t:0.62px] md:mx-[calc(50%-50vw)] md:-mt-9.5 md:w-screen', TYPE_SCALE)
   const style = { ['--u' as string]: DESIGN_UNIT }
+
+  const tagsOf = (type: string) => tags.filter(t => t.tag_type === type).map(t => t.tag_value)
+  const backHref = `/dining/${restaurant.slug ?? restaurant.id}`
+  const bookHref = `/dining/${restaurant.slug ?? restaurant.id}/book`
+  // the restaurant panel on the left of the booking steps and the receipt
+  const panel = {
+    id: restaurant.id,
+    name: restaurant.name,
+    area: restaurant.area,
+    city: restaurant.city,
+    lat: restaurant.latitude,
+    lng: restaurant.longitude,
+    cover: restaurant.cover_image ?? galleryPhotos[0] ?? null,
+    cuisines: tagsOf('cuisine').slice(0, 2),
+    costForTwo: restaurant.cost_for_two,
+    rating: reviewSummary,
+    stampSheet: stampGate(restaurant.id) && tagsOf('mood').some(m => m.toLowerCase().includes('stamp')),
+    trending: !!restaurant.is_advertised,
+    exclusive: String(restaurant.merchant_type ?? '').toLowerCase() === 'preferred',
+  }
 
   // the receipt, after a booking is made
   const booking = sp.booked && user ? await getBookingById(sp.booked, user.id) : null
@@ -56,8 +77,10 @@ export default async function BookTablePage({
     const rewardAmount = await getBookingRewardAmount(booking.id)
     return (
       <main className={wrapper} style={style}>
-        <div className='relative overflow-x-clip bg-linear-to-b from-[#fff3ee] to-white to-40% px-4' style={{ paddingTop: 'calc(72 * var(--t))', paddingBottom: 'calc(120 * var(--t))' }}>
+        <ClientOnly>
           <BookingResult
+            panel={panel}
+            backHref={backHref}
             b={{
               id: booking.id,
               code: booking.booking_code,
@@ -75,8 +98,11 @@ export default async function BookTablePage({
                 proposed_at: booking.proposed_at,
                 proposed_date: booking.proposed_date,
                 proposed_time: booking.proposed_time,
+                proposed_cover_amount: booking.proposed_cover_amount,
+                cover_charge_amount: booking.cover_charge_amount,
               },
               restaurantId: restaurant.id,
+              bookHref,
               coverRequest: {
                 cover_request_status: booking.cover_request_status,
                 cover_request_amount: booking.cover_request_amount,
@@ -86,14 +112,12 @@ export default async function BookTablePage({
               rewardAmount,
             }}
           />
-        </div>
+        </ClientOnly>
       </main>
     )
   }
 
   if (!restaurant.booking_enabled) notFound()
-  const tagsOf = (type: string) => tags.filter(t => t.tag_type === type).map(t => t.tag_value)
-  const backHref = `/dining/${restaurant.slug ?? restaurant.id}`
   // bank-card offers are add-ons on the bill, not booking options
   const bookingOffers = offers.filter(o => o.offer_type !== 'bank_card' && o.offer_type !== 'credit_card')
 
@@ -107,6 +131,7 @@ export default async function BookTablePage({
             cover_charge_enabled: restaurant.cover_charge_enabled,
             cover_charge_amount: restaurant.cover_charge_amount,
             booking_fee: bookingFee,
+            is_request: isRequestBooking({ service_level: policy?.service_level ?? restaurant.service_level, booking_service_type: policy?.booking_service_type }),
             merchant_type: restaurant.merchant_type,
             merchant_plan: restaurant.merchant_plan,
             pay_bill_enabled: restaurant.pay_bill_enabled,
@@ -114,26 +139,12 @@ export default async function BookTablePage({
             on_boarded: restaurant.on_boarded,
             cashback_enabled: restaurant.cashback_enabled,
           }}
-          panel={{
-            id: restaurant.id,
-            name: restaurant.name,
-            area: restaurant.area,
-            city: restaurant.city,
-            lat: restaurant.latitude,
-            lng: restaurant.longitude,
-            cover: restaurant.cover_image ?? galleryPhotos[0] ?? null,
-            cuisines: tagsOf('cuisine').slice(0, 2),
-            costForTwo: restaurant.cost_for_two,
-            rating: reviewSummary,
-            stampSheet: stampGate(restaurant.id) && tagsOf('mood').some(m => m.toLowerCase().includes('stamp')),
-            trending: !!restaurant.is_advertised,
-            exclusive: String(restaurant.merchant_type ?? '').toLowerCase() === 'preferred',
-          }}
+          panel={panel}
           hours={allHours}
           offers={bookingOffers}
           isLoggedIn={!!user}
           backHref={backHref}
-          bookHref={`/dining/${restaurant.slug ?? restaurant.id}/book`}
+          bookHref={bookHref}
           cancellation={cancellation}
         />
       </ClientOnly>

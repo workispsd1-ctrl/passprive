@@ -76,9 +76,10 @@ export function HeaderNav() {
               ? pathname === '/'
               : live && pathname.startsWith(href)
           const tileClass = cn(
-            'relative flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 whitespace-nowrap transition-colors md:h-12 md:gap-2 md:px-4 xl:h-14 xl:gap-2.5 xl:px-5 2xl:h-18 2xl:gap-3 2xl:px-7 min-[120rem]:h-[98px] min-[120rem]:gap-4 min-[120rem]:px-[37px]',
+            'relative flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 whitespace-nowrap transition-[color,background-color,border-color,transform] duration-150 md:h-12 md:gap-2 md:px-4 xl:h-14 xl:gap-2.5 xl:px-5 2xl:h-18 2xl:gap-3 2xl:px-7 min-[120rem]:h-[98px] min-[120rem]:gap-4 min-[120rem]:px-[37px]',
             !isActive && 'border-gray-200 bg-white',
-            !isActive && live && 'hover:border-gray-300',
+            // app parity: HomeCategories — a pressed pill shrinks a touch (0.98)
+            !isActive && live && 'hover:border-gray-300 active:scale-[0.98] motion-reduce:active:scale-100',
             !live && 'cursor-default',
           )
           const content = (

@@ -1,10 +1,11 @@
 'use client'
 
 import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Clock, Heart, Star } from 'lucide-react'
+import { Clock, Star } from 'lucide-react'
 import { canPayBill, getCashbackPct } from '@/lib/cashback'
 import { useSaved } from '@/lib/context/SavedContext'
 import { useUserPlan } from '@/lib/context/PlanContext'
@@ -106,7 +107,7 @@ function SaveButton({ item, className }: { item: SearchItem; className: string }
       onClick={() => toggle(item.id, item.type === 'RESTAURANT' ? 'RESTAURANT' : 'STORE')}
       className={cn('absolute z-1 flex size-24 items-center justify-center', className)}
     >
-      <Heart className={cn('size-24', saved ? 'fill-[#FF4901] text-[#FF4901]' : 'text-[#B2B2B2]')} strokeWidth={2} />
+      <PopHeart saved={saved} className={cn('size-24', saved ? 'fill-[#FF4901] text-[#FF4901]' : 'text-[#B2B2B2]')} strokeWidth={2} />
     </button>
   )
 }

@@ -106,6 +106,7 @@ export default async function Home() {
           <BankOffersSection
             cards={offers}
             title={title || 'Offers for you'}
+            motion='fan'
             className='relative left-1/2 w-screen -translate-x-1/2 bg-[#FFF7F2]'
           />
         );

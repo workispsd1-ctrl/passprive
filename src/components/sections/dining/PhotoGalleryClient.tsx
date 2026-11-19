@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useCallback, useEffect, createContext, useContext, useRef } from 'react'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import type { ReactNode } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { X, ChevronLeft, ChevronRight, Grid2x2, Heart, Share2, Check, Image as ImageIcon } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Grid2x2, Share2, Check, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { shareLink, useSaveMerchant } from '@/components/shared/detail/MerchantActions'
 import type { SavedEntityType } from '@/lib/services/savedEntities'
@@ -171,7 +172,7 @@ function HeroNav({ backHref, name, save }: { backHref: string; name: string; sav
       <div className="absolute top-4 right-4 z-10 flex gap-2">
         {save && (
           <button type="button" onClick={saver.onSave} aria-label={saver.saved ? 'Edit saved lists' : 'Save'} aria-pressed={saver.saved} className={HERO_BTN}>
-            <Heart className={cn('h-5 w-5', saver.saved && 'fill-brand text-brand')} />
+            <PopHeart saved={saver.saved} className={cn('h-5 w-5', saver.saved && 'fill-brand text-brand')} />
           </button>
         )}
         <button

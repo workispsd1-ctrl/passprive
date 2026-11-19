@@ -1,23 +1,21 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ChevronRight, Clock, X } from 'lucide-react'
 import { CancelBookingDialog } from './CancelBookingDialog'
 import { cn } from '@/lib/utils'
-import { longDate } from '@/lib/booking/slots'
+import { getMerchantNow, longDate } from '@/lib/booking/slots'
 import { t } from '@/components/sections/dining/designUnit'
 import { CheckRings } from '@/components/sections/dining/PaymentScreens'
+import { FlowLayout, type MerchantPanelData } from '@/components/sections/dining/MerchantFlowParts'
 import { cancelDeadline } from './bookingTimes'
 import { hasLiveProposal, isBookingConfirmed, isBookingRejected, type ProposalRow } from '@/lib/booking/status'
 import { BookingProposalBanner } from '@/components/shared/BookingProposalBanner'
 import { CoverRequestBox } from '@/components/shared/CoverRequestBox'
 import type { CoverRequestFields } from '@/lib/types/bookings'
 import { usePlatformFlags } from '@/lib/context/PlatformFlagsContext'
-
-const P = '/assets/pay-bill'
 
 export type BookingResultData = {
   id: string
@@ -34,6 +32,8 @@ export type BookingResultData = {
   /** the restaurant's counter-offer, when it made one */
   proposal: ProposalRow
   restaurantId: string
+  /** this booking page — to come back to this receipt after paying a cover charge */
+  bookHref: string
   /** the restaurant asking for a cover charge after booking (app: PaymentSuccessScreen CoverRequestBox) */
   coverRequest: CoverRequestFields
   rewardAmount: number
@@ -47,8 +47,9 @@ function to12(time24: string) {
 function relDay(dateId: string) {
   const [y, m, d] = dateId.split('-').map(Number)
   const day = new Date(y, m - 1, d)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // "Today" by the Mauritius calendar, wherever the browser is
+  const [ty, tm, td] = getMerchantNow().dateId.split('-').map(Number)
+  const today = new Date(ty, tm - 1, td)
   const diff = Math.round((day.getTime() - today.getTime()) / 86400000)
   return diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : day.toLocaleDateString('en-US', { weekday: 'long' })
 }
@@ -66,15 +67,18 @@ function Line({ label, value }: { label: string; value: string }) {
  * Figma "Table booked" (11429:3212) / "Requested table" (11429:3283) — app
  * parity: PaymentSuccessScreen "Table booked!". A booking the restaurant has
  * confirmed reads "Table booked"; one still waiting on them reads "Requested
- * table" with what happens next.
+ * table" with what happens next. Laid out like the booking steps before it:
+ * the restaurant on the left, the receipt in the card (phones: stacked).
  */
-export function BookingResult({ b }: { b: BookingResultData }) {
+export function BookingResult({ b, panel, backHref }: { b: BookingResultData; panel: MerchantPanelData; backHref: string }) {
   const router = useRouter()
   const { earn } = usePlatformFlags()
   const confirmed = isBookingConfirmed(b)
   const cancelled = isBookingRejected(b)
   const proposal = { ...b.proposal, id: b.id }
   const proposed = hasLiveProposal(proposal)
+  // app parity (b2ff80a): PaymentSuccessScreen — the new time accepted, its cover charge still to pay
+  const awaitingPay = !cancelled && b.coverRequest.cover_request_status === 'requested'
 
   // app parity: PaymentSuccessScreen re-reads the booking every 15s, so the restaurant's answer shows up here
   useEffect(() => {
@@ -90,74 +94,68 @@ export function BookingResult({ b }: { b: BookingResultData }) {
   const canCancel = b.cancellation.available && !cancelled && new Date(`${b.date}T${b.time24.slice(0, 5)}:00+04:00`).getTime() > now
   const [cancelOpen, setCancelOpen] = useState(false)
 
-  return (
-    <div className='relative mx-auto flex w-full flex-col items-center text-center' style={{ maxWidth: t(760) }}>
-      <Image
-        src={`${P}/green-glow.svg`}
-        alt=''
-        width={824}
-        height={828}
-        aria-hidden='true'
-        className={cn('pointer-events-none absolute left-1/2 max-w-none -translate-x-1/2', !confirmed && 'opacity-0')}
-        style={{ top: t(-120), width: t(824), height: t(828) }}
-      />
+  const title = awaitingPay ? 'Accepted! Pay to confirm' : confirmed ? 'Table booked' : cancelled ? 'Booking cancelled' : 'Requested table'
+  const badge = awaitingPay ? 'ACCEPTED · PAY TO CONFIRM' : confirmed ? 'CONFIRMED' : cancelled ? 'CANCELLED' : proposed ? 'NEW TIME' : 'REQUESTED'
 
-      <span className='relative'>
-        {confirmed ? (
-          <CheckRings />
-        ) : cancelled ? (
-          <span className='flex items-center justify-center rounded-full bg-[#f2f2f2]' style={{ width: t(110), height: t(110) }}>
-            <span className='flex items-center justify-center rounded-full bg-[#e2e2e2]' style={{ width: t(80), height: t(80) }}>
-              <X className='text-[#5b5a5a]' style={{ width: t(40), height: t(40) }} />
-            </span>
-          </span>
+  // the website frame of the booking steps — the restaurant on the left, the receipt in the card
+  return (
+    <FlowLayout r={panel} label='Your booking at' onBack={() => router.push(backHref)}>
+      <div className='flex items-center' style={{ gap: t(24) }}>
+        {confirmed && !awaitingPay ? (
+          <CheckRings size={84} />
         ) : (
-          <span className='flex items-center justify-center rounded-full bg-[#fff1eb]' style={{ width: t(110), height: t(110) }}>
-            <span className='flex items-center justify-center rounded-full bg-[#ffd9c7]' style={{ width: t(80), height: t(80) }}>
-              <Clock className='text-[#ff4800]' style={{ width: t(40), height: t(40) }} />
+          <span className={cn('flex shrink-0 items-center justify-center rounded-full', cancelled ? 'bg-[#f2f2f2]' : 'bg-[#fff1eb]')} style={{ width: t(84), height: t(84) }}>
+            <span className={cn('flex items-center justify-center rounded-full', cancelled ? 'bg-[#e2e2e2]' : 'bg-[#ffd9c7]')} style={{ width: t(62), height: t(62) }}>
+              {cancelled
+                ? <X className='text-[#5b5a5a]' style={{ width: t(30), height: t(30) }} />
+                : <Clock className='text-[#ff4800]' style={{ width: t(30), height: t(30) }} />}
             </span>
           </span>
         )}
-      </span>
-      <h1
-        className={cn('relative font-(family-name:--font-libre-baskerville) font-bold italic', confirmed ? 'text-[#3aa456]' : cancelled ? 'text-[#2c2d32]' : 'text-[#ff4800]')}
-        style={{ marginTop: t(32), fontSize: t(54), letterSpacing: t(-2.78), lineHeight: t(60) }}
-      >
-        {confirmed ? 'Table booked' : cancelled ? 'Booking cancelled' : 'Requested table'}
-      </h1>
-      <p className='relative font-semibold text-[#2c2d32]' style={{ marginTop: t(10), fontSize: t(26) }}>{b.restaurantName}</p>
+        <div className='min-w-0'>
+          <h1
+            className={cn('font-(family-name:--font-libre-baskerville) font-bold italic', awaitingPay ? 'text-[#ff4800]' : confirmed ? 'text-[#3aa456]' : cancelled ? 'text-[#2c2d32]' : 'text-[#ff4800]')}
+            style={{ fontSize: t(44), letterSpacing: t(-1.5), lineHeight: t(52) }}
+          >
+            {title}
+          </h1>
+          <p className='font-semibold text-[#2c2d32]' style={{ marginTop: t(4), fontSize: t(24) }}>{b.restaurantName}</p>
+        </div>
+      </div>
       {confirmed && earn && b.rewardAmount > 0 && (
-        <p className='relative font-medium text-[#3aa456]' style={{ marginTop: t(10), fontSize: t(18) }}>
+        <p className='font-medium text-[#3aa456]' style={{ marginTop: t(16), fontSize: t(18) }}>
           MUR {b.rewardAmount.toLocaleString('en-US')} Privé Credits pending · unlocks after your visit
         </p>
       )}
       {b.offer && !cancelled && (
-        <p className='relative rounded-full bg-[#fff1eb] font-semibold text-[#ff4800]' style={{ marginTop: t(16), padding: `${t(8)} ${t(20)}`, fontSize: t(20) }}>{b.offer}</p>
+        <p className='self-start rounded-full bg-[#fff1eb] font-semibold text-[#ff4800]' style={{ marginTop: t(16), padding: `${t(8)} ${t(20)}`, fontSize: t(20) }}>{b.offer}</p>
       )}
 
-      <div className='relative w-full border border-[#efefef] bg-white text-left shadow-[4px_4px_47px_rgba(0,0,0,0.08)]' style={{ marginTop: t(32), borderRadius: t(28), padding: `${t(16)} ${t(28)}` }}>
-        <div className='flex items-center justify-between' style={{ padding: `${t(8)} 0` }}>
-          <span className='font-bold text-[#2c2d32]' style={{ fontSize: t(22) }}>Booking details</span>
-          <span
-            className={cn('rounded-full font-bold tracking-wider', confirmed ? 'bg-[#e8f6ec] text-[#2e8b4a]' : cancelled ? 'bg-[#f2f2f2] text-[#5b5a5a]' : 'bg-[#fff3e6] text-[#c46a12]')}
-            style={{ padding: `${t(6)} ${t(14)}`, fontSize: t(15) }}
-          >
-            {confirmed ? 'CONFIRMED' : cancelled ? 'CANCELLED' : proposed ? 'NEW TIME' : 'REQUESTED'}
-          </span>
+      <div className='grid lg:grid-cols-2' style={{ marginTop: t(32), gap: t(28) }}>
+        <div className='border border-[#efefef]' style={{ borderRadius: t(24), padding: `${t(12)} ${t(24)}` }}>
+          <div className='flex items-center justify-between' style={{ gap: t(12), padding: `${t(10)} 0` }}>
+            <span className='font-bold text-[#2c2d32]' style={{ fontSize: t(22) }}>Booking details</span>
+            <span
+              className={cn('rounded-full text-center font-bold tracking-wider', awaitingPay ? 'bg-[#fff3e6] text-[#c46a12]' : confirmed ? 'bg-[#e8f6ec] text-[#2e8b4a]' : cancelled ? 'bg-[#f2f2f2] text-[#5b5a5a]' : 'bg-[#fff3e6] text-[#c46a12]')}
+              style={{ padding: `${t(6)} ${t(14)}`, fontSize: t(15) }}
+            >
+              {badge}
+            </span>
+          </div>
+          <Line label={longDate(b.date)} value={relDay(b.date)} />
+          <Line label={meal} value={to12(b.time24)} />
+          <Line label='Guests' value={`for ${b.guests}`} />
+          {b.location && <Line label='Location' value={b.location} />}
+          {b.code && <Line label='Booking code' value={b.code} />}
+          {b.paid && <Line label='Cover charge' value='Paid — redeemed on your bill' />}
         </div>
-        <Line label={longDate(b.date)} value={relDay(b.date)} />
-        <Line label={meal} value={to12(b.time24)} />
-        <Line label='Guests' value={`for ${b.guests}`} />
-        {b.location && <Line label='Location' value={b.location} />}
-        {b.code && <Line label='Booking code' value={b.code} />}
-        {b.paid && <Line label='Cover charge' value='Paid — redeemed on your bill' />}
-      </div>
 
-      {proposed && <BookingProposalBanner booking={proposal} restaurantName={b.restaurantName} className='relative mt-4 w-full text-left' />}
-      <CoverRequestBox booking={{ ...b.coverRequest, id: b.id }} kind='restaurant' merchantId={b.restaurantId} merchantName={b.restaurantName} className='relative mt-4 w-full text-left' />
+        <div className='flex flex-col' style={{ gap: t(20) }}>
+          {proposed && <BookingProposalBanner booking={proposal} merchantId={b.restaurantId} restaurantName={b.restaurantName} bookHref={b.bookHref} />}
+          <CoverRequestBox booking={{ ...b.coverRequest, id: b.id }} kind='restaurant' merchantId={b.restaurantId} merchantName={b.restaurantName} bookHref={b.bookHref} />
 
       {!confirmed && !cancelled && !proposed && (
-        <div className='relative w-full rounded-[inherit] bg-[#fff8f5] text-left' style={{ marginTop: t(20), borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>
+        <div className='bg-[#fff8f5]' style={{ borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>
           <p className='font-bold text-[#2c2d32]' style={{ fontSize: t(22) }}>What next?</p>
           <ul className='list-disc text-[#5b5a5a]' style={{ marginTop: t(8), paddingLeft: t(24), fontSize: t(18), lineHeight: 1.6 }}>
             <li>They will call you or confirm directly as soon as they check the request.</li>
@@ -167,7 +165,7 @@ export function BookingResult({ b }: { b: BookingResultData }) {
         </div>
       )}
 
-      {!cancelled && <div className='relative flex w-full flex-col text-left' style={{ marginTop: t(20), gap: t(8), fontSize: t(18) }}>
+      {!cancelled && <div className='flex flex-col' style={{ gap: t(8), fontSize: t(18) }}>
         <p className='text-[#5b5a5a]'>
           <span className='font-semibold text-[#2c2d32]'>Need modifications? </span>
           {deadline ? `Valid till ${deadline}` : 'Contact the restaurant or support'}
@@ -189,9 +187,11 @@ export function BookingResult({ b }: { b: BookingResultData }) {
           {canCancel && <ChevronRight className='shrink-0 text-[#ababab]' style={{ width: t(18), height: t(18) }} />}
         </button>
       </div>}
+        </div>
+      </div>
       {cancelOpen && <CancelBookingDialog bookingId={b.id} onClose={() => setCancelOpen(false)} />}
 
-      <Link href='/help' className='relative flex w-full items-center justify-between bg-[#f6f6f6] text-left hover:bg-[#efefef]' style={{ marginTop: t(24), borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>
+      <Link href='/help' className='flex items-center justify-between bg-[#f6f6f6] hover:bg-[#efefef]' style={{ marginTop: t(28), borderRadius: t(24), padding: `${t(18)} ${t(28)}` }}>
         <span>
           <span className='block font-semibold text-[#2c2d32]' style={{ fontSize: t(20) }}>Need help with this booking?</span>
           <span className='flex items-center font-semibold text-[#ff4800]' style={{ fontSize: t(17), gap: t(4) }}>Contact help &amp; support <ChevronRight style={{ width: t(16), height: t(16) }} /></span>
@@ -199,8 +199,15 @@ export function BookingResult({ b }: { b: BookingResultData }) {
         <span className='flex items-center justify-center rounded-full bg-[#ff4800] font-bold text-white' style={{ width: t(40), height: t(40), fontSize: t(20) }}>!</span>
       </Link>
 
-      <div className='relative flex w-full flex-col sm:flex-row' style={{ marginTop: t(36), gap: t(16) }}>
-        {/* app parity: PaymentSuccessScreen handleGoHome — there's no separate booking page */}
+      <div className='mt-auto flex flex-col sm:flex-row' style={{ paddingTop: t(36), gap: t(16) }}>
+        <Link
+          href='/bookings'
+          className='flex flex-1 items-center justify-center rounded-full border border-[#d5d5d5] font-semibold text-[#2c2d32] hover:border-[#bdbdbd]'
+          style={{ height: t(81), fontSize: t(24) }}
+        >
+          View my bookings
+        </Link>
+        {/* app parity: PaymentSuccessScreen handleGoHome */}
         <button
           type='button'
           onClick={() => router.push('/')}
@@ -210,6 +217,6 @@ export function BookingResult({ b }: { b: BookingResultData }) {
           Done
         </button>
       </div>
-    </div>
+    </FlowLayout>
   )
 }

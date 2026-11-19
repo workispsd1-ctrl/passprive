@@ -5,6 +5,8 @@ export type OrderItem = {
   price: number
   category: string
   image: string | null
+  /** every photo of the item (image_urls), first = image */
+  images: string[]
   description: string
   isVeg: boolean
   isBestseller: boolean
@@ -12,6 +14,26 @@ export type OrderItem = {
 export type OrderLine = OrderItem & { qty: number }
 export type OrderCart = Record<string, number>
 export type OrderSort = 'recommended' | 'price_low' | 'price_high'
+
+/** sessionStorage — the cart while it's being filled, per restaurant (shared by the menu and product pages) */
+export const orderDraftKey = (restaurantId: string) => `pp_order_draft:${restaurantId}`
+
+/** A saved draft cart, keeping only ids that are still on the menu with a positive quantity. */
+export function parseDraft(raw: string | null, items: OrderItem[]): OrderCart {
+  if (!raw) return {}
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    const ids = new Set(items.map(i => i.id))
+    const cart: OrderCart = {}
+    for (const [id, qty] of Object.entries(parsed ?? {})) {
+      const n = Math.floor(Number(qty))
+      if (ids.has(id) && n > 0) cart[id] = n
+    }
+    return cart
+  } catch {
+    return {}
+  }
+}
 
 /** sessionStorage — the cart while it goes through Pay bill */
 export const ORDER_CART_KEY = 'pp_order_cart'
@@ -44,6 +66,7 @@ export function orderableItems(menu: MenuJson): OrderItem[] {
         price: Number(item.price),
         category: String(section.name ?? '').trim() || 'Menu',
         image: Array.isArray(item.image_urls) ? (item.image_urls.find(Boolean) as string | undefined) ?? null : null,
+        images: Array.isArray(item.image_urls) ? (item.image_urls.filter(u => typeof u === 'string' && u) as string[]) : [],
         description: String(item.description ?? '').trim(),
         isVeg: item.is_veg === true,
         isBestseller: item.is_bestseller === true,

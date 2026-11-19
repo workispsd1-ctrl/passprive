@@ -6,6 +6,20 @@ import { cn } from '@/lib/utils'
 
 const SCROLL_BY = 320
 
+/**
+ * app parity: Home/RailMotion.jsx — cards answer how fast the rail moves and
+ * settle back when it stops (velocity clamped at 40px/frame, 260ms settle).
+ * fan: OffersForYou (tilt ±4°) · drift: WhatsHotOnPassPrive (slide ∓12px) ·
+ * glide: FamilyFeast (dip up to 8px).
+ */
+export type RailMotion = 'fan' | 'drift' | 'glide'
+const MAX_V = 40
+const MOTION_CLASS: Record<RailMotion, string> = {
+  fan: '*:rotate-[calc(var(--rv,0)*4deg)]',
+  drift: '*:translate-x-[calc(var(--rv,0)*-12px)]',
+  glide: '*:translate-y-[calc(var(--rva,0)*8px)]',
+}
+
 interface Props {
   /** omit for a headerless rail (e.g. a promo banner's restaurant strip) */
   title?: string
@@ -18,6 +32,8 @@ interface Props {
   gapClassName?: string
   /** called while the row is scrolled within a couple of screens of its end — for appending more cards */
   onNearEnd?: () => void
+  /** the app's rail motion for this row, if it has one */
+  motion?: RailMotion
   children: React.ReactNode
 }
 
@@ -33,6 +49,7 @@ export function HScroll({
   maxWidthClassName = 'max-w-7xl',
   gapClassName = 'gap-4 xl:gap-6 2xl:gap-8 min-[120rem]:gap-11',
   onNearEnd,
+  motion,
   children,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -64,6 +81,32 @@ export function HScroll({
       ro.disconnect()
     }
   }, [])
+
+  // rail motion: the scroll speed into --rv (−1…1) and --rva (0…1) on the row, back to 0 when it stops
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !motion || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let lastX = el.scrollLeft
+    let v = 0
+    let settle: ReturnType<typeof setTimeout> | undefined
+    const set = (n: number) => {
+      el.style.setProperty('--rv', n.toFixed(3))
+      el.style.setProperty('--rva', Math.abs(n).toFixed(3))
+    }
+    const onScroll = () => {
+      const dx = el.scrollLeft - lastX
+      lastX = el.scrollLeft
+      v = v * 0.6 + dx * 0.4
+      set(Math.max(-1, Math.min(1, v / MAX_V)))
+      clearTimeout(settle)
+      settle = setTimeout(() => { v = 0; set(0) }, 80)
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      clearTimeout(settle)
+    }
+  }, [motion])
 
   function by(delta: number) {
     scrollRef.current?.scrollBy({ left: delta, behavior: 'smooth' })
@@ -117,6 +160,7 @@ export function HScroll({
             className={cn(
               'flex snap-x overflow-x-auto scroll-smooth scroll-px-4 px-4 pt-3 pb-5 [scrollbar-width:none] md:scroll-px-8 md:px-8 md:pb-8 [&::-webkit-scrollbar]:hidden',
               gapClassName,
+              motion && ['*:transition-transform *:duration-260 *:ease-out', MOTION_CLASS[motion]],
             )}
           >
             {children}

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { startCoverRequestPayment } from '@/lib/booking/client'
+import { initiateCoverRequestPayment } from '@/lib/booking/client'
+import { useBookingPayment } from '@/components/shared/useBookingPayment'
 import { hasOpenCoverRequest } from '@/lib/booking/status'
 import type { CoverRequestFields } from '@/lib/types/bookings'
 import { cn } from '@/lib/utils'
@@ -31,12 +32,15 @@ export function CoverRequestBox({
   kind,
   merchantId,
   merchantName,
+  bookHref,
   className,
 }: {
   booking: CoverRequestFields & { id: string }
   kind: 'restaurant' | 'store'
   merchantId: string
   merchantName?: string | null
+  /** the restaurant's booking page, to come back to the receipt once paid */
+  bookHref?: string
   className?: string
 }) {
   const router = useRouter()
@@ -44,6 +48,7 @@ export function CoverRequestBox({
   const [confirmDecline, setConfirmDecline] = useState(false)
   const [busy, setBusy] = useState<'pay' | 'decline' | null>(null)
   const [error, setError] = useState('')
+  const payment = useBookingPayment()
 
   // app: re-checks the countdown every 30s
   useEffect(() => {
@@ -63,11 +68,11 @@ export function CoverRequestBox({
     setBusy('pay')
     setError('')
     try {
-      await startCoverRequestPayment(kind, merchantId, booking.id)
+      await payment.run(() => initiateCoverRequestPayment(kind, merchantId, booking.id, { bookHref }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Payment could not be started. Please try again.')
-      setBusy(null)
     }
+    setBusy(null)
   }
 
   async function decline() {
@@ -139,6 +144,7 @@ export function CoverRequestBox({
           </button>
         </DialogContent>
       </Dialog>
+      {payment.overlay}
     </>
   )
 }

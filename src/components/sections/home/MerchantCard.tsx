@@ -7,8 +7,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
 import type { CardBadge } from '@/lib/cashback'
-import { Heart, Flame, Gem, Grid2x2 } from 'lucide-react'
+import { Flame, Gem, Grid2x2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { OfferStrip } from '@/components/shared/motion/OfferStrip'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import { useSaved } from '@/lib/context/SavedContext'
 import { SaveListSheet } from '@/components/SaveListSheet'
 import type { SavedEntityType } from '@/lib/services/savedEntities'
@@ -147,15 +149,16 @@ export function MerchantCard({
               saved ? 'scale-110 text-brand' : 'text-white',
             )}
           >
-            <Heart className={cn('h-6 w-6', saved && 'fill-current')} />
+            <PopHeart saved={saved} className={cn('h-6 w-6', saved && 'fill-current')} />
           </button>
         </div>
 
         {/* offer strip — shows the orange frame; a thin bar when there's no offer */}
         {offerLabel ? (
-          <div className="px-3.5 py-1.5 text-[12px] leading-4 text-white 2xl:text-[13px] min-[120rem]:py-2 min-[120rem]:text-[16px] min-[120rem]:leading-5">
+          // app parity: OfferStripLabel — the sweep, sway and stars
+          <OfferStrip className="px-3.5 py-1.5 text-[12px] leading-4 text-white 2xl:text-[13px] min-[120rem]:py-2 min-[120rem]:text-[16px] min-[120rem]:leading-5">
             <OfferText text={offerLabel} />
-          </div>
+          </OfferStrip>
         ) : (
           <div className="h-1.25" />
         )}

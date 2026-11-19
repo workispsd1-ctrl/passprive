@@ -7,8 +7,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { CardBadgeArt } from '@/components/shared/CardBadgeArt'
 import type { CardBadge } from '@/lib/cashback'
-import { Heart, Flame, Grid2x2 } from 'lucide-react'
+import { Flame, Grid2x2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { OfferStrip } from '@/components/shared/motion/OfferStrip'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import { useSaved } from '@/lib/context/SavedContext'
 import { SaveListSheet } from '@/components/SaveListSheet'
 
@@ -34,6 +36,8 @@ interface Props {
    * or `bare` (FreshSpots: no card, badge or chips; a wider, shorter photo)
    */
   variant?: 'card' | 'bare'
+  /** app parity: PromotionalCards KenBurnsImage — the photo slowly zooms and drifts; the number staggers cards */
+  kenBurns?: number
 }
 
 /** Frame + offer-strip colour — fixed across every card, no per-card variation. */
@@ -77,6 +81,7 @@ export function DiningMerchantCard({
   tagline,
   chips = [],
   variant = 'card',
+  kenBurns,
 }: Props) {
   const bare = variant === 'bare'
   const { isSaved, toggle, setSaved } = useSaved()
@@ -119,7 +124,9 @@ export function DiningMerchantCard({
               src={image}
               alt={name}
               fill
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+              className={cn('object-cover', kenBurns == null ? 'transition-transform duration-500 group-hover:scale-[1.04]' : 'pp-motion')}
+              // 3s per pass as the app's SLIDE_MS, there and back
+              style={kenBurns == null ? undefined : { animation: `pp-ken-burns 3s ease-in-out ${-(kenBurns % 4) * 0.75}s infinite alternate` }}
               sizes="361px"
             />
           ) : (
@@ -138,14 +145,15 @@ export function DiningMerchantCard({
               saved ? 'scale-110 text-brand' : 'text-white',
             )}
           >
-            <Heart className={cn('h-6 w-6', saved && 'fill-current')} />
+            <PopHeart saved={saved} className={cn('h-6 w-6', saved && 'fill-current')} />
           </button>
         </div>
 
         {offerLabel ? (
-          <div className="px-3.5 py-1.5 text-[12px] leading-4 text-white 2xl:text-[13px] min-[120rem]:py-2 min-[120rem]:text-[16px] min-[120rem]:leading-5">
+          // app parity: OfferStripLabel — the sweep, sway and stars
+          <OfferStrip className="px-3.5 py-1.5 text-[12px] leading-4 text-white 2xl:text-[13px] min-[120rem]:py-2 min-[120rem]:text-[16px] min-[120rem]:leading-5">
             <OfferText text={offerLabel} />
-          </div>
+          </OfferStrip>
         ) : (
           <div className="h-1.25" />
         )}

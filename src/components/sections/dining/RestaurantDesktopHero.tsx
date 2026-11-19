@@ -1,13 +1,14 @@
 'use client'
 
 import Image from 'next/image'
+import { PopHeart } from '@/components/shared/motion/PopHeart'
 import { DealQuotaGauge } from '@/components/shared/deals/DealQuotaGauge'
 import type { CardChipKey } from '@/lib/cardChips'
 import { CardChips } from '@/components/shared/CardChips'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
-import { Check, ChevronDown, Heart, Share2 } from 'lucide-react'
+import { Check, ChevronDown, Share2 } from 'lucide-react'
 import { useLocation } from '@/lib/context/LocationContext'
 import { canPayBill, getCashbackPct, type MerchantCapabilityFields } from '@/lib/cashback'
 import { formatDistanceKm, haversineKm } from '@/lib/utils'
@@ -131,7 +132,7 @@ export function RestaurantDesktopHero({
           )}
           <div className='absolute flex' style={{ top: tMin(32, 12), right: tMin(40, 12), gap: tMin(24, 8) }}>
             <button type='button' onClick={saver.onSave} aria-label={saver.saved ? 'Edit saved lists' : 'Save'} aria-pressed={saver.saved} className={ICON_BUTTON} style={{ width: tMin(48, 34), height: tMin(48, 34) }}>
-              <Heart className={cn(saver.saved && 'fill-brand text-brand')} style={{ width: tMin(22, 17), height: tMin(22, 17) }} />
+              <PopHeart saved={saver.saved} className={cn(saver.saved && 'fill-brand text-brand')} style={{ width: tMin(22, 17), height: tMin(22, 17) }} />
             </button>
             <button
               type='button'

@@ -55,10 +55,10 @@ export function getMerchantNow(from = new Date()) {
   }
 }
 
-/** app parity: `buildContinuousDates` */
+/** app parity: `buildContinuousDates` — from today in Mauritius, whatever the browser's timezone (b2ff80a). */
 export function buildDates(count: number): BookingDate[] {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const [y, mo, day] = getMerchantNow().dateId.split('-').map(Number)
+  const start = new Date(y, mo - 1, day)
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
@@ -127,17 +127,17 @@ export function buildSlots(hours: HoursRow[], date: BookingDate): Slot[] {
   return slots
 }
 
-/** app parity: `getDefaultMealByCurrentTime` */
+/** app parity: `getDefaultMealByCurrentTime` — by the Mauritius clock (b2ff80a). */
 export function defaultMeal(): Meal {
-  return new Date().getHours() >= 17 ? 'Dinner' : 'Lunch'
+  return getMerchantNow().minutes >= LUNCH_END_MINUTES ? 'Dinner' : 'Lunch'
 }
 
 /** "Today", "Tomorrow" or the weekday — app parity: ReviewStoreBooking `dayLabel`. */
 export function dayLabel(dateId: string): string {
   const [y, m, d] = dateId.split('-').map(Number)
   const date = new Date(y, m - 1, d)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const [ty, tm, td] = getMerchantNow().dateId.split('-').map(Number)
+  const today = new Date(ty, tm - 1, td)
   const diff = Math.round((date.getTime() - today.getTime()) / 86400000)
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Tomorrow'
@@ -147,4 +147,9 @@ export function dayLabel(dateId: string): string {
 export function longDate(dateId: string): string {
   const [y, m, d] = dateId.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+/** A Mauritius date + time as an instant — app parity (b2ff80a): `${dateId}T${time}:00+04:00`. */
+export function merchantInstant(dateId: string, time24: string): number {
+  return Date.parse(`${dateId}T${time24.slice(0, 5)}:00+04:00`)
 }

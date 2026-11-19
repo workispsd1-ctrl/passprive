@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
+import { cachedCatalog, unwrap } from '@/lib/catalogCache';
 import type { WebsiteBanner, WebsiteBannerSection } from '@/lib/types/websiteBanners';
 
 /**
@@ -24,21 +25,21 @@ function isWithinWindow(banner: Pick<WebsiteBanner, 'start_at' | 'end_at'>, now:
   return true;
 }
 
+/** A banner table's active rows, shared for CATALOG_TTL — the date window is checked per request. */
+const getBannerRows = cachedCatalog('banner-rows', async (table: string): Promise<WebsiteBanner[]> => {
+  return (unwrap(
+    await createPublicClient()
+      .from(table)
+      .select(BANNER_COLUMNS)
+      .eq('is_active', true)
+      .order('priority', { ascending: true })
+      .order('created_at', { ascending: false }),
+  ) ?? []) as WebsiteBanner[];
+}, []);
+
 export async function getWebsiteBanners(section: WebsiteBannerSection): Promise<WebsiteBanner[]> {
-  const table = TABLE_FOR_SECTION[section];
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from(table)
-    .select(BANNER_COLUMNS)
-    .eq('is_active', true)
-    .order('priority', { ascending: true })
-    .order('created_at', { ascending: false });
-
-  if (error || !data) return [];
-
   const now = Date.now();
-  return (data as WebsiteBanner[]).filter((banner) => isWithinWindow(banner, now));
+  return (await getBannerRows(TABLE_FOR_SECTION[section])).filter((banner) => isWithinWindow(banner, now));
 }
 
 /**
@@ -55,16 +56,8 @@ const APP_TABLE_FOR_SECTION: Record<WebsiteBannerSection, string> = {
 };
 
 export async function getAppBanners(section: WebsiteBannerSection): Promise<WebsiteBanner[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from(APP_TABLE_FOR_SECTION[section])
-    .select(BANNER_COLUMNS)
-    .eq('is_active', true)
-    .order('priority', { ascending: true })
-    .order('created_at', { ascending: false });
-  if (error || !data) return [];
   const now = Date.now();
-  return (data as WebsiteBanner[]).filter((banner) => isWithinWindow(banner, now));
+  return (await getBannerRows(APP_TABLE_FOR_SECTION[section])).filter((banner) => isWithinWindow(banner, now));
 }
 
 export type AppBannerSets = Record<WebsiteBannerSection, WebsiteBanner[]>;

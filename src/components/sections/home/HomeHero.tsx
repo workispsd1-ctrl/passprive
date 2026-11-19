@@ -19,12 +19,23 @@ import { planCashbackPct } from '@/lib/cashback'
  * TODO(design): the fallback's Privé Credits ticket + coin art and the CSS palm
  * silhouette are placeholders.
  */
-export function HomeHero({ banners }: { banners: WebsiteBanner[] }) {
+/** 1920-wide design: the 96-tall header bar over a 600-tall banner. */
+const HEADER_H = 'calc(var(--u) * 96)'
+
+export function HomeHero({ banners, underHeader = false }: { banners: WebsiteBanner[]; /** desktop: the header bar lies over the hero */ underHeader?: boolean }) {
   const cashbackPct = planCashbackPct(useUserPlan())
   const pathname = usePathname()
   if (pathname !== '/') return null
 
   if (banners.length > 0) {
+    if (underHeader) {
+      // the full 1920 × 600 banner below the header's 96, not shortened by it
+      return (
+        <div style={{ height: `calc(var(--u) * 696)` }} className='relative'>
+          <BannerCarousel banners={banners} fill topInset={HEADER_H} className='rounded-none!' />
+        </div>
+      )
+    }
     return (
       <BannerCarousel
         banners={banners}

@@ -28,7 +28,7 @@ export function MoodCategoriesSection({
           key={c.key}
           href={`/dining/mood/${encodeURIComponent(c.slug)}`}
           aria-label={c.title}
-          className="w-32.75 shrink-0 transition-transform hover:-translate-y-0.5 2xl:w-45.75 min-[120rem]:w-62"
+          className="w-32.75 shrink-0 transition-transform duration-150 ease-out hover:-translate-y-0.5 active:scale-110 active:duration-100 motion-reduce:transition-none 2xl:w-45.75 min-[120rem]:w-62"
         >
           <div className="relative h-34.5 w-full overflow-hidden rounded-[17px] 2xl:h-47.5 2xl:rounded-[24px] min-[120rem]:h-71">
             {c.image_url && (

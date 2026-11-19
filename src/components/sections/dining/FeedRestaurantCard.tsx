@@ -10,7 +10,7 @@ import { DiningMerchantCard } from './DiningMerchantCard'
 import type { FeaturedRestaurant } from '@/lib/types/dining'
 
 /** A `restaurant_feed` row rendered as the shared dining card (distance from the user's location). */
-export function FeedRestaurantCard({ r, variant, withCost = false }: { r: FeaturedRestaurant; variant?: 'card' | 'bare'; /** app TrendingCard: "cuisines • MUR X for two" */ withCost?: boolean }) {
+export function FeedRestaurantCard({ r, variant, withCost = false, kenBurns }: { r: FeaturedRestaurant; variant?: 'card' | 'bare'; /** app TrendingCard: "cuisines • MUR X for two" */ withCost?: boolean; /** slow zoom on the photo (promotional rails); the number staggers cards */ kenBurns?: number }) {
   const { location } = useLocation()
   const plan = useUserPlan()
   // Measured from the location selected right now; the feed's own distance
@@ -43,6 +43,7 @@ export function FeedRestaurantCard({ r, variant, withCost = false }: { r: Featur
       tagline={tagline || undefined}
       chips={getCardChips(r)}
       variant={variant}
+      kenBurns={kenBurns}
     />
   )
 }

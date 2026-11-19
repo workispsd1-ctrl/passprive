@@ -12,7 +12,8 @@ import type { CashbackPlan } from '@/lib/cashback'
 import { fetchCashbackBalance } from '@/lib/services/cashbackBalance'
 import { cn, formatDistanceKm, haversineKm } from '@/lib/utils'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { resolveMerchantTrace, resolveSessionId } from '@/lib/utils/payment'
+import { resolveMerchantTrace, resolveMipsZone, resolveSessionId } from '@/lib/utils/payment'
+import { usePaymentWindow } from '@/lib/hooks/usePaymentWindow'
 import {
   MAX_BILL_DIGITS,
   PAY_BILL_RESUME_KEY,
@@ -33,6 +34,7 @@ import {
 import { t, u } from '@/components/sections/dining/designUnit'
 import { ProcessingScreen } from '@/components/sections/dining/PaymentScreens'
 import { CardButton, Capsule, Radio, RestaurantPanel, type MerchantPanelData } from '@/components/sections/dining/MerchantFlowParts'
+import { OrderBillSummary } from '@/components/sections/dining/order/OrderBillSummary'
 
 const PLAN_LABEL: Record<CashbackPlan, string> = { free: 'Free', premiere: 'Plus', black: 'Black' }
 const D = '/assets/merchant-detail'
@@ -84,23 +86,6 @@ function CouponCard({ offer, amount, applied, onToggle }: { offer: BillOffer; am
         )}
       </span>
     </button>
-  )
-}
-
-/** The payment gateway's page, embedded as the app's WebView does; the page follows the session. */
-function PaymentFrame({ src, srcDoc, onCancel }: { src: string; srcDoc: string; onCancel: () => void }) {
-  return (
-    <div className='fixed inset-0 z-50 flex flex-col bg-white'>
-      <div className='flex items-center justify-between border-b border-[#efefef]' style={{ padding: `${t(16)} ${t(32)}` }}>
-        <span className='font-semibold text-[#2c2d32]' style={{ fontSize: t(24) }}>Secure payment</span>
-        <button type='button' onClick={onCancel} className='font-semibold text-[#ff4800]' style={{ fontSize: t(22) }}>Cancel</button>
-      </div>
-      {src ? (
-        <iframe title='Secure payment' src={src} className='w-full flex-1 border-0' />
-      ) : (
-        <iframe title='Secure payment' srcDoc={srcDoc} sandbox='allow-scripts allow-forms allow-popups allow-top-navigation-by-user-activation' className='w-full flex-1 border-0' />
-      )}
-    </div>
   )
 }
 
@@ -160,7 +145,12 @@ export function PayBillClient({
   const [upgradeApplied, setUpgradeApplied] = useState(false)
   // order checkout: the upgrade is its own sheet, never part of the order total (app: OrderBillSummaryScreen BlackUpgradeSheet)
   const [upgradeSheet, setUpgradeSheet] = useState(false)
-  const [frame, setFrame] = useState<{ sessionId: string; merchantTrace: string; src: string; srcDoc: string } | null>(null)
+  // the bank's MIPS page in its own window (it can't be embedded in the site); the hook follows the session
+  const bank = usePaymentWindow(({ sessionId, outcome }) => {
+    const qs = new URLSearchParams({ session_id: sessionId })
+    if (outcome) qs.set('outcome', outcome)
+    router.replace(`/pay-bill/payment-return?${qs}`)
+  })
   const [quote, setQuote] = useState<{ amount: number; data: BillQuote } | null>(null)
   const [balance, setBalance] = useState(0)
   const [useCredits, setUseCredits] = useState(false)
@@ -318,32 +308,6 @@ export function PayBillClient({
     else router.push(merchantHref)
   }
 
-  // Follow the session as the app does (waitForMipsPayment: payment_sessions.status
-  // every 2.5s, up to 15 minutes); the backend finalizes the bill and credits the cashback.
-  useEffect(() => {
-    if (!frame) return
-    let live = true
-    let timer: ReturnType<typeof setTimeout>
-    const started = Date.now()
-    const end = (outcome: string) => {
-      const qs = new URLSearchParams({ session_id: frame.sessionId, outcome })
-      router.replace(`/pay-bill/payment-return?${qs}`)
-    }
-    const tick = async () => {
-      const status = await fetch(`/api/pay-bill/status?session_id=${encodeURIComponent(frame.sessionId)}`, { cache: 'no-store' })
-        .then(res => res.json() as Promise<{ status?: string }>)
-        .then(d => String(d.status ?? ''))
-        .catch(() => '')
-      if (!live) return
-      if (status === 'VERIFIED_SUCCESS' || status === 'FINALIZED') return end('success')
-      if (status === 'VERIFIED_FAILED' || status === 'FAILED') return end('failed')
-      if (Date.now() - started > 15 * 60 * 1000) return end('failed')
-      timer = setTimeout(tick, 2500)
-    }
-    timer = setTimeout(tick, 2500)
-    return () => { live = false; clearTimeout(timer) }
-  }, [frame, router])
-
   // app parity: startMembershipPayment — buy the plan first, then come back to this bill
   function startUpgrade() {
     if (!upsell) return
@@ -363,6 +327,7 @@ export function PayBillClient({
 
   async function pay() {
     if (paying || method !== 'card' || !(toPay > 0)) return
+    bank.open() // inside the click, so pop-up blockers allow it
     setPaying(true)
     setError('')
     try {
@@ -379,7 +344,7 @@ export function PayBillClient({
         }),
       })
       const data = (await res.json()) as Record<string, unknown>
-      if (res.status === 401) { setPaying(false); promptLogin(); return }
+      if (res.status === 401) { bank.close(); setPaying(false); promptLogin(); return }
       if (!res.ok) throw new Error((data.error as string) ?? 'Payment could not be started')
 
       const sessionId = resolveSessionId(data)
@@ -397,17 +362,16 @@ export function PayBillClient({
         paidAmount: toPay,
         cashback,
         orderItems: orderLines ?? undefined,
+        lat: r.lat,
+        lng: r.lng,
       }
       try { sessionStorage.setItem(PENDING_BILL_KEY, JSON.stringify(pending)) } catch { /* private mode — the receipt shows less */ }
 
-      // app parity: payment_zone_html is an iframe to its page, a URL, or HTML to show as is
-      const rawZone = String(data.payment_zone_html ?? '').trim()
-      const frameSrc = rawZone.match(/<iframe[^>]+src=["'](https?:\/\/[^"']+)["']/i)?.[1]?.replace(/&amp;/g, '&')
-      const zone = frameSrc || rawZone
-      if (!zone) throw new Error('Payment launch URL not returned.')
-      const isUrl = /^https?:\/\//i.test(zone)
-      setFrame({ sessionId, merchantTrace: pending.merchantTrace, src: isUrl ? zone : '', srcDoc: isUrl ? '' : zone })
+      if (!resolveMipsZone(data)) throw new Error('Payment launch URL not returned.')
+      // app parity: PaymentProcessingScreen opens the MIPS page; here in the pop-up (or this tab when blocked)
+      bank.launch(data, { sessionId, merchantTrace: pending.merchantTrace })
     } catch (err) {
+      bank.close()
       setError(err instanceof Error ? err.message : 'Please try again.')
       setPaying(false)
     }
@@ -416,8 +380,57 @@ export function PayBillClient({
   const title = { amount: 'Enter your bill amount', summary: 'Bill summary', method: 'Select payment method' }[step]
   const shown = digits ? Number(digits).toLocaleString('en-US') : ''
 
+  // Order & Collect: the Figma "Pay bill and offers" frame in place of the summary card
+  const orderSummary = isOrder && step === 'summary' ? (
+    <OrderBillSummary
+      name={r.name}
+      place={[r.area, r.city].filter(Boolean).join(', ')}
+      plan={plan}
+      cashbackPct={cashbackPct}
+      amount={amount}
+      toPay={toPay}
+      earnCredits={earnCredits}
+      lines={orderLines}
+      offers={offers}
+      selectedId={selected?.id ?? null}
+      onToggleCoupon={id => setCouponChoice(selected?.id === id ? null : id)}
+      discounts={[
+        selected && offerDiscount > 0 && { label: `Coupon · ${selected.title}`, value: offerDiscount },
+        rewardDiscount > 0 && { label: 'Visit reward', value: rewardDiscount },
+        dealDiscount > 0 && q?.deal && { label: `Deal · ${q.deal.label}`, value: dealDiscount },
+        coverCredit > 0 && { label: 'Cover charge paid at booking', value: coverCredit },
+        creditsApplied > 0 && { label: 'Privé Credits', value: creditsApplied },
+      ].filter((d): d is { label: string; value: number } => !!d)}
+      upsell={
+        upsell && upsell.amount > 0
+          ? {
+              plan: upsell.plan,
+              amount: upsell.amount,
+              sub: [upsell.multiplier && `Get ${upsell.multiplier} OFF`, upsell.pct > 0 && `${upsell.pct}% cashback`].filter(Boolean).join(' and ') || 'More benefits on this order',
+            }
+          : null
+      }
+      onUpgrade={() => setUpgradeSheet(true)}
+      credits={{
+        enabled: burnEnabled,
+        on: creditsApplied > 0,
+        usable: creditsUsable,
+        sub:
+          creditsApplied > 0
+            ? `MUR ${fmtMur(creditsApplied)} applied`
+            : creditsBlocked || (burnCap < balance ? `Use up to MUR ${fmtMur(burnCap)} of MUR ${fmtMur(balance)}` : `MUR ${fmtMur(balance)} is available`),
+        onToggle: () => setUseCredits(v => !v),
+      }}
+      onBack={back}
+      onPay={proceedFromSummary}
+    />
+  ) : null
+
   return (
     <div className='relative overflow-x-clip'>
+      {orderSummary}
+      {!orderSummary && (
+      <>
       {/* the frame's blurred peach circle in the top-left corner */}
       <Image
         src={`${D}/peach-glow.svg`}
@@ -727,6 +740,8 @@ export function PayBillClient({
           </section>
         </div>
       </div>
+      </>
+      )}
 
       {/* app parity: OrderBillSummaryScreen BlackUpgradeSheet — confirm starts the membership payment, then returns to this order */}
       {isOrder && upsell && (
@@ -796,13 +811,18 @@ export function PayBillClient({
         </DialogContent>
       </Dialog>
 
-      {paying && !frame && <ProcessingScreen />}
-      {frame && (
-        <PaymentFrame
-          src={frame.src}
-          srcDoc={frame.srcDoc}
-          onCancel={() => router.replace(`/pay-bill/payment-return?${new URLSearchParams({ session_id: frame.sessionId })}`)}
-        />
+      {paying && !bank.waiting && <ProcessingScreen sub='Opening your bank’s secure page — please do not close this window' />}
+      {bank.waiting && (
+        <ProcessingScreen title='Waiting for your payment…' sub='Enter your card details and the OTP in the bank’s secure window. We’ll show your receipt as soon as it’s done.'>
+          <div className='flex flex-wrap justify-center' style={{ marginTop: t(12), gap: t(16) }}>
+            <button type='button' onClick={bank.focus} className='rounded-full bg-[#ff4800] font-semibold text-white hover:bg-brand-dark' style={{ height: t(64), padding: `0 ${t(36)}`, fontSize: t(22) }}>
+              Show payment window
+            </button>
+            <button type='button' onClick={bank.cancel} className='rounded-full border border-[#d5d5d5] font-semibold text-[#5b5a5a] hover:border-[#bdbdbd]' style={{ height: t(64), padding: `0 ${t(36)}`, fontSize: t(22) }}>
+              Cancel
+            </button>
+          </div>
+        </ProcessingScreen>
       )}
     </div>
   )

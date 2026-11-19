@@ -2,7 +2,7 @@
  * Booking request bodies — app parity:
  * - utils/restaurantBookingApi.js `buildBookingRequest` (free dining confirm)
  * - utils/storeBookingApi.js `buildStoreBookingRequest` (free service confirm)
- * - CardPaymentScreen.jsx BOOKING context (paid cover charge via iVeri)
+ * - PaymentProcessingScreen.jsx BOOKING context (paid booking via MIPS)
  */
 
 export type BookingOption = {
@@ -72,41 +72,15 @@ export function storeConfirmBody(b: ServiceBooking) {
   }
 }
 
-/** iVeri `initiate` fields for a BOOKING that still needs its cover charge paid. */
+/**
+ * `initiate` fields for a BOOKING that is paid now — app parity (b2ff80a):
+ * PaymentProcessingScreen buildPayload, the confirm request without its payment.
+ */
 export function bookingPaymentBody(b: DiningBooking | ServiceBooking) {
-  const common = {
-    guests: b.guests,
-    selectedDate: b.dateId,
-    selectedDateId: b.dateId,
-    selectedTime: b.time24,
-    selectedTime24: b.time24,
-    notes: b.notes,
-  }
   if (b.kind === 'restaurant') {
-    return {
-      restaurant_id: b.restaurantId,
-      booking_payload: {
-        ...common,
-        restaurant: { id: b.restaurantId },
-        meal: b.meal,
-        // app parity (fbaf070): the option goes as picked — a paid booking keeps its deal
-        option: b.option,
-      },
-    }
+    return { restaurant_id: b.restaurantId, booking_payload: { ...diningConfirmBody(b), payment: undefined } }
   }
-  // app parity (fbaf070): PaymentProcessingScreen — buildStoreBookingRequest without its payment
-  return {
-    store_id: b.storeId,
-    service_booking_payload: {
-      store: { id: b.storeId },
-      guests: b.guests,
-      selectedDate: b.dateId,
-      selectedTime: b.time24,
-      selectedServices: b.services,
-      notes: b.notes,
-      option: b.option,
-    },
-  }
+  return { store_id: b.storeId, service_booking_payload: { ...storeConfirmBody(b), payment: undefined } }
 }
 
 /** The booking row out of a confirm/finalize response — app parity: `bookingConfirmation?.booking`. */

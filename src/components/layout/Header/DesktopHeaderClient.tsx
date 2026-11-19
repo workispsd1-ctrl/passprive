@@ -35,8 +35,12 @@ const MEMBERSHIP_BADGE: Record<string, string> = {
 // absorbs the difference so nothing overflows on tablets.
 //
 // Home gets the orange "light" theme; every other page the white one.
+// With home banners, the bar has no colour of its own: it lies over the banner
+// (app parity: Home's header sits transparent on HomeOffers), so the banner's
+// own colours — orange, festive green… — run up behind the logo and search.
 export function DesktopHeaderClient({ user, banners, wellnessBanners, membershipTier, minimal = false }: Props) {
   const isHome = usePathname() === '/'
+  const overBanner = isHome && !minimal && banners.length > 0
   const badgeSrc = MEMBERSHIP_BADGE[membershipTier] ?? '/assets/membership/FreeBadge.webp'
 
   // Privé credits = cashback balance, fetched the same way as the app.
@@ -46,13 +50,16 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, membership
   }, [])
 
   return (
-    <div className="hidden bg-white @container md:block [--u:max(100cqw/1920,0.5px)]">
+    <div className="relative hidden bg-white @container md:block [--u:max(100cqw/1920,0.5px)]">
       <div
         className={cn(
           'flex h-[calc(var(--u)*96)] items-center justify-between gap-[calc(var(--u)*64)] px-[calc(var(--u)*48)]',
-          isHome
-            ? 'bg-brand border-b-2 border-[rgba(206,68,14,0.14)]'
-            : 'border-b border-[#EAEAEA]',
+          overBanner
+            ? // a faint shade keeps the white logo and location legible on light banners
+              'absolute inset-x-0 top-0 z-30 bg-linear-to-b from-black/20 to-transparent'
+            : isHome
+              ? 'bg-brand border-b-2 border-[rgba(206,68,14,0.14)]'
+              : 'border-b border-[#EAEAEA]',
         )}
       >
         {/* Logo · divider · location — 521.39 wide, gap 30 */}
@@ -142,7 +149,7 @@ export function DesktopHeaderClient({ user, banners, wellnessBanners, membership
       </div>
 
       {!minimal && (
-        <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} pad="px-4 md:px-12" />
+        <HeaderHeroNav banners={banners} wellnessBanners={wellnessBanners} pad="px-4 md:px-12" underHeader={overBanner} />
       )}
     </div>
   )

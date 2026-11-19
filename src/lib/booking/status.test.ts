@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hasLiveProposal, isBlockingBooking, isBookingRejected, proposalLabel } from './status'
+import { hasLiveProposal, isBlockingBooking, isBookingRejected, proposalCoverAmount, proposalLabel, proposalPayNow } from './status'
 
 const NOW = Date.parse('2026-11-03T08:00:00Z')
 const proposal = { status: 'pending', proposed_at: '2026-11-03T07:00:00Z', proposed_date: '2026-11-05', proposed_time: '19:30:00' }
@@ -34,5 +34,19 @@ describe('isBlockingBooking', () => {
   it('never blocks on a cancelled booking', () => {
     expect(isBlockingBooking({ status: 'cancelled' })).toBe(false)
     expect(isBookingRejected({ status: 'Declined' })).toBe(true)
+  })
+})
+
+describe('store proposals and cover asks (app b2ff80a)', () => {
+  it('a store appointment proposal is live while new / placed', () => {
+    expect(hasLiveProposal({ ...proposal, status: 'new' }, NOW, 'store')).toBe(true)
+    expect(hasLiveProposal({ ...proposal, status: 'PLACED' }, NOW, 'store')).toBe(true)
+    expect(hasLiveProposal({ ...proposal, status: 'pending' }, NOW, 'store')).toBe(false)
+  })
+  it('counts the cover ask only above what the booking already carries', () => {
+    expect(proposalCoverAmount({ proposed_cover_amount: 500, cover_charge_amount: 200 })).toBe(500)
+    expect(proposalPayNow({ proposed_cover_amount: 500, cover_charge_amount: 200 })).toBe(300)
+    expect(proposalCoverAmount({ proposed_cover_amount: 200, cover_charge_amount: 200 })).toBe(0)
+    expect(proposalPayNow({ proposed_cover_amount: null })).toBe(0)
   })
 })

@@ -72,7 +72,7 @@ export default async function CollectionPage({
           Nothing in this collection yet.
         </p>
       ) : (
-        <div className="mt-8 flex flex-wrap justify-center gap-4 md:justify-start">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 *:w-full!">
           {restaurants.map((r) => (
             <FeedRestaurantCard key={r.id} r={r} />
           ))}

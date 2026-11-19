@@ -36,3 +36,16 @@ export function unwrap<T>(res: { data: T; error: { message: string } | null }): 
   if (res.error) throw new Error(res.error.message)
   return res.data
 }
+
+/** Returned by a cached read that failed — the caller reads live for that request instead. */
+export const CATALOG_MISS = '__catalog_miss__' as const
+
+/**
+ * The rows of a Supabase result. Strict (inside a cached read): an error
+ * throws, so nothing is cached and the caller falls back. Lenient (the live
+ * fallback): an error reads as no rows, as the uncached loaders always did.
+ */
+export function rowsOf<T>(res: { data: T | null; error: { message: string } | null }, strict: boolean): T | null {
+  if (res.error && strict) throw new Error(res.error.message)
+  return res.data
+}

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createPublicClient } from '@/lib/supabase/public'
-import { cachedCatalog, unwrap } from '@/lib/catalogCache'
+import { CATALOG_MISS, cachedCatalog, rowsOf, unwrap } from '@/lib/catalogCache'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { isRepeatRewardOffer } from '@/lib/deals'
 import { buildCatalogueCollections, type CatalogueCategoryRow } from '@/lib/storeCatalogue'
 import { sortByMerchant } from '@/lib/utils'
@@ -195,58 +196,81 @@ export const getStoreMoodCategories = cachedCatalog('store-moods', async (): Pro
   ]
 }, [])
 
-export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail | null> {
-  const supabase = await createClient()
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** An active store by slug, else by id — an id lookup with a non-uuid would be a query error. */
+async function findStore<T>(db: SupabaseClient, select: string, slugOrId: string, strict: boolean): Promise<T | null> {
+  const one = async (col: 'slug' | 'id') =>
+    rowsOf(await db.from('stores').select(select).eq(col, slugOrId).eq('is_active', true).maybeSingle(), strict) as T | null
+  return (await one('slug')) ?? (UUID_RE.test(slugOrId) ? await one('id') : null)
+}
+
+/** Each result's rows; strict throws on the first error so nothing is cached. */
+const allRows = (results: { data: unknown; error: { message: string } | null }[], strict: boolean) =>
+  results.map(r => (rowsOf(r, strict) ?? []) as unknown[])
+
+type StoreRows = {
+  store: Store
+  gallery: MediaAsset[]
+  hours: OpeningHour[]
+  catalogueCats: CatalogueCategoryRow[]
+  items: CatalogueItem[]
+  tags: StoreTag[]
+  offers: (StoreOffer & { start_at?: string | null; end_at?: string | null; metadata?: Record<string, unknown> | null })[]
+  socials: SocialLink[]
+} | null
+
+async function fetchStoreRows(db: SupabaseClient, slugOrId: string, strict: boolean): Promise<StoreRows> {
   const SELECT = 'id,name,slug,store_type,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted,is_advertised,booking_service_type,store_subscriptions(status,pickup_premium_enabled,repeat_rewards_enabled,starts_at,expires_at)'
-
-  let { data: store } = await supabase
-    .from('stores')
-    .select(SELECT)
-    .eq('slug', slugOrId)
-    .eq('is_active', true)
-    .maybeSingle()
-
-  if (!store) {
-    const res = await supabase
-      .from('stores')
-      .select(SELECT)
-      .eq('id', slugOrId)
-      .eq('is_active', true)
-      .maybeSingle()
-    store = res.data
-  }
-
+  const store = await findStore<Store>(db, SELECT, slugOrId, strict)
   if (!store) return null
 
-  const [galleryRes, hoursRes, catalogueCatsRes, itemsRes, tagsRes, offersRes, socialRes] = await Promise.allSettled([
-    supabase.from('store_media_assets').select('file_url, sort_order').eq('store_id', store.id).eq('asset_type', 'gallery').eq('is_active', true).order('sort_order'),
-    supabase.from('store_opening_hours').select('day_of_week, open_time, close_time, is_closed').eq('store_id', store.id).order('day_of_week'),
+  const [gallery, hours, catalogueCats, items, tags, offers, socials] = allRows(await Promise.all([
+    db.from('store_media_assets').select('file_url, sort_order').eq('store_id', store.id).eq('asset_type', 'gallery').eq('is_active', true).order('sort_order'),
+    db.from('store_opening_hours').select('day_of_week, open_time, close_time, is_closed').eq('store_id', store.id).order('day_of_week'),
     // app parity: StoreCatalogueSection prefetchStoreCatalogue — enabled categories + available items
-    supabase.from('store_catalogue_categories').select('id, title, sort_order').eq('store_id', store.id).eq('enabled', true).order('sort_order'),
-    supabase.from('store_catalogue_items').select('id, category_id, title, price, description, image_url, is_available, updated_at, sort_order').eq('store_id', store.id).eq('is_available', true).order('sort_order'),
-    supabase.from('store_tags').select('tag_value').eq('store_id', store.id).eq('tag_type', 'tag'),
-    supabase.from('store_offers').select('id, title, description, badge_text, offer_type, discount_value, start_at, end_at, metadata').eq('store_id', store.id).eq('is_active', true),
-    supabase.from('store_social_links').select('platform, url').eq('store_id', store.id).order('sort_order'),
-  ])
-
-  const collections = buildCatalogueCollections(
-    catalogueCatsRes.status === 'fulfilled' ? (catalogueCatsRes.value.data ?? []) as CatalogueCategoryRow[] : [],
-    itemsRes.status === 'fulfilled' ? (itemsRes.value.data ?? []) as CatalogueItem[] : [],
-  )
+    db.from('store_catalogue_categories').select('id, title, sort_order').eq('store_id', store.id).eq('enabled', true).order('sort_order'),
+    db.from('store_catalogue_items').select('id, category_id, title, price, description, image_url, is_available, updated_at, sort_order').eq('store_id', store.id).eq('is_available', true).order('sort_order'),
+    db.from('store_tags').select('tag_value').eq('store_id', store.id).eq('tag_type', 'tag'),
+    db.from('store_offers').select('id, title, description, badge_text, offer_type, discount_value, start_at, end_at, metadata').eq('store_id', store.id).eq('is_active', true),
+    db.from('store_social_links').select('platform, url').eq('store_id', store.id).order('sort_order'),
+  ]), strict)
 
   return {
-    store: store as Store,
-    gallery:  galleryRes.status  === 'fulfilled' ? (galleryRes.value.data  ?? []) as MediaAsset[]   : [],
-    hours:    hoursRes.status    === 'fulfilled' ? (hoursRes.value.data    ?? []) as OpeningHour[]   : [],
-    items:    collections.flatMap(c => c.items),
+    store,
+    gallery: gallery as MediaAsset[],
+    hours: hours as OpeningHour[],
+    catalogueCats: catalogueCats as CatalogueCategoryRow[],
+    items: items as CatalogueItem[],
+    tags: tags as StoreTag[],
+    offers: offers as NonNullable<StoreRows>['offers'],
+    socials: socials as SocialLink[],
+  }
+}
+
+/** Shared by every visitor for CATALOG_TTL — the same public rows for all of them. */
+const getCachedStoreRows = cachedCatalog(
+  'store-detail',
+  (slugOrId: string) => fetchStoreRows(createPublicClient(), slugOrId, true),
+  CATALOG_MISS as StoreRows | typeof CATALOG_MISS,
+)
+
+export async function getStoreBySlugOrId(slugOrId: string): Promise<StoreDetail | null> {
+  let rows = await getCachedStoreRows(slugOrId)
+  if (rows === CATALOG_MISS) rows = await fetchStoreRows(await createClient(), slugOrId, false).catch(() => null)
+  if (!rows) return null
+
+  const collections = buildCatalogueCollections(rows.catalogueCats, rows.items)
+  return {
+    store: rows.store,
+    gallery: rows.gallery,
+    hours: rows.hours,
+    items: collections.flatMap(c => c.items),
     collections,
-    tags:     tagsRes.status     === 'fulfilled' ? (tagsRes.value.data     ?? []) as StoreTag[]      : [],
-    // live, and not a stamp-card "on 5th visit" reward (those belong to repeat rewards)
-    offers:   offersRes.status   === 'fulfilled'
-      ? ((offersRes.value.data ?? []) as (StoreOffer & { start_at?: string | null; end_at?: string | null; metadata?: Record<string, unknown> | null })[])
-          .filter(o => isActiveNow(o.start_at, o.end_at) && !isRepeatRewardOffer({ metadata: o.metadata ?? null, offer_type: o.offer_type ?? null, title: o.title ?? null }))
-      : [],
-    socials:  socialRes.status   === 'fulfilled' ? (socialRes.value.data   ?? []) as SocialLink[]    : [],
+    tags: rows.tags,
+    // live (checked now, not when cached), and not a stamp-card "on 5th visit" reward (those belong to repeat rewards)
+    offers: rows.offers.filter(o => isActiveNow(o.start_at, o.end_at) && !isRepeatRewardOffer({ metadata: o.metadata ?? null, offer_type: o.offer_type ?? null, title: o.title ?? null })),
+    socials: rows.socials,
   }
 }
 
@@ -287,10 +311,13 @@ function toBankOffers(rows: UnifiedOfferRow[]): ServiceOffer[] {
 }
 
 /** Platform-wide bank offers — the shopping store page shows the same ones as the salon page. */
+const getOfferRows = cachedCatalog('unified-offers', async (): Promise<UnifiedOfferRow[]> => {
+  return (unwrap(await createPublicClient().from('offers').select(UNIFIED_OFFER_COLS).order('priority', { ascending: true })) ?? []) as UnifiedOfferRow[]
+}, [])
+
 export async function getBankOffers(): Promise<ServiceOffer[]> {
-  const supabase = await createClient()
-  const { data } = await supabase.from('offers').select(UNIFIED_OFFER_COLS).order('priority', { ascending: true })
-  return toBankOffers((data ?? []) as UnifiedOfferRow[])
+  // the rows are cached; which ones are live is decided now
+  return toBankOffers(await getOfferRows())
 }
 
 /**
@@ -300,43 +327,60 @@ export async function getBankOffers(): Promise<ServiceOffer[]> {
  * and imaged from the master `service_categories`), in-store offers, the
  * platform-wide bank offers from `offers`, and approved reviews.
  */
-export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<ServiceStoreDetail | null> {
-  const supabase = await createClient()
+type ServiceRows = {
+  store: ServiceStore & { top_items: unknown }
+  gallery: MediaAsset[]
+  hours: OpeningHour[]
+  services: unknown[]
+  master: unknown[]
+  items: unknown[]
+  storeOffers: unknown[]
+} | null
+
+async function fetchServiceStoreRows(db: SupabaseClient, slugOrId: string, strict: boolean): Promise<ServiceRows> {
   const SELECT = 'id,name,slug,store_type,description,category,subcategory,location_name,address_line1,city,logo_url,cover_image,phone,whatsapp,website,lat,lng,merchant_type,merchant_plan,pay_bill_enabled,service_level,on_boarded,booking_enabled,cashback_enabled,is_promoted,is_advertised,top_items,booking_service_type,store_subscriptions(status,pickup_premium_enabled,repeat_rewards_enabled,starts_at,expires_at)'
-
-  let { data: store } = await supabase
-    .from('stores')
-    .select(SELECT)
-    .eq('slug', slugOrId)
-    .eq('is_active', true)
-    .maybeSingle()
-
-  if (!store) {
-    const res = await supabase
-      .from('stores')
-      .select(SELECT)
-      .eq('id', slugOrId)
-      .eq('is_active', true)
-      .maybeSingle()
-    store = res.data
-  }
-
+  const store = await findStore<ServiceStore & { top_items: unknown }>(db, SELECT, slugOrId, strict)
   if (!store) return null
 
-  const [galleryRes, hoursRes, servicesRes, masterRes, itemsRes, storeOffersRes, offersRes, reviewsRes] =
-    await Promise.allSettled([
-      supabase.from('store_media_assets').select('file_url, sort_order').eq('store_id', store.id).eq('asset_type', 'gallery').eq('is_active', true).order('sort_order'),
-      supabase.from('store_opening_hours').select('day_of_week, open_time, close_time, is_closed').eq('store_id', store.id).order('day_of_week'),
-      supabase.from('store_services').select('id, title, description, category, base_price, sort_order').eq('store_id', store.id).eq('is_active', true).order('sort_order', { ascending: true }),
-      supabase.from('service_categories').select('key, slug, title, subtitle, light_theme_image_url, dark_theme_image_url').eq('is_active', true),
-      supabase.from('store_service_items').select('id, service_id, title, description, price, duration_minutes, service_for, sort_order, is_active').eq('store_id', store.id).order('sort_order', { ascending: true }),
-      supabase.from('store_offers').select('id, title, description, offer_type, discount_value, start_at, end_at, is_active').eq('store_id', store.id).eq('is_active', true).order('created_at', { ascending: false }),
-      supabase.from('offers').select(UNIFIED_OFFER_COLS).order('priority', { ascending: true }),
-      supabase.from('store_reviews').select(STORE_REVIEW_COLS).eq('store_id', store.id).eq('is_approved', true).order('created_at', { ascending: false }).limit(200),
-    ])
+  const [gallery, hours, services, master, items, storeOffers] = allRows(await Promise.all([
+    db.from('store_media_assets').select('file_url, sort_order').eq('store_id', store.id).eq('asset_type', 'gallery').eq('is_active', true).order('sort_order'),
+    db.from('store_opening_hours').select('day_of_week, open_time, close_time, is_closed').eq('store_id', store.id).order('day_of_week'),
+    db.from('store_services').select('id, title, description, category, base_price, sort_order').eq('store_id', store.id).eq('is_active', true).order('sort_order', { ascending: true }),
+    db.from('service_categories').select('key, slug, title, subtitle, light_theme_image_url, dark_theme_image_url').eq('is_active', true),
+    db.from('store_service_items').select('id, service_id, title, description, price, duration_minutes, service_for, sort_order, is_active').eq('store_id', store.id).order('sort_order', { ascending: true }),
+    db.from('store_offers').select('id, title, description, offer_type, discount_value, start_at, end_at, is_active').eq('store_id', store.id).eq('is_active', true).order('created_at', { ascending: false }),
+  ]), strict)
 
-  const rows = <T,>(r: PromiseSettledResult<{ data: T[] | null }>): T[] =>
-    r.status === 'fulfilled' ? (r.value.data ?? []) : []
+  return { store, gallery: gallery as MediaAsset[], hours: hours as OpeningHour[], services, master, items, storeOffers }
+}
+
+const getCachedServiceStoreRows = cachedCatalog(
+  'service-store-detail',
+  (slugOrId: string) => fetchServiceStoreRows(createPublicClient(), slugOrId, true),
+  CATALOG_MISS as ServiceRows | typeof CATALOG_MISS,
+)
+
+/**
+ * Wellness / service store detail — app parity: screens/ServiceStoreDetails.jsx.
+ * Same sources the app reads: the store row (+ `top_items`), gallery, opening
+ * hours, the service catalogue (`store_services` → `store_service_items`, titled
+ * and imaged from the master `service_categories`), in-store offers, the
+ * platform-wide bank offers from `offers`, and approved reviews. Everything but
+ * the reviews is shared across visitors for CATALOG_TTL; the reviews are read
+ * live, as the visitor (anonymous readers can't be relied on to see them).
+ */
+export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<ServiceStoreDetail | null> {
+  let cached = await getCachedServiceStoreRows(slugOrId)
+  const supabase = await createClient()
+  if (cached === CATALOG_MISS) cached = await fetchServiceStoreRows(supabase, slugOrId, false).catch(() => null)
+  if (!cached) return null
+  const store = cached.store
+
+  const [offerRows, reviewsRes] = await Promise.all([
+    getOfferRows(),
+    supabase.from('store_reviews').select(STORE_REVIEW_COLS).eq('store_id', store.id).eq('is_approved', true).order('created_at', { ascending: false }).limit(200),
+  ])
+  const reviewRows = (reviewsRes.data ?? []) as ServiceReview[]
 
   // Category images may be stored as bare "bucket/path" storage keys.
   const publicImage = (raw: string | null | undefined): string | null => {
@@ -349,15 +393,15 @@ export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<Servi
   }
 
   type MasterCategory = { key: string | null; slug: string | null; title: string | null; subtitle: string | null; light_theme_image_url: string | null; dark_theme_image_url: string | null }
-  const master = rows<MasterCategory>(masterRes)
+  const master = cached.master as MasterCategory[]
   const byKey = new Map(master.filter(c => c.key?.trim()).map(c => [c.key!.trim().toUpperCase(), c]))
   const bySlug = new Map(master.filter(c => c.slug?.trim()).map(c => [c.slug!.trim().toLowerCase(), c]))
 
   type ItemRow = ServiceItem & { service_id: string | null; is_active: boolean | null }
-  const items = rows<ItemRow>(itemsRes).filter(i => i.is_active !== false && i.title)
+  const items = (cached.items as ItemRow[]).filter(i => i.is_active !== false && i.title)
 
   type ServiceRow = { id: string; title: string | null; description: string | null; category: string | null; base_price: number | null }
-  const categories: ServiceCategory[] = rows<ServiceRow>(servicesRes).map((service, index) => {
+  const categories: ServiceCategory[] = (cached.services as ServiceRow[]).map((service, index) => {
     const key = (service.category ?? '').trim()
     const m = (key && (byKey.get(key.toUpperCase()) ?? bySlug.get(key.toLowerCase()))) || null
     return {
@@ -375,7 +419,7 @@ export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<Servi
   })
 
   type StoreOfferRow = { id: string; title: string | null; description: string | null; offer_type: string | null; discount_value: number | null; start_at: string | null; end_at: string | null }
-  const inStoreOffers: ServiceOffer[] = rows<StoreOfferRow>(storeOffersRes)
+  const inStoreOffers: ServiceOffer[] = (cached.storeOffers as StoreOfferRow[])
     .filter(o => isActiveNow(o.start_at, o.end_at))
     .map(o => ({
       id: String(o.id),
@@ -386,7 +430,7 @@ export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<Servi
     }))
 
   // app parity: the app reads platform-wide bank offers here (not store-scoped).
-  const bankOffers = toBankOffers(rows<UnifiedOfferRow>(offersRes))
+  const bankOffers = toBankOffers(offerRows)
 
   const s = store as unknown as ServiceStore & { top_items: unknown }
   const topItems = Array.isArray(s.top_items)
@@ -395,14 +439,20 @@ export async function getServiceStoreBySlugOrId(slugOrId: string): Promise<Servi
 
   return {
     store: { ...s, top_items: topItems },
-    gallery: [s.cover_image, ...rows<MediaAsset>(galleryRes).map(g => g.file_url)].filter((v): v is string => !!v),
-    hours: rows<OpeningHour>(hoursRes),
+    gallery: [s.cover_image, ...cached.gallery.map(g => g.file_url)].filter((v): v is string => !!v),
+    hours: cached.hours,
     categories,
     inStoreOffers,
     bankOffers,
-    reviews: rows<ServiceReview>(reviewsRes),
+    reviews: reviewRows,
   }
 }
+
+type BookingSettingsRow = { cover_charge_enabled: boolean | null; cover_charge_amount: number | string | null; booking_terms: unknown } | null
+
+const getBookingSettingsRow = cachedCatalog('store-booking-settings', async (storeId: string): Promise<BookingSettingsRow> => {
+  return unwrap(await createPublicClient().from('stores').select('cover_charge_enabled, cover_charge_amount, booking_terms').eq('id', storeId).maybeSingle()) as BookingSettingsRow
+}, null)
 
 /**
  * Booking settings for a service store — app parity: ReviewStoreBooking.jsx's
@@ -414,13 +464,8 @@ export async function getStoreBookingSettings(storeId: string): Promise<{
   coverChargeAmount: number | null
   bookingTerms: string[]
 }> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('stores')
-    .select('cover_charge_enabled, cover_charge_amount, booking_terms')
-    .eq('id', storeId)
-    .maybeSingle()
-  if (error || !data) return { coverChargeEnabled: false, coverChargeAmount: null, bookingTerms: [] }
+  const data = await getBookingSettingsRow(storeId)
+  if (!data) return { coverChargeEnabled: false, coverChargeAmount: null, bookingTerms: [] }
   return {
     coverChargeEnabled: data.cover_charge_enabled === true,
     coverChargeAmount: data.cover_charge_amount != null ? Number(data.cover_charge_amount) : null,
@@ -458,26 +503,27 @@ export const getEditorialCollections = cachedCatalog('editorial-collections', as
  * fetched by id and kept in that rank order. (The app's
  * `get_editorial_collection_items` RPC isn't deployed; this is its fallback.)
  */
-export async function getEditorialCollectionBySlug(slug: string): Promise<{
+export const getEditorialCollectionBySlug = cachedCatalog('editorial-collection', async (slug: string): Promise<{
   collection: EditorialCollection
   restaurants: FeaturedRestaurant[]
   stores: StoreRow[]
-} | null> {
-  const supabase = await createClient()
-  const { data: collection } = await supabase
+} | null> => {
+  const supabase = createPublicClient()
+  const { data: collection, error } = await supabase
     .from('editorial_collections')
     .select('id, slug, title, subtitle, description, cover_image_url, badge_text, source_name, entity_type, city, area, sort_order, is_featured, save_count')
     .eq('slug', slug)
     .eq('is_active', true)
     .maybeSingle()
+  if (error) throw error
   if (!collection) return null
 
-  const { data: items } = await supabase
+  const items = unwrap(await supabase
     .from('editorial_collection_items')
     .select('restaurant_id, store_id, sort_order')
     .eq('collection_id', collection.id)
     .eq('is_active', true)
-    .order('sort_order')
+    .order('sort_order'))
 
   const restaurantIds = (items ?? []).map((i) => i.restaurant_id).filter(Boolean) as string[]
   const storeIds = (items ?? []).map((i) => i.store_id).filter(Boolean) as string[]
@@ -498,6 +544,8 @@ export async function getEditorialCollectionBySlug(slug: string): Promise<{
           .eq('is_active', true)
       : Promise.resolve({ data: [] }),
   ])
+  // a failed read throws, so a half-empty collection is never cached
+  for (const res of [restaurantRes, storeRes]) if ('error' in res && res.error) throw res.error
 
   const rank = (ids: string[]) => new Map(ids.map((id, i) => [id, i]))
   const rr = rank(restaurantIds)
@@ -523,7 +571,7 @@ export async function getEditorialCollectionBySlug(slug: string): Promise<{
   )
 
   return { collection: collection as EditorialCollection, restaurants, stores }
-}
+}, null)
 
 export const getHomeSections = cachedCatalog('home-sections', async (): Promise<HomeSection[]> => {
   const supabase = createPublicClient()
